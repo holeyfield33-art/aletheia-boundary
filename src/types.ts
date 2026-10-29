@@ -23,8 +23,12 @@ export interface BoundaryRequest {
   receivedAt: string;
 }
 
+/**
+ * Only constraint types the minimizer implements.
+ * Unimplemented types (aggregate, rows, …) are rejected at policy load time.
+ */
 export interface Constraint {
-  type: "columns" | "rows" | "redact" | "aggregate" | "sample" | "limit";
+  type: "columns" | "redact" | "limit" | "sample";
   value: unknown;
 }
 
@@ -79,19 +83,19 @@ export interface PolicyRule {
   /** Simple matchers for v0. Later: richer language. */
   match: {
     action?: string | string[];
-    resource?: string | string[]; // supports glob later
+    resource?: string | string[];
     caller?: string | string[];
     purpose?: string | string[];
   };
   effect: DecisionOutcome;
   constraints?: Constraint[];
   reason?: string;
-  priority?: number; // higher wins
+  priority?: number;
 }
 
 export interface PolicyDocument {
   version: string;
-  defaultEffect: "deny" | "allow"; // fail-closed default is deny
+  defaultEffect: "deny" | "allow";
   rules: PolicyRule[];
 }
 
