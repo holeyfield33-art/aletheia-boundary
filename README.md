@@ -46,7 +46,6 @@ Cloud / local agent
 |     - allow / deny / constrain      |
 |                                     |
 |  2. Data plane                      |
-|     - sandboxed execution           |
 |     - minimizer / projector         |
 |     - providers (Postgres first)    |
 |                                     |
@@ -69,11 +68,11 @@ Fail-closed by default. Policy miss, log failure, or provider error → deny.
 
 | Component              | Role in this product                                      |
 |------------------------|-----------------------------------------------------------|
-| `aletheia-sandbox`     | Hardened V8 isolate + read-only Postgres provider + receipts |
+| `aletheia-sandbox`     | Hardened read-only Postgres path (probe, classifier, cursor) |
 | Aegis provenance       | Signed spans, egress checks, trust lattice patterns       |
 | Aletheia Core          | Runtime policy / intent validation patterns               |
 
-Boundary is the **data-plane enforcement point**. Sandbox becomes a provider behind it. Aegis-style receipts become the log format. Core-style policy thinking informs the decision engine.
+Boundary is the **data-plane enforcement point**. The sandbox hardening is reused as the Postgres provider. Aegis-style receipts are the log format.
 
 This repository is intentionally separate so the boundary can be deployed, versioned, and audited independently of any single agent or model vendor.
 
@@ -81,7 +80,7 @@ This repository is intentionally separate so the boundary can be deployed, versi
 
 ## Status
 
-**0.0.1 scaffold is live.** Core interfaces, policy engine, receipt chain, MCP server, and example policy are in place. Next: real Postgres provider (from aletheia-sandbox), real Ed25519 keys, and persistent log store.
+**0.0.2** — core path is complete end-to-end.
 
 ### MVP targets
 
@@ -89,9 +88,16 @@ This repository is intentionally separate so the boundary can be deployed, versi
 - [x] Core TypeScript interfaces (`Policy`, `Decision`, `Request`, `Receipt`)
 - [x] Minimal MCP server exposing `boundary_request`
 - [x] Declarative YAML/JSON policy (allow/deny + simple transforms)
-- [ ] Postgres provider (reuse hardened path from aletheia-sandbox)
-- [x] Hash-chained receipt log (Ed25519 signature still placeholder)
-- [x] Fail-closed path + basic smoke test
+- [x] Postgres provider (read-only probe, classifier, bounded cursor, minimizer)
+- [x] Hash-chained, Ed25519-signed, persistent receipt log
+- [x] Fail-closed path + smoke test (signature verification included)
+
+### Still open
+
+- [ ] Live integration test against a real read-only Postgres role
+- [ ] File / S3 provider
+- [ ] Richer policy language (CEL or similar)
+- [ ] Hardware key / OS keychain backend for Ed25519
 
 ---
 
@@ -99,15 +105,18 @@ This repository is intentionally separate so the boundary can be deployed, versi
 
 ```
 src/
-  types.ts              Core request / decision / receipt shapes
-  boundary.ts           Orchestrator (decide → data plane → log)
-  policy/engine.ts      Declarative policy evaluation
-  receipt/log.ts        Hash-chained receipt writer
-  data/provider.ts      DataProvider interface + StubProvider
-  mcp/server.ts         MCP stdio server
-  index.ts              Public exports
-policies/
-  example.yaml          Fail-closed example policy
+  types.ts
+  boundary.ts              Orchestrator
+  policy/engine.ts
+  receipt/
+    crypto.ts              Ed25519 keygen / sign / verify
+    log.ts                 Hash-chained + persistent JSONL log
+  data/
+    provider.ts            DataProvider + StubProvider
+    postgres.ts            Hardened Postgres provider + minimizer
+  mcp/server.ts
+  index.ts
+policies/example.yaml
 ```
 
 ---
@@ -119,15 +128,24 @@ git clone https://github.com/holeyfield33-art/aletheia-boundary.git
 cd aletheia-boundary
 npm install
 
-# Smoke test the decision + receipt path
-npx tsx src/boundary.test.ts
+# Smoke test (no DB required)
+npm test
 
-# Run the MCP server (uses StubProvider until Postgres is wired)
+# Run MCP with stub data
 export BOUNDARY_POLICY="./policies/example.yaml"
+npm run dev
+
+# Run MCP against a real read-only Postgres
+export DATABASE_URL="postgres://readonly:secret@localhost:5432/mydb"
+export BOUNDARY_POLICY="./policies/example.yaml"
+export BOUNDARY_KEY_PATH="./keys/boundary.ed25519"
+export BOUNDARY_LOG_PATH="./logs/receipts.jsonl"
 npm run dev
 ```
 
-Agent config example (Claude Desktop / Cursor style):
+On first run the server creates `keys/boundary.ed25519` (mode 0600) and the matching `.pub.pem`. Receipts are appended to `logs/receipts.jsonl`.
+
+Agent config example:
 
 ```json
 {
@@ -136,7 +154,10 @@ Agent config example (Claude Desktop / Cursor style):
       "command": "npx",
       "args": ["tsx", "src/mcp/server.ts"],
       "env": {
-        "BOUNDARY_POLICY": "./policies/example.yaml"
+        "DATABASE_URL": "postgres://readonly:...",
+        "BOUNDARY_POLICY": "./policies/example.yaml",
+        "BOUNDARY_KEY_PATH": "./keys/boundary.ed25519",
+        "BOUNDARY_LOG_PATH": "./logs/receipts.jsonl"
       }
     }
   }
@@ -144,6 +165,16 @@ Agent config example (Claude Desktop / Cursor style):
 ```
 
 The agent receives a single constrained tool. It never talks directly to the database.
+
+---
+
+## Postgres hardening (what is enforced)
+
+1. **Startup write probe** — catalog inspection; refuses to start if the role can INSERT/UPDATE/DELETE/TRUNCATE or CREATE.
+2. **READ ONLY transaction** — every statement runs inside `BEGIN ... READ ONLY` and is always rolled back.
+3. **Classifier** — single-pass tokenizer blocks multi-statement and dangerous functions (`pg_read_file`, `dblink`, etc.).
+4. **Bounded cursor fetch** — rows are never fully materialized beyond the configured cap.
+5. **Minimizer** — policy constraints (`columns`, `redact`, `limit`, `sample`) are applied before data leaves the boundary.
 
 ---
 
