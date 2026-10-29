@@ -1,30 +1,53 @@
 import { createHash, randomUUID } from "node:crypto";
+import { appendFileSync, existsSync, readFileSync, mkdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import type {
   BoundaryRequest,
   Decision,
   MinimizedPayload,
   Receipt,
 } from "../types.js";
+import { signHash, type KeyPair } from "./crypto.js";
 
 /**
- * In-memory + append-only file hash-chained log.
+ * Append-only, hash-chained, Ed25519-signed receipt log.
  *
- * Signature is currently a deterministic placeholder (HMAC-style hash).
- * Replace with real Ed25519 once key management is wired.
+ * Customer owns the private key and the log file.
+ * Vendor cannot rewrite history.
  */
 export class ReceiptLog {
   private lastHash: string | null = null;
   private readonly receipts: Receipt[] = [];
+  private readonly logPath: string | null;
 
   constructor(
-    private readonly keyId: string = "dev-key",
-    private readonly secret: string = "dev-only-change-me"
-  ) {}
+    private readonly keyPair: KeyPair,
+    logPath?: string,
+  ) {
+    this.logPath = logPath ? resolve(logPath) : null;
+    if (this.logPath) {
+      this.hydrateFromDisk();
+    }
+  }
+
+  private hydrateFromDisk(): void {
+    if (!this.logPath || !existsSync(this.logPath)) return;
+    const lines = readFileSync(this.logPath, "utf8").split("\n").filter(Boolean);
+    for (const line of lines) {
+      try {
+        const r = JSON.parse(line) as Receipt;
+        this.receipts.push(r);
+        this.lastHash = r.contentHash;
+      } catch {
+        // skip corrupt line; fail closed on write path instead
+      }
+    }
+  }
 
   create(
     request: BoundaryRequest,
     decision: Decision,
-    payload?: MinimizedPayload
+    payload?: MinimizedPayload,
   ): Receipt {
     const id = randomUUID();
     const createdAt = new Date().toISOString();
@@ -41,12 +64,11 @@ export class ReceiptLog {
       decision,
       payloadSummary,
       createdAt,
-      keyId: this.keyId,
+      keyId: this.keyPair.keyId,
     };
 
     const contentHash = sha256(canonical(body));
-    // Placeholder signature — replace with Ed25519 sign(contentHash)
-    const signature = sha256(`${this.secret}:${contentHash}`);
+    const signature = signHash(this.keyPair.privateKey, contentHash);
 
     const receipt: Receipt = {
       ...body,
@@ -56,6 +78,14 @@ export class ReceiptLog {
 
     this.receipts.push(receipt);
     this.lastHash = contentHash;
+
+    if (this.logPath) {
+      mkdirSync(dirname(this.logPath), { recursive: true });
+      appendFileSync(this.logPath, JSON.stringify(receipt) + "\n", {
+        mode: 0o600,
+      });
+    }
+
     return receipt;
   }
 
@@ -65,6 +95,10 @@ export class ReceiptLog {
 
   getLastHash(): string | null {
     return this.lastHash;
+  }
+
+  get keyId(): string {
+    return this.keyPair.keyId;
   }
 }
 
