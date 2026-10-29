@@ -11,6 +11,12 @@ export type {
 } from "./types.js";
 
 export { PolicyEngine, loadPolicyFromObject } from "./policy/engine.js";
+export {
+  PolicyDocumentSchema,
+  ConstraintSchema,
+  DecisionOutcomeSchema,
+  IMPLEMENTED_CONSTRAINT_TYPES,
+} from "./policy/schema.js";
 export { ReceiptLog } from "./receipt/log.js";
 export {
   generateKeyPair,
