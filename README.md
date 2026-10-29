@@ -81,35 +81,50 @@ This repository is intentionally separate so the boundary can be deployed, versi
 
 ## Status
 
-**Pre-0.1 scaffold.** Interfaces and MCP skeleton are in place. Real policy engine, minimizer, and Postgres provider integration are next.
+**0.0.1 scaffold is live.** Core interfaces, policy engine, receipt chain, MCP server, and example policy are in place. Next: real Postgres provider (from aletheia-sandbox), real Ed25519 keys, and persistent log store.
 
 ### MVP targets
 
 - [x] Repository + architecture documentation
-- [ ] Core TypeScript interfaces (`Policy`, `Decision`, `Request`, `Receipt`)
-- [ ] Minimal MCP server exposing `boundary_request`
-- [ ] Declarative YAML/JSON policy (allow/deny + simple transforms)
+- [x] Core TypeScript interfaces (`Policy`, `Decision`, `Request`, `Receipt`)
+- [x] Minimal MCP server exposing `boundary_request`
+- [x] Declarative YAML/JSON policy (allow/deny + simple transforms)
 - [ ] Postgres provider (reuse hardened path from aletheia-sandbox)
-- [ ] Hash-chained, Ed25519-signed receipt log
-- [ ] Fail-closed path + basic integration test
+- [x] Hash-chained receipt log (Ed25519 signature still placeholder)
+- [x] Fail-closed path + basic smoke test
 
 ---
 
-## Quick start (once implemented)
+## Layout
+
+```
+src/
+  types.ts              Core request / decision / receipt shapes
+  boundary.ts           Orchestrator (decide → data plane → log)
+  policy/engine.ts      Declarative policy evaluation
+  receipt/log.ts        Hash-chained receipt writer
+  data/provider.ts      DataProvider interface + StubProvider
+  mcp/server.ts         MCP stdio server
+  index.ts              Public exports
+policies/
+  example.yaml          Fail-closed example policy
+```
+
+---
+
+## Quick start
 
 ```bash
-# Clone and install
 git clone https://github.com/holeyfield33-art/aletheia-boundary.git
 cd aletheia-boundary
 npm install
 
-# Point at a read-only data source and a policy file
-export DATABASE_URL="postgres://readonly:..."
-export BOUNDARY_POLICY="./policies/example.yaml"
-export BOUNDARY_KEY_PATH="./keys/boundary.ed25519"
+# Smoke test the decision + receipt path
+npx tsx src/boundary.test.ts
 
-# Run the MCP server
-npx aletheia-boundary
+# Run the MCP server (uses StubProvider until Postgres is wired)
+export BOUNDARY_POLICY="./policies/example.yaml"
+npm run dev
 ```
 
 Agent config example (Claude Desktop / Cursor style):
@@ -119,9 +134,8 @@ Agent config example (Claude Desktop / Cursor style):
   "mcpServers": {
     "aletheia-boundary": {
       "command": "npx",
-      "args": ["aletheia-boundary"],
+      "args": ["tsx", "src/mcp/server.ts"],
       "env": {
-        "DATABASE_URL": "postgres://readonly:...",
         "BOUNDARY_POLICY": "./policies/example.yaml"
       }
     }
