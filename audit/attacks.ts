@@ -3,14 +3,13 @@
  * get data the policy forbids. Each attack prints LEAK / HELD with evidence.
  * Run: DATABASE_URL=... npx tsx audit/attacks.ts
  */
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import pg from "pg";
 import YAML from "yaml";
 import { Boundary } from "../src/boundary.js";
 import { PolicyEngine, loadPolicyFromObject } from "../src/policy/engine.js";
-import { ReceiptLog } from "../src/receipt/log.js";
-import { generateKeyPair, verifyHash } from "../src/receipt/crypto.js";
+import { ReceiptLog, computeContentHash, verifyReceipt } from "../src/receipt/log.js";
+import { generateKeyPair } from "../src/receipt/crypto.js";
 import { PostgresProvider } from "../src/data/postgres.js";
 import { StubProvider } from "../src/data/provider.js";
 
@@ -27,7 +26,6 @@ async function main() {
   await provider.init();
   const keys = generateKeyPair();
 
-  // The repo's own shipped policy.
   const shipped = new PolicyEngine(loadPolicyFromObject(YAML.parse(readFileSync("policies/example.yaml", "utf8"))));
   const b = new Boundary(shipped, provider, new ReceiptLog(keys));
 
@@ -80,7 +78,7 @@ async function main() {
     report("A5 misspelled effect 'denny' rejected at load", !rejected,
       rejected ? "policy load threw (held)" : "policy load accepted denny (leak)");
   }
-  // A6: receipt hash does not cover request/decision content (JSON.stringify replacer whitelists top-level keys at every depth).
+  // A6: forging decision must break contentHash (F2 fixed).
   {
     const log = new ReceiptLog(keys);
     const r = await new Boundary(shipped, new StubProvider(), log).handle({ action: "query", resource: "public.users",
@@ -89,11 +87,12 @@ async function main() {
     forged.decision.outcome = "allow";
     forged.decision.reason = "forged";
     forged.request.resource = "public.orders";
-    const { contentHash, signature, ...body } = forged;
-    const recomputed = createHash("sha256").update(JSON.stringify(body, Object.keys(body).sort()), "utf8").digest("hex");
-    const stillValid = recomputed === contentHash && verifyHash(keys.publicKey, contentHash, signature);
-    report("A6 edit decision deny->allow, receipt still verifies", stillValid,
-      `original=${r.decision.outcome} forged=${forged.decision.outcome} hashUnchanged=${recomputed === contentHash} sigValid=${verifyHash(keys.publicKey, contentHash, signature)}`);
+    const recomputed = computeContentHash(forged);
+    const hashMatches = recomputed === forged.contentHash;
+    const v = verifyReceipt(forged, keys.publicKey);
+    // LEAK if forged body still hashes to the same contentHash or verifyReceipt says ok
+    report("A6 edit decision deny->allow, receipt still verifies", hashMatches || v.ok,
+      `hashUnchanged=${hashMatches} verifyOk=${v.ok} reason=${v.reason ?? "n/a"}`);
   }
   // A7: try to flip the transaction to read-write from inside a SELECT, then write.
   {
