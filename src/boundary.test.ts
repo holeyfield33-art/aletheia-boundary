@@ -6,6 +6,7 @@
 import { Boundary } from "./boundary.js";
 import { PolicyEngine, loadPolicyFromObject } from "./policy/engine.js";
 import { ReceiptLog } from "./receipt/log.js";
+import { generateKeyPair, verifyHash } from "./receipt/crypto.js";
 import { StubProvider } from "./data/provider.js";
 
 async function main() {
@@ -32,7 +33,8 @@ async function main() {
 
   const policy = new PolicyEngine(doc);
   const provider = new StubProvider();
-  const log = new ReceiptLog("test-key", "test-secret");
+  const keyPair = generateKeyPair();
+  const log = new ReceiptLog(keyPair); // in-memory only for test
   const boundary = new Boundary(policy, provider, log);
 
   // 1. Allowed schema
@@ -43,6 +45,10 @@ async function main() {
   console.assert(r1.ok === true, "schema should be allowed");
   console.assert(r1.decision.outcome === "allow");
   console.assert(r1.receipt.contentHash.length === 64);
+  console.assert(
+    verifyHash(keyPair.publicKey, r1.receipt.contentHash, r1.receipt.signature),
+    "receipt signature must verify",
+  );
 
   // 2. Denied PII
   const r2 = await boundary.handle({
@@ -51,6 +57,10 @@ async function main() {
   });
   console.assert(r2.ok === false, "users should be denied");
   console.assert(r2.decision.outcome === "deny");
+  console.assert(
+    verifyHash(keyPair.publicKey, r2.receipt.contentHash, r2.receipt.signature),
+    "deny receipt must also verify",
+  );
 
   // 3. Default deny
   const r3 = await boundary.handle({
@@ -65,7 +75,11 @@ async function main() {
   console.assert(all[1].prevHash === all[0].contentHash);
   console.assert(all[2].prevHash === all[1].contentHash);
 
+  // 5. Key id is stable fingerprint
+  console.assert(log.keyId.startsWith("ed25519:"));
+
   console.log("All smoke checks passed.");
+  console.log("Key id:", log.keyId);
   console.log("Last receipt hash:", log.getLastHash());
 }
 
