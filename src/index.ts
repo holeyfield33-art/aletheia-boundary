@@ -17,7 +17,14 @@ export {
   DecisionOutcomeSchema,
   IMPLEMENTED_CONSTRAINT_TYPES,
 } from "./policy/schema.js";
-export { ReceiptLog } from "./receipt/log.js";
+export {
+  ReceiptLog,
+  computeContentHash,
+  verifyReceipt,
+  verifyReceiptChain,
+} from "./receipt/log.js";
+export type { VerifyResult } from "./receipt/log.js";
+export { canonicalJson } from "./receipt/canonical.js";
 export {
   generateKeyPair,
   loadOrCreateKeyPair,
