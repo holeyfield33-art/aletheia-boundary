@@ -55,22 +55,30 @@ async function main() {
       params: { sql: "SELECT * FROM public.users" } });
     report("A3 integration-test policy: orders label, users SQL", containsSsn(r.payload?.data), `ok=${r.ok} rule=${r.decision.ruleId}`);
   }
-  // A4: a constraint type the schema accepts but the minimizer never implements.
+  // A4: unimplemented constraint must be rejected at policy load (F5 fixed).
   {
-    const pol = new PolicyEngine(loadPolicyFromObject({ version: "0.1", defaultEffect: "deny", rules: [
-      { id: "agg-only", match: { action: "query", resource: "public.users" }, effect: "allow_with_constraints",
-        constraints: [{ type: "aggregate", value: "count" }] } ] }));
-    const r = await new Boundary(pol, provider, new ReceiptLog(keys)).handle({ action: "query", resource: "public.users",
-      params: { sql: "SELECT * FROM public.users" } });
-    report("A4 'aggregate' constraint silently ignored", containsSsn(r.payload?.data), `ok=${r.ok} transforms=${r.payload?.transforms}`);
+    let rejected = false;
+    try {
+      loadPolicyFromObject({ version: "0.1", defaultEffect: "deny", rules: [
+        { id: "agg-only", match: { action: "query", resource: "public.users" }, effect: "allow_with_constraints",
+          constraints: [{ type: "aggregate", value: "count" }] } ] });
+    } catch {
+      rejected = true;
+    }
+    report("A4 'aggregate' constraint rejected at load", !rejected,
+      rejected ? "policy load threw (held)" : "policy load accepted aggregate (leak)");
   }
-  // A5: a typo in `effect` is treated as allow (anything not "deny" proceeds).
+  // A5: misspelled effect must be rejected at policy load (F4 fixed).
   {
-    const pol = new PolicyEngine(loadPolicyFromObject({ version: "0.1", defaultEffect: "deny", rules: [
-      { id: "typo", match: { resource: "public.users" }, effect: "denny" as any } ] }));
-    const r = await new Boundary(pol, provider, new ReceiptLog(keys)).handle({ action: "query", resource: "public.users",
-      params: { sql: "SELECT * FROM public.users" } });
-    report("A5 misspelled effect 'denny' fails open", containsSsn(r.payload?.data), `ok=${r.ok} outcome=${r.decision.outcome}`);
+    let rejected = false;
+    try {
+      loadPolicyFromObject({ version: "0.1", defaultEffect: "deny", rules: [
+        { id: "typo", match: { resource: "public.users" }, effect: "denny" } ] });
+    } catch {
+      rejected = true;
+    }
+    report("A5 misspelled effect 'denny' rejected at load", !rejected,
+      rejected ? "policy load threw (held)" : "policy load accepted denny (leak)");
   }
   // A6: receipt hash does not cover request/decision content (JSON.stringify replacer whitelists top-level keys at every depth).
   {
@@ -104,7 +112,6 @@ async function main() {
   for (const r of results) console.log(`${r.verdict}  ${r.id}\n      ${r.evidence}`);
   const leaks = results.filter((r) => r.verdict === "LEAK").length;
   console.log(JSON.stringify({ leaks, total: results.length }));
-  // Gate: any leak fails the run. This suite is expected to fail until the findings in docs/AUDIT-2026-10-29.md are fixed.
   process.exitCode = leaks > 0 ? 1 : 0;
 }
 
