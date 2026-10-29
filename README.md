@@ -64,73 +64,44 @@ Fail-closed by default. Policy miss, log failure, or provider error → deny.
 
 ---
 
-## Relationship to existing work
-
-| Component              | Role in this product                                      |
-|------------------------|-----------------------------------------------------------|
-| `aletheia-sandbox`     | Hardened read-only Postgres path (probe, classifier, cursor) |
-| Aegis provenance       | Signed spans, egress checks, trust lattice patterns       |
-| Aletheia Core          | Runtime policy / intent validation patterns               |
-
-Boundary is the **data-plane enforcement point**. The sandbox hardening is reused as the Postgres provider. Aegis-style receipts are the log format.
-
-This repository is intentionally separate so the boundary can be deployed, versioned, and audited independently of any single agent or model vendor.
-
----
-
 ## Status
 
-**0.0.3** — core path + live Postgres integration test.
+**0.0.4** — SDLC step 1 in progress.
 
 > **Not safe for real data yet.** The 2026-10-29 audit
 > ([docs/AUDIT-2026-10-29.md](docs/AUDIT-2026-10-29.md)) found that `query`
 > requests can release policy-denied data (F1), receipts can be edited without
 > detection (F2), and the server serves stub data when the database probe
 > refuses to start (F3). The write side holds. Fix order and release gates:
-> [docs/SDLC.md](docs/SDLC.md). `npx tsx audit/attacks.ts` exits non-zero until
+> [docs/SDLC.md](docs/SDLC.md). `npm run test:attacks` exits non-zero until
 > these are closed.
 
-### Built (see the audit for what each one does and does not guarantee)
+### SDLC step 1 (make the gates real)
 
-- [x] Repository + architecture documentation
-- [x] Core TypeScript interfaces (`Policy`, `Decision`, `Request`, `Receipt`)
-- [x] Minimal MCP server exposing `boundary_request`
-- [x] Declarative YAML/JSON policy (allow/deny + simple transforms)
-- [x] Postgres provider (read-only probe, classifier, bounded cursor, minimizer)
-- [x] Hash-chained, Ed25519-signed, persistent receipt log
-- [x] Fail-closed path + smoke test (signature verification included)
-- [x] Live integration test against real read-only Postgres (docker-compose)
+| Finding | Status |
+|---|---|
+| F8 smoke test cannot fail | **Fixed** — `node:test` + `assert`; failures exit 1 |
+| F7 `pg-cursor` types break build | **Fixed** — `src/pg-cursor.d.ts` |
+| F7 no lockfile | **Needs one local commit** — see below |
 
-### Still open
+Generate and commit the lockfile (G1):
 
-Work order is in [docs/SDLC.md](docs/SDLC.md) section 6: real test gates,
-fail-closed policy validation, verifiable receipts, binding policy to the SQL
-that executes, output bounds, then CI. File/S3 providers, a richer policy
-language and hardware-key storage wait until those are closed.
-
----
-
-## Layout
-
+```bash
+npm install --package-lock-only --ignore-scripts
+git add package-lock.json
+git commit -m "fix(F7): commit package-lock.json for reproducible installs (G1)"
+git push
 ```
-src/
-  types.ts
-  boundary.ts              Orchestrator
-  boundary.test.ts         Unit smoke test (no DB)
-  integration.test.ts      Live Postgres integration test
-  policy/engine.ts
-  receipt/
-    crypto.ts              Ed25519 keygen / sign / verify
-    log.ts                 Hash-chained + persistent JSONL log
-  data/
-    provider.ts            DataProvider + StubProvider
-    postgres.ts            Hardened Postgres provider + minimizer
-  mcp/server.ts
-  index.ts
-policies/example.yaml
-scripts/init-readonly.sql
-docker-compose.yml
-```
+
+Then `npm ci` on a fresh clone should succeed.
+
+### Still open (SDLC order)
+
+2. Fail closed (F3, F4, F5) — zod policy validation; no stub fallback
+3. Receipts that prove something (F2, F6) — canonical hash covers body; verify command
+4. Bind policy to what executes (F1) — structured requests, no free-form SQL
+5. Bound output and trim metadata (F9–F11)
+6. CI running G1–G6
 
 ---
 
@@ -139,71 +110,20 @@ docker-compose.yml
 ```bash
 git clone https://github.com/holeyfield33-art/aletheia-boundary.git
 cd aletheia-boundary
-npm install --ignore-scripts   # plain `npm install` currently fails its build step (audit F7)
+npm install
 
-# Smoke test (no DB required; cannot fail yet, audit F8)
+# Unit tests (real runner — failures exit non-zero)
 npm test
 
-# Integration test (spins local Postgres)
+# Attack suite (expected to fail until F1–F5 closed)
+npm run test:attacks
+
+# Integration test
 docker compose up -d
 export DATABASE_URL=postgres://readonly:readonly@localhost:5434/boundary
 export DATABASE_URL_WRITABLE=postgres://writable:writable@localhost:5434/boundary
 npm run test:integration
-
-# Run MCP against the local DB
-export BOUNDARY_POLICY="./policies/example.yaml"
-export BOUNDARY_KEY_PATH="./keys/boundary.ed25519"
-export BOUNDARY_LOG_PATH="./logs/receipts.jsonl"
-npm run dev
 ```
-
-On first run the server creates `keys/boundary.ed25519` (mode 0600) and the matching `.pub.pem`. Receipts are appended to `logs/receipts.jsonl`.
-
-Agent config example:
-
-```json
-{
-  "mcpServers": {
-    "aletheia-boundary": {
-      "command": "npx",
-      "args": ["tsx", "src/mcp/server.ts"],
-      "env": {
-        "DATABASE_URL": "postgres://readonly:readonly@localhost:5434/boundary",
-        "BOUNDARY_POLICY": "./policies/example.yaml",
-        "BOUNDARY_KEY_PATH": "./keys/boundary.ed25519",
-        "BOUNDARY_LOG_PATH": "./logs/receipts.jsonl"
-      }
-    }
-  }
-}
-```
-
-The agent receives a single constrained tool. It never talks directly to the database.
-
----
-
-## What the integration test covers
-
-1. Read-only probe **accepts** the `readonly` role
-2. Read-only probe **refuses** the `writable` role
-3. Schema inspection allowed + receipt verifies
-4. `public.users` denied by policy (PII rule)
-5. `sample public.orders` allowed with limit constraint
-6. Analytics query allowed with column projection (no extra columns leak)
-7. `pg_read_file` blocked by classifier
-8. Multi-statement injection blocked
-9. `write_canary` table still empty (no unauthorized writes)
-10. Full receipt hash chain + Ed25519 signatures valid end-to-end
-
----
-
-## Postgres hardening (what is enforced)
-
-1. **Startup write probe** — catalog inspection; refuses to start if the role can INSERT/UPDATE/DELETE/TRUNCATE or CREATE.
-2. **READ ONLY transaction** — every statement runs inside `BEGIN ... READ ONLY` and is always rolled back.
-3. **Classifier** — single-pass tokenizer blocks multi-statement and dangerous functions (`pg_read_file`, `dblink`, etc.).
-4. **Bounded cursor fetch** — rows are never fully materialized beyond the configured cap.
-5. **Minimizer** — policy constraints (`columns`, `redact`, `limit`, `sample`) are applied before data leaves the boundary.
 
 ---
 
