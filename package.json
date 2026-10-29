@@ -1,6 +1,6 @@
 {
   "name": "aletheia-boundary",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Local, independent data-boundary enforcer for AI agents. Policy decisions, data minimization, and tamper-evident logs that the customer owns.",
   "type": "module",
   "main": "dist/index.js",
@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "start": "node dist/mcp/server.js",
     "dev": "tsx src/mcp/server.ts",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test": "tsx src/boundary.test.ts",
     "prepare": "npm run build"
   },
   "engines": {
@@ -35,11 +35,14 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
+    "pg": "^8.13.1",
+    "pg-cursor": "^2.11.0",
     "yaml": "^2.6.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.10",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0"
   }
