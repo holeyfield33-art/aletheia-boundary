@@ -1,0 +1,46 @@
+{
+  "name": "aletheia-boundary",
+  "version": "0.0.1",
+  "description": "Local, independent data-boundary enforcer for AI agents. Policy decisions, data minimization, and tamper-evident logs that the customer owns.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "aletheia-boundary": "./dist/mcp/server.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/mcp/server.js",
+    "dev": "tsx src/mcp/server.ts",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "prepare": "npm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "ai-security",
+    "agent-security",
+    "data-boundary",
+    "policy-enforcement",
+    "mcp",
+    "tamper-evident",
+    "aletheia"
+  ],
+  "author": "Aletheia Sovereign Systems",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/holeyfield33-art/aletheia-boundary.git"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "yaml": "^2.6.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
