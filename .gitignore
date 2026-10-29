@@ -4,6 +4,7 @@ dist/
 .env
 .env.*
 keys/
+logs/
 *.ed25519
 *.pem
 coverage/
