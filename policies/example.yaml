@@ -1,0 +1,48 @@
+version: "0.1"
+defaultEffect: deny
+
+rules:
+  # Allow schema inspection for any caller
+  - id: allow-schema
+    match:
+      action: schema
+      resource: "*"
+    effect: allow
+    reason: "Schema inspection is permitted"
+    priority: 10
+
+  # Allow sample of non-sensitive tables with constraints
+  - id: allow-sample-public
+    match:
+      action: sample
+      resource: "public.*"
+    effect: allow_with_constraints
+    constraints:
+      - type: limit
+        value: 20
+      - type: redact
+        value: ["email", "ssn", "phone"]
+    reason: "Public tables may be sampled with redaction and row limit"
+    priority: 20
+
+  # Explicit deny for anything that looks like PII tables
+  - id: deny-pii
+    match:
+      resource: ["*users*", "*pii*", "*ssn*", "*credential*"]
+    effect: deny
+    reason: "PII / credential tables are denied by default"
+    priority: 100
+
+  # Allow read queries against analytics schema with column projection
+  - id: allow-analytics-query
+    match:
+      action: query
+      resource: "analytics.*"
+    effect: allow_with_constraints
+    constraints:
+      - type: columns
+        value: ["date", "metric", "value", "segment"]
+      - type: limit
+        value: 500
+    reason: "Analytics queries allowed with fixed column set and limit"
+    priority: 30
