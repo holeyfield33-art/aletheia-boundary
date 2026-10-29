@@ -4,6 +4,11 @@
  *
  * Exposes a single tool: boundary_request.
  * The agent never talks to the data source directly.
+ *
+ * Fail closed at startup:
+ *   - invalid / unreadable policy → exit 1
+ *   - DATABASE_URL set but Postgres probe fails → exit 1 (never stub)
+ *   - no DATABASE_URL → StubProvider only for local dev, and responses mark data as stub
  */
 
 import { readFileSync } from "node:fs";
@@ -23,6 +28,8 @@ import { loadOrCreateKeyPair } from "../receipt/crypto.js";
 import { StubProvider } from "../data/provider.js";
 import type { DataProvider } from "../data/provider.js";
 
+const PACKAGE_VERSION = "0.0.5";
+
 function loadPolicy(): PolicyEngine {
   const path =
     process.env.BOUNDARY_POLICY ??
@@ -33,56 +40,63 @@ function loadPolicy(): PolicyEngine {
     return new PolicyEngine(doc);
   } catch (err) {
     console.error(
-      `[aletheia-boundary] Failed to load policy from ${path}: ${err}`,
+      `[aletheia-boundary] FATAL: failed to load policy from ${path}: ${err}`,
     );
-    return new PolicyEngine({
-      version: "0",
-      defaultEffect: "deny",
-      rules: [],
-    });
+    process.exit(1);
   }
 }
 
-async function createProvider(): Promise<DataProvider> {
+async function createProvider(): Promise<{ provider: DataProvider; isStub: boolean }> {
   if (process.env.DATABASE_URL) {
     try {
       const { createPostgresProviderFromEnv } = await import(
         "../data/postgres.js"
       );
       const provider = await createPostgresProviderFromEnv();
-      console.error("[aletheia-boundary] Postgres provider ready (read-only probe passed)");
-      return provider;
-    } catch (err) {
       console.error(
-        `[aletheia-boundary] Postgres provider failed, falling back to StubProvider: ${err}`,
+        "[aletheia-boundary] Postgres provider ready (read-only probe passed)",
       );
-      return new StubProvider();
+      return { provider, isStub: false };
+    } catch (err) {
+      // F3: never fall back to stub when a real database was requested.
+      console.error(
+        `[aletheia-boundary] FATAL: Postgres provider failed (refusing to start): ${err}`,
+      );
+      process.exit(1);
     }
   }
-  console.error("[aletheia-boundary] No DATABASE_URL — using StubProvider");
-  return new StubProvider();
+
+  // Explicit dev-only path: no DATABASE_URL means intentional stub.
+  console.error(
+    "[aletheia-boundary] No DATABASE_URL — using StubProvider (dev only; data is not real)",
+  );
+  return { provider: new StubProvider(), isStub: true };
 }
 
 async function main() {
   const policy = loadPolicy();
-  const provider = await createProvider();
+  const { provider, isStub } = await createProvider();
 
   const keyPath =
-    process.env.BOUNDARY_KEY_PATH ?? resolve(process.cwd(), "keys/boundary.ed25519");
+    process.env.BOUNDARY_KEY_PATH ??
+    resolve(process.cwd(), "keys/boundary.ed25519");
   const keyPair = loadOrCreateKeyPair(keyPath);
   console.error(`[aletheia-boundary] Signing key: ${keyPair.keyId}`);
 
   const logPath =
-    process.env.BOUNDARY_LOG_PATH ?? resolve(process.cwd(), "logs/receipts.jsonl");
+    process.env.BOUNDARY_LOG_PATH ??
+    resolve(process.cwd(), "logs/receipts.jsonl");
   const log = new ReceiptLog(keyPair, logPath);
-  console.error(`[aletheia-boundary] Receipt log: ${logPath} (${log.getAll().length} existing)`);
+  console.error(
+    `[aletheia-boundary] Receipt log: ${logPath} (${log.getAll().length} existing)`,
+  );
 
   const boundary = new Boundary(policy, provider, log);
 
   const server = new Server(
     {
       name: "aletheia-boundary",
-      version: "0.0.2",
+      version: PACKAGE_VERSION,
     },
     {
       capabilities: {
@@ -161,6 +175,8 @@ async function main() {
       data: result.payload?.data ?? null,
       transforms: result.payload?.transforms ?? [],
       stats: result.payload?.stats,
+      /** I6: agent must be able to tell real vs stub data. */
+      dataSource: isStub ? "stub" : "postgres",
       receipt: {
         id: result.receipt.id,
         contentHash: result.receipt.contentHash,
@@ -185,7 +201,9 @@ async function main() {
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("[aletheia-boundary] MCP server running on stdio");
+  console.error(
+    `[aletheia-boundary] MCP server ${PACKAGE_VERSION} running on stdio`,
+  );
 }
 
 main().catch((err) => {
