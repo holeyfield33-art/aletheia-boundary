@@ -80,9 +80,9 @@ This repository is intentionally separate so the boundary can be deployed, versi
 
 ## Status
 
-**0.0.2** — core path is complete end-to-end.
+**0.0.3** — core path + live Postgres integration test.
 
-### MVP targets
+### Done
 
 - [x] Repository + architecture documentation
 - [x] Core TypeScript interfaces (`Policy`, `Decision`, `Request`, `Receipt`)
@@ -91,13 +91,14 @@ This repository is intentionally separate so the boundary can be deployed, versi
 - [x] Postgres provider (read-only probe, classifier, bounded cursor, minimizer)
 - [x] Hash-chained, Ed25519-signed, persistent receipt log
 - [x] Fail-closed path + smoke test (signature verification included)
+- [x] Live integration test against real read-only Postgres (docker-compose)
 
 ### Still open
 
-- [ ] Live integration test against a real read-only Postgres role
 - [ ] File / S3 provider
 - [ ] Richer policy language (CEL or similar)
 - [ ] Hardware key / OS keychain backend for Ed25519
+- [ ] CI workflow that spins docker + runs integration
 
 ---
 
@@ -107,6 +108,8 @@ This repository is intentionally separate so the boundary can be deployed, versi
 src/
   types.ts
   boundary.ts              Orchestrator
+  boundary.test.ts         Unit smoke test (no DB)
+  integration.test.ts      Live Postgres integration test
   policy/engine.ts
   receipt/
     crypto.ts              Ed25519 keygen / sign / verify
@@ -117,6 +120,8 @@ src/
   mcp/server.ts
   index.ts
 policies/example.yaml
+scripts/init-readonly.sql
+docker-compose.yml
 ```
 
 ---
@@ -131,12 +136,13 @@ npm install
 # Smoke test (no DB required)
 npm test
 
-# Run MCP with stub data
-export BOUNDARY_POLICY="./policies/example.yaml"
-npm run dev
+# Integration test (spins local Postgres)
+docker compose up -d
+export DATABASE_URL=postgres://readonly:readonly@localhost:5434/boundary
+export DATABASE_URL_WRITABLE=postgres://writable:writable@localhost:5434/boundary
+npm run test:integration
 
-# Run MCP against a real read-only Postgres
-export DATABASE_URL="postgres://readonly:secret@localhost:5432/mydb"
+# Run MCP against the local DB
 export BOUNDARY_POLICY="./policies/example.yaml"
 export BOUNDARY_KEY_PATH="./keys/boundary.ed25519"
 export BOUNDARY_LOG_PATH="./logs/receipts.jsonl"
@@ -154,7 +160,7 @@ Agent config example:
       "command": "npx",
       "args": ["tsx", "src/mcp/server.ts"],
       "env": {
-        "DATABASE_URL": "postgres://readonly:...",
+        "DATABASE_URL": "postgres://readonly:readonly@localhost:5434/boundary",
         "BOUNDARY_POLICY": "./policies/example.yaml",
         "BOUNDARY_KEY_PATH": "./keys/boundary.ed25519",
         "BOUNDARY_LOG_PATH": "./logs/receipts.jsonl"
@@ -165,6 +171,21 @@ Agent config example:
 ```
 
 The agent receives a single constrained tool. It never talks directly to the database.
+
+---
+
+## What the integration test covers
+
+1. Read-only probe **accepts** the `readonly` role
+2. Read-only probe **refuses** the `writable` role
+3. Schema inspection allowed + receipt verifies
+4. `public.users` denied by policy (PII rule)
+5. `sample public.orders` allowed with limit constraint
+6. Analytics query allowed with column projection (no extra columns leak)
+7. `pg_read_file` blocked by classifier
+8. Multi-statement injection blocked
+9. `write_canary` table still empty (no unauthorized writes)
+10. Full receipt hash chain + Ed25519 signatures valid end-to-end
 
 ---
 
