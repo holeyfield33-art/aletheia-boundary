@@ -82,7 +82,15 @@ This repository is intentionally separate so the boundary can be deployed, versi
 
 **0.0.3** — core path + live Postgres integration test.
 
-### Done
+> **Not safe for real data yet.** The 2026-10-29 audit
+> ([docs/AUDIT-2026-10-29.md](docs/AUDIT-2026-10-29.md)) found that `query`
+> requests can release policy-denied data (F1), receipts can be edited without
+> detection (F2), and the server serves stub data when the database probe
+> refuses to start (F3). The write side holds. Fix order and release gates:
+> [docs/SDLC.md](docs/SDLC.md). `npx tsx audit/attacks.ts` exits non-zero until
+> these are closed.
+
+### Built (see the audit for what each one does and does not guarantee)
 
 - [x] Repository + architecture documentation
 - [x] Core TypeScript interfaces (`Policy`, `Decision`, `Request`, `Receipt`)
@@ -95,10 +103,10 @@ This repository is intentionally separate so the boundary can be deployed, versi
 
 ### Still open
 
-- [ ] File / S3 provider
-- [ ] Richer policy language (CEL or similar)
-- [ ] Hardware key / OS keychain backend for Ed25519
-- [ ] CI workflow that spins docker + runs integration
+Work order is in [docs/SDLC.md](docs/SDLC.md) section 6: real test gates,
+fail-closed policy validation, verifiable receipts, binding policy to the SQL
+that executes, output bounds, then CI. File/S3 providers, a richer policy
+language and hardware-key storage wait until those are closed.
 
 ---
 
@@ -131,9 +139,9 @@ docker-compose.yml
 ```bash
 git clone https://github.com/holeyfield33-art/aletheia-boundary.git
 cd aletheia-boundary
-npm install
+npm install --ignore-scripts   # plain `npm install` currently fails its build step (audit F7)
 
-# Smoke test (no DB required)
+# Smoke test (no DB required; cannot fail yet, audit F8)
 npm test
 
 # Integration test (spins local Postgres)
