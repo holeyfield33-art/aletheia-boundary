@@ -5,7 +5,7 @@
  *   1. Startup write probe (catalog inspection, fail-closed)
  *   2. READ ONLY transaction, always rolled back
  *   3. Structured reads only — no agent-supplied SQL (I1 / F1)
- *   4. Bounded cursor fetch
+ *   4. Bounded cursor fetch (F9)
  *   5. statement_timeout
  *   6. Minimizer applies policy constraints after fetch
  */
@@ -14,6 +14,7 @@ import type { Pool, PoolClient } from "pg";
 import Cursor from "pg-cursor";
 import type { BoundaryRequest, Constraint, MinimizedPayload } from "../types.js";
 import type { DataProvider } from "./provider.js";
+import { DEFAULT_MAX_ROWS, HARD_MAX_ROWS, resolveMaxRows } from "./limits.js";
 
 export interface PostgresProviderOptions {
   pool: Pool;
@@ -38,7 +39,6 @@ function quoteIdent(id: string): string {
     .join(".");
 }
 
-/** Reject free-form SQL — the root cause of F1. */
 function assertNoAgentSql(params?: Record<string, unknown>): void {
   if (!params) return;
   if (typeof params.sql === "string" || typeof params.query === "string") {
@@ -114,18 +114,18 @@ interface QueryResult {
   rowCount: number;
 }
 
-/** Apply policy constraints to a result set (minimizer). */
 function minimize(
   result: QueryResult,
   constraints?: Constraint[],
 ): MinimizedPayload {
   const transforms: string[] = [];
   let rows = result.rows;
+  let fields = result.fields;
   let truncated = result.truncated;
 
   if (!constraints || constraints.length === 0) {
     return {
-      data: { rows, fields: result.fields, truncated, rowCount: rows.length },
+      data: { rows, fields, truncated, rowCount: rows.length },
       transforms: ["none"],
       stats: { rows: rows.length, truncated },
     };
@@ -141,6 +141,7 @@ function minimize(
         }
         return out;
       });
+      fields = fields.filter((f) => allowed.has(f.name));
       transforms.push(`columns:${[...allowed].join(",")}`);
     }
 
@@ -176,7 +177,7 @@ function minimize(
   }
 
   return {
-    data: { rows, fields: result.fields, truncated, rowCount: rows.length },
+    data: { rows, fields, truncated, rowCount: rows.length },
     transforms: transforms.length ? transforms : ["none"],
     stats: { rows: rows.length, truncated },
   };
@@ -195,7 +196,7 @@ export class PostgresProvider implements DataProvider {
   private tableKeys: Set<string> = new Set();
 
   constructor(private readonly opts: PostgresProviderOptions) {
-    this.maxRows = opts.maxRows ?? 10_000;
+    this.maxRows = resolveMaxRows(opts.maxRows ?? DEFAULT_MAX_ROWS);
     this.stmtTimeout = opts.statementTimeoutMs ?? 10_000;
   }
 
@@ -286,7 +287,6 @@ export class PostgresProvider implements DataProvider {
     this.tableKeys = new Set(tables.map((t) => `${t.schema}.${t.name}`));
   }
 
-  /** Resolve resource label to a known schema.table key. */
   private resolveTable(resource: string): string {
     if (!isSafeIdentifier(resource)) {
       throw new Error("invalid table identifier");
@@ -298,10 +298,6 @@ export class PostgresProvider implements DataProvider {
     return key;
   }
 
-  /**
-   * Build a SELECT the boundary owns. Columns come from params or policy;
-   * never from agent SQL.
-   */
   private buildSelect(
     tableKey: string,
     params?: Record<string, unknown>,
@@ -324,7 +320,6 @@ export class PostgresProvider implements DataProvider {
         if (!isSafeIdentifier(c) || c.includes("."))
           throw new Error(`invalid column identifier: ${c}`);
       }
-      // Intersection with policy allowlist when present
       const finalCols =
         allowedFromPolicy != null
           ? paramCols.filter((c) => allowedFromPolicy.includes(c))
@@ -355,7 +350,7 @@ export class PostgresProvider implements DataProvider {
         : null;
     if (paramLimit != null) lim = Math.min(lim, Math.max(0, paramLimit));
     if (policyLim != null) lim = Math.min(lim, Math.max(0, policyLim));
-    lim = Math.max(1, Math.min(lim, this.maxRows));
+    lim = Math.max(1, Math.min(lim, this.maxRows, HARD_MAX_ROWS));
 
     const sql = `SELECT ${cols} FROM ${quoteIdent(tableKey)} LIMIT ${lim}`;
     transforms.push(`limit:${lim}`);
@@ -398,7 +393,6 @@ export class PostgresProvider implements DataProvider {
 
       case "query":
       case "export": {
-        // I1 / F1: policy resource is the table that runs. No agent SQL.
         assertNoAgentSql(req.params);
         const tableKey = this.resolveTable(req.resource);
         const built = this.buildSelect(tableKey, req.params, constraints);
@@ -406,7 +400,6 @@ export class PostgresProvider implements DataProvider {
           this.readLimited(client, built.sql, []),
         );
         const minimized = minimize(result, constraints);
-        // Surface that the boundary owned the statement
         minimized.transforms = [
           ...built.transforms,
           ...minimized.transforms.filter((t) => t !== "none"),
@@ -420,7 +413,6 @@ export class PostgresProvider implements DataProvider {
   }
 }
 
-/** Helper to build a provider from DATABASE_URL. */
 export async function createPostgresProviderFromEnv(): Promise<PostgresProvider> {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is required for Postgres provider");
@@ -431,7 +423,7 @@ export async function createPostgresProviderFromEnv(): Promise<PostgresProvider>
   const provider = new PostgresProvider({
     pool,
     identity: process.env.BOUNDARY_DB_IDENTITY ?? "postgres",
-    maxRows: Number(process.env.BOUNDARY_MAX_ROWS ?? 10_000),
+    maxRows: resolveMaxRows(process.env.BOUNDARY_MAX_ROWS),
     statementTimeoutMs: Number(process.env.BOUNDARY_STMT_TIMEOUT_MS ?? 10_000),
     requireReadOnlyRole: process.env.BOUNDARY_SKIP_READONLY_PROBE !== "1",
   });
@@ -440,7 +432,6 @@ export async function createPostgresProviderFromEnv(): Promise<PostgresProvider>
   return provider;
 }
 
-// Kept for unit/classifier tests that still import these symbols.
 export function skeleton(sql: string): string {
   return sql;
 }
