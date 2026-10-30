@@ -6,6 +6,26 @@ Versions follow semver; `0.x` until all SDLC invariants I1–I6 are fully enforc
 
 ---
 
+## [0.0.8] — 2026-10-30
+
+### Fixed
+
+- **F9 / I6:** Default row cap is **500** (was 10_000). Hard ceiling **2000** even if `BOUNDARY_MAX_ROWS` is higher. Truncation still recorded in `stats.truncated`.
+- **F10 / I6:** `schema` responses omit tables the policy denies (or that have no sample/query path). Stops advertising `users.ssn` etc. under a global schema allow.
+- Resource matchers support true `*contains*` globs (`*users*` matches `public.users`).
+
+### Added
+
+- `src/data/limits.ts` — `DEFAULT_MAX_ROWS`, `HARD_MAX_ROWS`, `resolveMaxRows`
+- `src/policy/bounds.test.ts`
+
+### Evidence
+
+- `npm test` includes F9/F10 unit cases
+- Prior attack suite must remain `leaks:0`
+
+---
+
 ## [0.0.7] — 2026-10-30
 
 ### Fixed
@@ -87,4 +107,4 @@ Versions follow semver; `0.x` until all SDLC invariants I1–I6 are fully enforc
 
 ### Known issues (closed in later releases)
 
-- See [docs/AUDIT-2026-10-29.md](docs/AUDIT-2026-10-29.md). F1–F8 addressed in 0.0.4–0.0.7.
+- See [docs/AUDIT-2026-10-29.md](docs/AUDIT-2026-10-29.md). F1–F8 addressed in 0.0.4–0.0.7; F9–F10 in 0.0.8.
