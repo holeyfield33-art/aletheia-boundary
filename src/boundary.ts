@@ -57,7 +57,7 @@ export class Boundary {
     try {
       let payload = await this.provider.execute(request, decision.constraints);
 
-      // F10: do not advertise tables the policy would deny for schema/sample/query.
+      // F10: do not advertise tables the policy would deny for access.
       if (request.action === "schema") {
         payload = this.filterSchemaPayload(payload, request);
       }
@@ -82,8 +82,11 @@ export class Boundary {
   }
 
   /**
-   * Drop schema entries for relations that would be denied if requested
-   * under schema/sample/query. Prevents column-name reconnaissance of PII tables.
+   * Drop schema entries for relations that are not reachable under policy.
+   * Omit when:
+   *   - schema on that table is denied, or
+   *   - both sample and query are denied (no data path).
+   * Prevents column-name reconnaissance of PII tables (F10).
    */
   private filterSchemaPayload(
     payload: MinimizedPayload,
@@ -99,18 +102,32 @@ export class Boundary {
 
     const allowed = tables.filter((t) => {
       const key = `${t.schema}.${t.name}`;
-      // If any of schema / sample / query would deny this resource, omit it.
-      for (const action of ["schema", "sample", "query"] as const) {
-        const d = this.policy.evaluate({
-          id: request.id,
-          action,
-          resource: key,
-          purpose: request.purpose,
-          caller: request.caller,
-          receivedAt: request.receivedAt,
-        });
-        if (d.outcome === "deny") return false;
-      }
+      const base = {
+        id: request.id,
+        purpose: request.purpose,
+        caller: request.caller,
+        receivedAt: request.receivedAt,
+      };
+
+      const schemaD = this.policy.evaluate({
+        ...base,
+        action: "schema",
+        resource: key,
+      });
+      if (schemaD.outcome === "deny") return false;
+
+      const sampleD = this.policy.evaluate({
+        ...base,
+        action: "sample",
+        resource: key,
+      });
+      const queryD = this.policy.evaluate({
+        ...base,
+        action: "query",
+        resource: key,
+      });
+      if (sampleD.outcome === "deny" && queryD.outcome === "deny") return false;
+
       return true;
     });
 
