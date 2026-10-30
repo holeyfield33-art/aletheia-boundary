@@ -1,67 +1,70 @@
 # SDLC: how aletheia-boundary is built, verified and released
 
 This is the process every change follows, whoever writes it: a person, Claude,
-or any other model in a relay. It exists because this product's whole value is
-that someone else can trust it. A boundary that is mostly right is a leak.
+or any other model in a relay. A boundary that is mostly right is a leak.
 
 ---
 
 ## 1. Who the user is
 
-The user is an **AI agent** calling `boundary_request`. Its operator is the
-customer who owns the data, the policy and the signing key.
-
-- **Agent:** can I tell what happened from the tool result alone?
-- **Customer:** can I prove later what was released and under which rule?
+- **Agent:** calls `boundary_request`; must learn allow/deny/why/bounds/real-vs-stub from the tool result alone.
+- **Customer:** owns policy, signing key, and the receipt log.
 
 ---
 
-## 2. Invariants
+## 2. Invariants (0.0.9)
 
-| ID | Invariant | Enforced by | Status (0.0.9) |
-|---|---|---|---|
-| I1 | Policy decides on what actually executes | A1–A3 | **Passing** |
-| I2 | Nothing leaves beyond the permitted projection | A1, A2; integration | **Passing** |
-| I3 | Fail closed | A4, A5; MCP startup | **Passing** |
-| I4 | Receipts are evidence | A6; `verify-log` | **Passing** |
-| I5 | No writes | integration; A7 | **Passing** |
-| I6 | Agent contract (reasons, bounds, dataSource, honest truncation, schema filter) | bounds; agent review C1–C9 | **Passing** |
+| ID | Invariant | Status |
+|---|---|---|
+| I1 | Policy binds to what executes | **Passing** |
+| I2 | No over-release beyond projection | **Passing** |
+| I3 | Fail closed | **Passing** |
+| I4 | Receipts are evidence | **Passing** |
+| I5 | No writes | **Passing** |
+| I6 | Agent contract (incl. honest `truncated`) | **Passing** |
 
 ---
 
-## 3. Stages
+## 3. Verify (gates)
 
-### 3.3 Verify (gates)
+Install once:
+
+```bash
+git clone https://github.com/holeyfield33-art/aletheia-boundary.git
+cd aletheia-boundary && npm ci
+```
 
 | Gate | Command |
 |---|---|
 | G1 | `npm ci` |
 | G2 | `npm run typecheck` |
 | G3 | `npm test` |
-| G4 | `npm run test:integration` |
-| G5 | `npm run test:attacks` |
-| G6 | `npm run verify-log` |
-| Agent | `npm run test:agent-review` |
+| G4 | `docker compose up -d` then `DATABASE_URL=... npm run test:integration` |
+| G5 | `DATABASE_URL=... npm run test:attacks` |
+| G6 | `npm run verify-log -- --log logs/receipts.jsonl --pub keys/boundary.pub.pem` |
+| Agent | `DATABASE_URL=... npm run test:agent-review` |
 
-### 3.4 Review
+External adversarial corpus (gap hunt):
 
-1. **Agent review** — `npm run test:agent-review` · [AGENT-REVIEW-2026-10-30.md](AGENT-REVIEW-2026-10-30.md) (10/10; re-run after 0.0.9 for C5 `truncated=true`)
-2. **Adversarial** — [AUDIT-2026-10-29.md](AUDIT-2026-10-29.md) + `test:attacks` (7/7 HELD)
+- Kit: https://github.com/holeyfield33-art/aletheia-redteam-kit  
+- Map: [REDTEAM-GAP-MAP.md](REDTEAM-GAP-MAP.md)
 
-### 3.5 Release
-
-- Stay on `0.x` until CI is green on `main`.
-- MCP reports package version.
+Every **boundary-owned** kit miss becomes a permanent row in `audit/attacks.ts`.
 
 ---
 
-## 6. Work order
+## 4. Review
 
-| Step | Scope | Status |
-|---|---|---|
-| 1–5 | Audit F1–F11 | **Done** (0.0.4–0.0.8) |
-| 5b | Agent review | **Done** (2026-10-30) |
-| 5c | Honest `stats.truncated` | **Done** (0.0.9) |
-| 6 | CI G1–G5 | **Workflow in repo** — enable after Actions billing (Monday) |
+1. **Agent review** — `npm run test:agent-review` · [AGENT-REVIEW-2026-10-30.md](AGENT-REVIEW-2026-10-30.md)
+2. **Adversarial** — [AUDIT-2026-10-29.md](AUDIT-2026-10-29.md) + `test:attacks` + kit gap map
 
-Workflow: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)
+---
+
+## 5. Work order
+
+| Step | Status |
+|---|---|
+| F1–F11 + honest truncation | **Done** (0.0.9) |
+| Agent review | **Done** |
+| CI workflow | **In repo** — enable after Actions billing |
+| Redteam-kit gap closure loop | **Ongoing** — see REDTEAM-GAP-MAP.md |
