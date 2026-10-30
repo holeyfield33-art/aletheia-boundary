@@ -3,6 +3,7 @@ import type {
   BoundaryRequest,
   BoundaryResult,
   Decision,
+  MinimizedPayload,
 } from "./types.js";
 import { PolicyEngine } from "./policy/engine.js";
 import { ReceiptLog } from "./receipt/log.js";
@@ -18,10 +19,12 @@ export class Boundary {
   constructor(
     private readonly policy: PolicyEngine,
     private readonly provider: DataProvider,
-    private readonly log: ReceiptLog
+    private readonly log: ReceiptLog,
   ) {}
 
-  async handle(partial: Omit<BoundaryRequest, "id" | "receivedAt"> & { id?: string }): Promise<BoundaryResult> {
+  async handle(
+    partial: Omit<BoundaryRequest, "id" | "receivedAt"> & { id?: string },
+  ): Promise<BoundaryResult> {
     const request: BoundaryRequest = {
       id: partial.id ?? randomUUID(),
       action: partial.action,
@@ -37,7 +40,6 @@ export class Boundary {
     try {
       decision = this.policy.evaluate(request);
     } catch (err) {
-      // Policy engine itself must not throw in production, but guard anyway
       decision = {
         outcome: "deny",
         reason: `Policy evaluation failed: ${String(err)}`,
@@ -52,16 +54,17 @@ export class Boundary {
       return { ok: false, decision, receipt };
     }
 
-    // allow or allow_with_constraints
     try {
-      const payload = await this.provider.execute(
-        request,
-        decision.constraints
-      );
+      let payload = await this.provider.execute(request, decision.constraints);
+
+      // F10: do not advertise tables the policy would deny for schema/sample/query.
+      if (request.action === "schema") {
+        payload = this.filterSchemaPayload(payload, request);
+      }
+
       const receipt = this.log.create(request, decision, payload);
       return { ok: true, decision, payload, receipt };
     } catch (err) {
-      // Data plane failure → deny + log the failure
       const failDecision: Decision = {
         outcome: "deny",
         reason: `Data plane error: ${String(err)}`,
@@ -76,5 +79,55 @@ export class Boundary {
         error: failDecision.reason,
       };
     }
+  }
+
+  /**
+   * Drop schema entries for relations that would be denied if requested
+   * under schema/sample/query. Prevents column-name reconnaissance of PII tables.
+   */
+  private filterSchemaPayload(
+    payload: MinimizedPayload,
+    request: BoundaryRequest,
+  ): MinimizedPayload {
+    if (!Array.isArray(payload.data)) return payload;
+
+    const tables = payload.data as {
+      schema: string;
+      name: string;
+      columns: unknown[];
+    }[];
+
+    const allowed = tables.filter((t) => {
+      const key = `${t.schema}.${t.name}`;
+      // If any of schema / sample / query would deny this resource, omit it.
+      for (const action of ["schema", "sample", "query"] as const) {
+        const d = this.policy.evaluate({
+          id: request.id,
+          action,
+          resource: key,
+          purpose: request.purpose,
+          caller: request.caller,
+          receivedAt: request.receivedAt,
+        });
+        if (d.outcome === "deny") return false;
+      }
+      return true;
+    });
+
+    const dropped = tables.length - allowed.length;
+    const transforms = [
+      ...payload.transforms,
+      ...(dropped > 0 ? [`schema-filtered:${dropped}`] : []),
+    ];
+
+    return {
+      ...payload,
+      data: allowed,
+      transforms,
+      stats: {
+        ...payload.stats,
+        rows: allowed.length,
+      },
+    };
   }
 }
