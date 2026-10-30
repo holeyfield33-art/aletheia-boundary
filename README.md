@@ -56,25 +56,23 @@ Fail-closed by default. Policy miss, invalid policy, probe failure, log corrupti
 
 ## Status
 
-**0.0.7** — audit findings **F1–F8 closed**. Attack suite: **7/7 HELD**. Unit + integration gates green.
+**0.0.8** — audit findings **F1–F11 closed** (F11 residual polish included). Attack suite **7/7 HELD**. Unit **19/19**. Integration all pass.
 
 | Invariant | Status | Evidence |
 |---|---|---|
 | I1 Policy binds to what executes | **Enforced** | Structured queries only; `params.sql` rejected. A1–A3 HELD |
-| I2 No over-release beyond projection | **Enforced** | Column/limit applied on boundary-built SELECT. A1–A2 HELD |
-| I3 Fail closed | **Enforced** | Zod policy load; no stub when `DATABASE_URL` set; unknown effects/constraints rejected. A4–A5 HELD |
-| I4 Receipts are evidence | **Enforced** | Recursive canonical hash; forge invalidates. A6 HELD; `npm run verify-log` |
-| I5 No writes | **Enforced** | Read-only probe + READ ONLY txn. A7 HELD; write canary empty |
-| I6 Agent contract | **Partial** | `dataSource`, deny reasons, transforms present. F9–F11 (bounds/schema metadata) still open |
+| I2 No over-release beyond projection | **Enforced** | Column/limit on boundary-built SELECT. A1–A2 HELD |
+| I3 Fail closed | **Enforced** | Zod policy; no stub when `DATABASE_URL` set. A4–A5 HELD |
+| I4 Receipts are evidence | **Enforced** | Recursive canonical hash; A6 HELD; `npm run verify-log` |
+| I5 No writes | **Enforced** | Read-only probe + READ ONLY txn. A7 HELD |
+| I6 Agent contract | **Enforced** | `dataSource`, deny reasons, transforms, default 500 / hard 2000 row cap, schema omits denied tables |
 
-Still open (SDLC steps 5–6):
+Still open (SDLC step 6):
 
-- **F9** tighter default output bounds  
-- **F10** schema responses should not advertise denied tables/columns  
-- **F11** residual version/metadata polish (mostly done for MCP version)  
-- **CI** for G1–G6 when GitHub Actions billing is available  
+- **CI** running G1–G6 on every push (blocked on GitHub Actions billing)
+- Formal agent review with a real MCP client (checklist in [docs/SDLC.md](docs/SDLC.md) §5)
 
-> **Not a 1.0 product yet.** Do not put untrusted production PII behind this until F9–F10 and a full agent/adversarial review on the structured surface are done. The critical read-side and receipt failures from the 2026-10-29 audit are closed; remaining items are medium severity.
+> **Not a 1.0 product yet.** Treat as a hardening prototype: critical audit findings are closed and gates are green locally, but production PII should wait for CI + agent/adversarial review on the structured surface.
 
 Process: [docs/SDLC.md](docs/SDLC.md)  
 Original audit (historical): [docs/AUDIT-2026-10-29.md](docs/AUDIT-2026-10-29.md)  
@@ -125,8 +123,9 @@ npm run test:integration
 - `resource` is the table the policy matches **and** the table the boundary reads.
 - `params.sql` / `params.query` are rejected.
 - Optional `params.columns` (string[]) and `params.limit` (number); policy constraints still apply.
+- Row output defaults to **500**, hard-capped at **2000** (`BOUNDARY_MAX_ROWS`).
 
-MCP tool: `boundary_request` (stdio). Responses include `ok`, `decision`, `data`, `transforms`, `dataSource` (`postgres` | `stub`), and a receipt summary.
+MCP tool: `boundary_request` (stdio). Responses include `ok`, `decision`, `data`, `transforms`, `stats` (incl. `truncated`), `dataSource` (`postgres` | `stub`), and a receipt summary.
 
 ---
 
