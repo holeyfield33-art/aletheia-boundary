@@ -2,7 +2,26 @@
 
 All notable changes to Aletheia Boundary are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-Versions follow semver; `0.x` until all SDLC invariants I1–I6 are fully enforced.
+Versions follow semver; `0.x` until all SDLC invariants I1–I6 are fully enforced **and** CI is green on main.
+
+---
+
+## [0.0.9] — 2026-10-30
+
+### Fixed
+
+- **I6 / honest completion:** Queries fetch `limit+1` rows, release only `limit`, and set `stats.truncated: true` (and `data.truncated`) when more rows existed. Agent-review C5 now requires this flag.
+
+### Added
+
+- `audit/agent-review.ts` + `npm run test:agent-review` (MCP stdio client, SDLC §5)
+- `.github/workflows/ci.yml` — G1–G5 (enable after Actions billing restored)
+- `docs/AGENT-REVIEW-2026-10-30.md`
+
+### Evidence
+
+- Re-run: `DATABASE_URL=... npm run test:agent-review` → C5 `truncated=true`
+- Prior gates remain green: unit, attacks `leaks:0`, integration
 
 ---
 
@@ -10,19 +29,13 @@ Versions follow semver; `0.x` until all SDLC invariants I1–I6 are fully enforc
 
 ### Fixed
 
-- **F9 / I6:** Default row cap is **500** (was 10_000). Hard ceiling **2000** even if `BOUNDARY_MAX_ROWS` is higher. Truncation still recorded in `stats.truncated`.
-- **F10 / I6:** `schema` responses omit tables the policy denies (or that have no sample/query path). Stops advertising `users.ssn` etc. under a global schema allow.
-- Resource matchers support true `*contains*` globs (`*users*` matches `public.users`).
+- **F9 / I6:** Default row cap **500** (was 10_000). Hard ceiling **2000**.
+- **F10 / I6:** `schema` omits tables the policy denies (or with no sample/query path).
+- Resource matchers support `*contains*` globs (`*users*` → `public.users`).
 
 ### Added
 
-- `src/data/limits.ts` — `DEFAULT_MAX_ROWS`, `HARD_MAX_ROWS`, `resolveMaxRows`
-- `src/policy/bounds.test.ts`
-
-### Evidence
-
-- `npm test` includes F9/F10 unit cases
-- Prior attack suite must remain `leaks:0`
+- `src/data/limits.ts`, `src/policy/bounds.test.ts`
 
 ---
 
@@ -30,19 +43,7 @@ Versions follow semver; `0.x` until all SDLC invariants I1–I6 are fully enforc
 
 ### Fixed
 
-- **F1 / I1:** Free-form SQL (`params.sql` / `params.query`) is rejected. The boundary builds `SELECT … FROM <resource>` only. Policy `resource` is the table that executes.
-- Attack suite A1–A3 now **HELD** (previously leaked SSNs/emails from `public.users`).
-
-### Changed
-
-- MCP tool schema documents structured params only (`columns`, `limit`).
-- Example policy and integration tests use real table names (`public.analytics_daily`, `public.orders`).
-- Package / MCP version **0.0.7**.
-
-### Evidence
-
-- `npm run test:attacks` → `{"leaks":0,"total":7}`
-- `npm run test:integration` → all assertions pass
+- **F1 / I1:** Free-form SQL rejected; structured table/columns/limit only. A1–A3 HELD.
 
 ---
 
@@ -50,18 +51,8 @@ Versions follow semver; `0.x` until all SDLC invariants I1–I6 are fully enforc
 
 ### Fixed
 
-- **F2 / I4:** Receipt hashing used `JSON.stringify(body, Object.keys(body).sort())`, which dropped nested `request` / `decision` fields. Replaced with recursive `canonicalJson`. Forging deny→allow invalidates `contentHash`.
-- **F6:** Receipt log verified on hydrate (corrupt line or broken chain → refuse to start). Shipped offline verifier: `npm run verify-log`.
-
-### Added
-
-- `src/receipt/canonical.ts`, `computeContentHash`, `verifyReceipt`, `verifyReceiptChain`
-- `src/receipt/receipt.test.ts` (A6-style forge must fail)
-- `src/receipt/verify-cli.ts`
-
-### Evidence
-
-- A6 HELD; unit tests for receipt integrity pass
+- **F2 / I4:** Recursive `canonicalJson`; forge invalidates hash. A6 HELD.
+- **F6:** Hydrate verifies chain; `npm run verify-log`.
 
 ---
 
@@ -69,20 +60,8 @@ Versions follow semver; `0.x` until all SDLC invariants I1–I6 are fully enforc
 
 ### Fixed
 
-- **F3:** When `DATABASE_URL` is set and Postgres/probe fails, process exits 1 — no `StubProvider` fallback with `ok: true`.
-- **F4:** Policy `effect` validated with zod; typos like `"denny"` reject at load.
-- **F5:** Only implemented constraint types accepted (`columns`, `redact`, `limit`, `sample`). `aggregate` / `rows` rejected at load.
-- Policy load failure refuses to start (exit 1).
-
-### Added
-
-- `src/policy/schema.ts` (zod)
-- `src/policy/failclosed.test.ts`
-- Response field `dataSource`: `"postgres"` | `"stub"`
-
-### Evidence
-
-- A4, A5 HELD
+- **F3:** No stub fallback when `DATABASE_URL` set.
+- **F4 / F5:** Zod policy; unknown effects/constraints rejected at load.
 
 ---
 
@@ -90,12 +69,7 @@ Versions follow semver; `0.x` until all SDLC invariants I1–I6 are fully enforc
 
 ### Fixed
 
-- **F8:** Smoke tests use `node:test` + `assert` (failures exit non-zero).
-- **F7:** `src/pg-cursor.d.ts`; `package-lock.json` committed for reproducible installs.
-
-### Added
-
-- `docs/SDLC.md`, `docs/AUDIT-2026-10-29.md`, `audit/attacks.ts` (from independent review PR)
+- **F7 / F8:** Lockfile, `pg-cursor` types, `node:test` runner.
 
 ---
 
@@ -103,8 +77,6 @@ Versions follow semver; `0.x` until all SDLC invariants I1–I6 are fully enforc
 
 ### Added
 
-- Initial MCP server, policy engine, Postgres read-only provider, receipt log, docker integration harness.
+- Initial MCP server, policy engine, Postgres provider, receipts, docker harness.
 
-### Known issues (closed in later releases)
-
-- See [docs/AUDIT-2026-10-29.md](docs/AUDIT-2026-10-29.md). F1–F8 addressed in 0.0.4–0.0.7; F9–F10 in 0.0.8.
+See [docs/AUDIT-2026-10-29.md](docs/AUDIT-2026-10-29.md) for the original findings (F1–F11 closed by 0.0.9).
