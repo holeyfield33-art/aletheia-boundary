@@ -35,7 +35,7 @@ no test is not enforced and must be listed as such in the README.
 | I3 | **Fail closed.** Unknown effect/constraint, provider failure, refused probe or unreadable policy → deny or refuse to start. Never stub as real data. | A4, A5; MCP startup | **Passing** |
 | I4 | **Receipts are evidence.** Hash covers full canonical body; offline verify command. | A6; `npm run verify-log` | **Passing** |
 | I5 | **No writes.** Read-only role probe; READ ONLY transaction; always rolled back. | integration; A7 | **Passing** |
-| I6 | **Agent contract.** Reasons on refusal; bounded/declared output; real vs stub visible; schema does not advertise denied tables. | bounds tests; F9/F10; integration | **Passing** |
+| I6 | **Agent contract.** Reasons on refusal; bounded/declared output; real vs stub visible; schema does not advertise denied tables. | bounds tests; F9/F10; agent review | **Passing** |
 
 ---
 
@@ -76,9 +76,12 @@ Two reviews, both required for anything touching I1–I4:
 
 1. **Agent review.** Drive the MCP server as an agent would, with a real MCP
    client, and grade it on the checklist in section 5.
+   - **Harness:** `npm run test:agent-review` (`audit/agent-review.ts`)
+   - **Latest:** [docs/AGENT-REVIEW-2026-10-30.md](AGENT-REVIEW-2026-10-30.md) — **10 PASS / 0 FAIL** on live Postgres
 2. **Adversarial review** by a reviewer who did not write the change, and
    preferably a different model. Its only job is to get forbidden data out or
    forge a receipt. Findings go into `docs/AUDIT-*.md`.
+   - **Baseline:** [docs/AUDIT-2026-10-29.md](AUDIT-2026-10-29.md) + `npm run test:attacks` (7/7 HELD as of 0.0.8)
 
 ### 3.5 Release
 - Version `0.x.y` until all invariants are enforced by passing gates **and** CI
@@ -137,6 +140,7 @@ Ordered so each step makes the next one checkable.
 | 3 | Receipts that prove something (F2, F6) | **Done** (0.0.6) |
 | 4 | Bind policy to what executes (F1) | **Done** (0.0.7) — structured route |
 | 5 | Bound the output and trim metadata (F9, F10, F11) | **Done** (0.0.8) |
+| 5b | Formal agent review (SDLC §5) | **Done** (2026-10-30) |
 | 6 | CI running G1–G6 | **Open** (Actions billing) |
 
 New providers (file/S3), a richer policy language and hardware-key storage wait
