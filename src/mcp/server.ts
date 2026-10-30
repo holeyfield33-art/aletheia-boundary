@@ -28,7 +28,7 @@ import { loadOrCreateKeyPair } from "../receipt/crypto.js";
 import { StubProvider } from "../data/provider.js";
 import type { DataProvider } from "../data/provider.js";
 
-const PACKAGE_VERSION = "0.0.8";
+const PACKAGE_VERSION = "0.0.9";
 
 function loadPolicy(): PolicyEngine {
   const path =
@@ -114,7 +114,8 @@ async function main() {
           "Request data through the local Aletheia Boundary. " +
           "Policy is evaluated on the resource (table). " +
           "Free-form SQL is not accepted; the boundary builds the statement. " +
-          "All releases are minimized and receipted. Schema omits denied tables.",
+          "All releases are minimized and receipted. Schema omits denied tables. " +
+          "stats.truncated is true when more rows existed than the applied limit.",
         inputSchema: {
           type: "object",
           properties: {
@@ -126,12 +127,12 @@ async function main() {
             resource: {
               type: "string",
               description:
-                "Table identifier the policy matches and the boundary will read (e.g. public.orders). Not a free-form label over arbitrary SQL.",
+                "Table identifier the policy matches and the boundary will read (e.g. public.orders).",
             },
             params: {
               type: "object",
               description:
-                "Structured only. Optional: columns (string[]), limit (number). params.sql is rejected. Row count is capped (default 500, hard max 2000).",
+                "Structured only. Optional: columns (string[]), limit (number). params.sql is rejected. Default row cap 500, hard max 2000.",
               properties: {
                 columns: {
                   type: "array",
