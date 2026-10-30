@@ -52,12 +52,23 @@ export class PolicyEngine {
     return true;
   }
 
+  /**
+   * Glob-ish matching:
+   *   *           → any
+   *   prefix*     → starts with prefix
+   *   *suffix     → ends with suffix
+   *   *mid*       → contains mid
+   *   exact       → equality
+   */
   private valueMatches(matcher: string | string[], actual: string): boolean {
     const candidates = Array.isArray(matcher) ? matcher : [matcher];
     return candidates.some((c) => {
       if (c === "*") return true;
-      if (c.endsWith("*")) {
-        return actual.startsWith(c.slice(0, -1));
+      if (c.includes("*")) {
+        const escaped = c
+          .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+          .replace(/\*/g, ".*");
+        return new RegExp(`^${escaped}$`, "i").test(actual);
       }
       return c === actual;
     });
