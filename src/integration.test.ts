@@ -212,15 +212,27 @@ async function main() {
     );
   }
 
-  // 6. structured orders query
+  // 6. structured orders query (seed columns: id, user_id, status, amount)
   {
     const r = await boundary.handle({
       action: "query",
       resource: "public.orders",
-      params: { columns: ["id", "total"] },
+      params: { columns: ["id", "amount"] },
     });
-    assert(r.ok, "orders query must be allowed");
-    console.log("[ok] structured orders query");
+    assert(
+      r.ok,
+      `orders query must be allowed: ${r.error ?? r.decision.reason}`,
+    );
+    const data = r.payload!.data as { rows: Record<string, unknown>[] };
+    assert(data.rows.length > 0, "got order rows");
+    for (const row of data.rows) {
+      for (const k of Object.keys(row)) {
+        assert(["id", "amount"].includes(k), `unexpected column: ${k}`);
+      }
+    }
+    console.log(
+      `[ok] structured orders query: ${data.rows.length} rows, transforms=${r.payload!.transforms.join(",")}`,
+    );
   }
 
   // 7. write canary still empty
