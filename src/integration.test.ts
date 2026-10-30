@@ -5,7 +5,7 @@
  *   docker compose up -d
  *   export DATABASE_URL=postgres://readonly:readonly@localhost:5434/boundary
  *
- * Optional (to prove the probe refuses a writable role):
+ * Optional:
  *   export DATABASE_URL_WRITABLE=postgres://writable:writable@localhost:5434/boundary
  *
  * Run: npx tsx src/integration.test.ts
@@ -31,16 +31,20 @@ function assert(cond: unknown, msg: string): asserts cond {
 }
 
 async function main() {
-  console.log("[integration] connecting to", DATABASE_URL.replace(/:[^:@]+@/, ":***@"));
+  console.log(
+    "[integration] connecting to",
+    DATABASE_URL.replace(/:[^:@]+@/, ":***@"),
+  );
 
-  // --- 1. Startup probe accepts read-only role ---
   const pool = new pg.Pool({ connectionString: DATABASE_URL, max: 2 });
   await assertReadOnlyRole(pool);
   console.log("[ok] read-only probe accepted");
 
-  // --- 2. Startup probe refuses writable role ---
   if (DATABASE_URL_WRITABLE) {
-    const wpool = new pg.Pool({ connectionString: DATABASE_URL_WRITABLE, max: 1 });
+    const wpool = new pg.Pool({
+      connectionString: DATABASE_URL_WRITABLE,
+      max: 1,
+    });
     let refused = false;
     try {
       await assertReadOnlyRole(wpool);
@@ -52,10 +56,11 @@ async function main() {
     assert(refused, "writable role must be refused by probe");
     console.log("[ok] writable role refused by probe");
   } else {
-    console.log("[skip] DATABASE_URL_WRITABLE not set — probe refuse test skipped");
+    console.log(
+      "[skip] DATABASE_URL_WRITABLE not set — probe refuse test skipped",
+    );
   }
 
-  // --- 3. Wire Boundary with a realistic policy ---
   const policy = new PolicyEngine(
     loadPolicyFromObject({
       version: "0.1",
@@ -86,10 +91,16 @@ async function main() {
         },
         {
           id: "allow-analytics-query",
-          match: { action: "query", resource: "analytics*" },
+          match: {
+            action: "query",
+            resource: ["public.analytics_daily", "analytics_daily"],
+          },
           effect: "allow_with_constraints",
           constraints: [
-            { type: "columns", value: ["date", "metric", "value", "segment"] },
+            {
+              type: "columns",
+              value: ["date", "metric", "value", "segment"],
+            },
             { type: "limit", value: 100 },
           ],
           priority: 30,
@@ -109,7 +120,7 @@ async function main() {
     pool,
     identity: "integration-test",
     maxRows: 1000,
-    requireReadOnlyRole: false, // already probed above
+    requireReadOnlyRole: false,
   });
   await provider.init();
 
@@ -117,7 +128,7 @@ async function main() {
   const log = new ReceiptLog(keyPair);
   const boundary = new Boundary(policy, provider, log);
 
-  // --- 4. Schema is allowed ---
+  // 1. Schema allowed
   {
     const r = await boundary.handle({ action: "schema", resource: "*" });
     assert(r.ok, "schema must be allowed");
@@ -134,19 +145,34 @@ async function main() {
     console.log("[ok] schema allowed, receipt verifies");
   }
 
-  // --- 5. users is denied by policy ---
+  // 2. users denied by policy (structured; no SQL)
   {
     const r = await boundary.handle({
       action: "query",
       resource: "public.users",
-      params: { sql: "SELECT * FROM public.users" },
     });
     assert(!r.ok, "users must be denied");
     assert(r.decision.outcome === "deny", "outcome is deny");
     console.log("[ok] users denied by policy");
   }
 
-  // --- 6. sample orders works + constraints applied ---
+  // 3. free-form SQL rejected even on an allowed resource (F1)
+  {
+    const r = await boundary.handle({
+      action: "query",
+      resource: "public.orders",
+      params: { sql: "SELECT * FROM public.users" },
+    });
+    assert(!r.ok, "agent SQL must be rejected");
+    assert(
+      (r.error ?? r.decision.reason).includes("free-form SQL") ||
+        (r.error ?? r.decision.reason).includes("not allowed"),
+      "reason mentions free-form SQL",
+    );
+    console.log("[ok] free-form SQL rejected:", (r.error ?? "").slice(0, 80));
+  }
+
+  // 4. sample orders + constraints
   {
     const r = await boundary.handle({
       action: "sample",
@@ -164,18 +190,15 @@ async function main() {
     );
   }
 
-  // --- 7. query analytics with column projection ---
+  // 5. structured analytics query with column projection
   {
     const r = await boundary.handle({
       action: "query",
-      resource: "analytics",
-      params: { sql: "SELECT * FROM public.analytics_daily" },
+      resource: "public.analytics_daily",
     });
     assert(r.ok, "analytics query must be allowed");
     const data = r.payload!.data as { rows: Record<string, unknown>[] };
     assert(data.rows.length > 0, "got analytics rows");
-    // columns constraint should have dropped nothing unexpected;
-    // all remaining keys should be in the allowlist
     for (const row of data.rows) {
       for (const k of Object.keys(row)) {
         assert(
@@ -189,46 +212,24 @@ async function main() {
     );
   }
 
-  // --- 8. dangerous function blocked by classifier ---
-  {
-    let blocked = false;
-    try {
-      await boundary.handle({
-        action: "query",
-        resource: "public.orders",
-        params: { sql: "SELECT pg_read_file('/etc/passwd')" },
-      });
-    } catch {
-      blocked = true;
-    }
-    // Boundary catches provider errors and turns them into deny
-    const r = await boundary.handle({
-      action: "query",
-      resource: "public.orders",
-      params: { sql: "SELECT pg_read_file('/etc/passwd')" },
-    });
-    assert(!r.ok, "dangerous function must be denied");
-    console.log("[ok] dangerous function blocked:", r.decision.reason.slice(0, 80));
-  }
-
-  // --- 9. multi-statement blocked ---
+  // 6. structured orders query
   {
     const r = await boundary.handle({
       action: "query",
       resource: "public.orders",
-      params: {
-        sql: "SELECT 1; INSERT INTO public.write_canary(note) VALUES('pwned')",
-      },
+      params: { columns: ["id", "total"] },
     });
-    assert(!r.ok, "multi-statement must be denied");
-    console.log("[ok] multi-statement blocked");
+    assert(r.ok, "orders query must be allowed");
+    console.log("[ok] structured orders query");
   }
 
-  // --- 10. write canary still empty ---
+  // 7. write canary still empty
   {
     const client = await pool.connect();
     try {
-      const res = await client.query("SELECT count(*)::int AS n FROM public.write_canary");
+      const res = await client.query(
+        "SELECT count(*)::int AS n FROM public.write_canary",
+      );
       assert(res.rows[0].n === 0, "write_canary must be empty");
       console.log("[ok] write_canary empty — no unauthorized writes");
     } finally {
@@ -236,7 +237,7 @@ async function main() {
     }
   }
 
-  // --- 11. hash chain integrity ---
+  // 8. hash chain
   {
     const all = log.getAll();
     assert(all.length >= 5, "enough receipts");
