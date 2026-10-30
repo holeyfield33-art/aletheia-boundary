@@ -28,7 +28,7 @@ import { loadOrCreateKeyPair } from "../receipt/crypto.js";
 import { StubProvider } from "../data/provider.js";
 import type { DataProvider } from "../data/provider.js";
 
-const PACKAGE_VERSION = "0.0.5";
+const PACKAGE_VERSION = "0.0.7";
 
 function loadPolicy(): PolicyEngine {
   const path =
@@ -46,7 +46,10 @@ function loadPolicy(): PolicyEngine {
   }
 }
 
-async function createProvider(): Promise<{ provider: DataProvider; isStub: boolean }> {
+async function createProvider(): Promise<{
+  provider: DataProvider;
+  isStub: boolean;
+}> {
   if (process.env.DATABASE_URL) {
     try {
       const { createPostgresProviderFromEnv } = await import(
@@ -58,7 +61,6 @@ async function createProvider(): Promise<{ provider: DataProvider; isStub: boole
       );
       return { provider, isStub: false };
     } catch (err) {
-      // F3: never fall back to stub when a real database was requested.
       console.error(
         `[aletheia-boundary] FATAL: Postgres provider failed (refusing to start): ${err}`,
       );
@@ -66,7 +68,6 @@ async function createProvider(): Promise<{ provider: DataProvider; isStub: boole
     }
   }
 
-  // Explicit dev-only path: no DATABASE_URL means intentional stub.
   console.error(
     "[aletheia-boundary] No DATABASE_URL — using StubProvider (dev only; data is not real)",
   );
@@ -111,8 +112,9 @@ async function main() {
         name: "boundary_request",
         description:
           "Request data through the local Aletheia Boundary. " +
-          "All access is policy-checked, minimized, and receipted. " +
-          "Raw data never leaves the customer boundary.",
+          "Policy is evaluated on the resource (table). " +
+          "Free-form SQL is not accepted; the boundary builds the statement. " +
+          "All releases are minimized and receipted.",
         inputSchema: {
           type: "object",
           properties: {
@@ -123,12 +125,24 @@ async function main() {
             },
             resource: {
               type: "string",
-              description: "Table, collection, or file identifier",
+              description:
+                "Table identifier the policy matches and the boundary will read (e.g. public.orders). Not a free-form label over arbitrary SQL.",
             },
             params: {
               type: "object",
               description:
-                "Optional parameters. For query/export: { sql, values? }. For sample: optional limit via policy constraints.",
+                "Structured only. Optional: columns (string[]), limit (number). params.sql is rejected.",
+              properties: {
+                columns: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Column names to select (intersected with policy)",
+                },
+                limit: {
+                  type: "number",
+                  description: "Max rows (further capped by policy)",
+                },
+              },
             },
             purpose: {
               type: "string",
@@ -175,7 +189,6 @@ async function main() {
       data: result.payload?.data ?? null,
       transforms: result.payload?.transforms ?? [],
       stats: result.payload?.stats,
-      /** I6: agent must be able to tell real vs stub data. */
       dataSource: isStub ? "stub" : "postgres",
       receipt: {
         id: result.receipt.id,
