@@ -33,11 +33,11 @@ rules:
     reason: "PII / credential tables are denied by default"
     priority: 100
 
-  # Allow read queries against analytics schema with column projection
+  # Allow structured reads against analytics_daily (resource = table)
   - id: allow-analytics-query
     match:
       action: query
-      resource: "analytics.*"
+      resource: ["public.analytics_daily", "analytics_daily"]
     effect: allow_with_constraints
     constraints:
       - type: columns
@@ -46,3 +46,15 @@ rules:
         value: 500
     reason: "Analytics queries allowed with fixed column set and limit"
     priority: 30
+
+  # Allow structured reads of orders
+  - id: allow-orders-query
+    match:
+      action: query
+      resource: "public.orders"
+    effect: allow_with_constraints
+    constraints:
+      - type: limit
+        value: 50
+    reason: "Orders may be queried with row limit"
+    priority: 25
