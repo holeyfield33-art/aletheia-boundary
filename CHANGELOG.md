@@ -1,8 +1,17 @@
 # Changelog
 
-All notable changes to Aletheia Boundary are documented here.
-Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-Versions follow semver; `0.x` until all SDLC invariants I1–I6 are fully enforced **and** CI is green on main.
+---
+
+## [0.0.10] — 2026-10-30
+
+### Security
+
+- **GHSA-mrhx-c7xc-m3w5 / zod:** upgrade to `zod@^4.6.7`; policy schema arrays use `.max()` so oversized collections fail before element-level issue accumulation.
+- Triage notes: [docs/SECURITY-SCAN.md](docs/SECURITY-SCAN.md)
+
+### Changed
+
+- Package / MCP version **0.0.10**
 
 ---
 
@@ -10,73 +19,30 @@ Versions follow semver; `0.x` until all SDLC invariants I1–I6 are fully enforc
 
 ### Fixed
 
-- **I6 / honest completion:** Queries fetch `limit+1` rows, release only `limit`, and set `stats.truncated: true` (and `data.truncated`) when more rows existed. Agent-review C5 now requires this flag.
+- Honest `stats.truncated` (fetch limit+1, drop extra)
 
 ### Added
 
-- `audit/agent-review.ts` + `npm run test:agent-review` (MCP stdio client, SDLC §5)
-- `.github/workflows/ci.yml` — G1–G5 (enable after Actions billing restored)
-- `docs/AGENT-REVIEW-2026-10-30.md`
-
-### Evidence
-
-- Re-run: `DATABASE_URL=... npm run test:agent-review` → C5 `truncated=true`
-- Prior gates remain green: unit, attacks `leaks:0`, integration
+- Agent review harness; CI workflow scaffold; redteam gap map
 
 ---
 
 ## [0.0.8] — 2026-10-30
 
-### Fixed
-
-- **F9 / I6:** Default row cap **500** (was 10_000). Hard ceiling **2000**.
-- **F10 / I6:** `schema` omits tables the policy denies (or with no sample/query path).
-- Resource matchers support `*contains*` globs (`*users*` → `public.users`).
-
-### Added
-
-- `src/data/limits.ts`, `src/policy/bounds.test.ts`
-
----
+F9/F10 bounds + schema filter + glob match
 
 ## [0.0.7] — 2026-10-30
 
-### Fixed
-
-- **F1 / I1:** Free-form SQL rejected; structured table/columns/limit only. A1–A3 HELD.
-
----
+F1 structured SQL only
 
 ## [0.0.6] — 2026-10-29
 
-### Fixed
-
-- **F2 / I4:** Recursive `canonicalJson`; forge invalidates hash. A6 HELD.
-- **F6:** Hydrate verifies chain; `npm run verify-log`.
-
----
+F2/F6 receipt integrity
 
 ## [0.0.5] — 2026-10-29
 
-### Fixed
-
-- **F3:** No stub fallback when `DATABASE_URL` set.
-- **F4 / F5:** Zod policy; unknown effects/constraints rejected at load.
-
----
+F3–F5 fail closed
 
 ## [0.0.4] — 2026-10-29
 
-### Fixed
-
-- **F7 / F8:** Lockfile, `pg-cursor` types, `node:test` runner.
-
----
-
-## [0.0.3] — 2026-10-29
-
-### Added
-
-- Initial MCP server, policy engine, Postgres provider, receipts, docker harness.
-
-See [docs/AUDIT-2026-10-29.md](docs/AUDIT-2026-10-29.md) for the original findings (F1–F11 closed by 0.0.9).
+F7/F8 gates real
