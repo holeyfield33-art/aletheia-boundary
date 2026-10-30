@@ -42,6 +42,12 @@ async function createProvider(): Promise<{
   provider: DataProvider;
   isStub: boolean;
 }> {
+  if (process.env.NODE_ENV === "production" && process.env.BOUNDARY_SKIP_READONLY_PROBE === "1") {
+    throw new Error("Production cannot bypass read-only verification");
+  }
+  if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
+    throw new Error("Production requires DATABASE_URL");
+  }
   if (process.env.DATABASE_URL) {
     try {
       const { createPostgresProviderFromEnv } = await import(
@@ -163,7 +169,7 @@ async function main() {
       resource: args.resource,
       params: args.params,
       purpose: args.purpose,
-      caller: args.caller,
+      caller: process.env.BOUNDARY_TRUSTED_CALLER,
     });
 
     const body = {
