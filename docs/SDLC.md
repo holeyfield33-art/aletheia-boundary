@@ -28,14 +28,14 @@ These are the product. A change that weakens one is rejected, however useful it
 is otherwise. Each invariant names the test that enforces it; an invariant with
 no test is not enforced and must be listed as such in the README.
 
-| ID | Invariant | Enforced by | Status (0.0.7) |
+| ID | Invariant | Enforced by | Status (0.0.8) |
 |---|---|---|---|
 | I1 | **Policy decides on what actually executes**, never on a label the agent supplies. | `audit/attacks.ts` A1–A3 | **Passing** — structured queries only |
 | I2 | **Nothing leaves beyond the permitted projection.** Column and redaction rules hold. | A1, A2; integration column asserts | **Passing** |
 | I3 | **Fail closed.** Unknown effect/constraint, provider failure, refused probe or unreadable policy → deny or refuse to start. Never stub as real data. | A4, A5; MCP startup | **Passing** |
 | I4 | **Receipts are evidence.** Hash covers full canonical body; offline verify command. | A6; `npm run verify-log` | **Passing** |
 | I5 | **No writes.** Read-only role probe; READ ONLY transaction; always rolled back. | integration; A7 | **Passing** |
-| I6 | **Agent contract.** Reasons on refusal; bounded/declared output; real vs stub visible. | integration; agent review | **Partial** — F9/F10 open |
+| I6 | **Agent contract.** Reasons on refusal; bounded/declared output; real vs stub visible; schema does not advertise denied tables. | bounds tests; F9/F10; integration | **Passing** |
 
 ---
 
@@ -81,8 +81,8 @@ Two reviews, both required for anything touching I1–I4:
    forge a receipt. Findings go into `docs/AUDIT-*.md`.
 
 ### 3.5 Release
-- Version `0.x.y` until all invariants are enforced by passing gates. Do not
-  call anything 1.0 while any I1–I6 row is partial or failing.
+- Version `0.x.y` until all invariants are enforced by passing gates **and** CI
+  runs those gates. Do not call anything 1.0 while step 6 is open.
 - Every README claim names its evidence (gate or test). A claim without
   evidence is removed or moved to "Not yet enforced".
 - The MCP server reports the package version.
@@ -136,8 +136,8 @@ Ordered so each step makes the next one checkable.
 | 2 | Fail closed (F3, F4, F5) | **Done** (0.0.5) |
 | 3 | Receipts that prove something (F2, F6) | **Done** (0.0.6) |
 | 4 | Bind policy to what executes (F1) | **Done** (0.0.7) — structured route |
-| 5 | Bound the output and trim metadata (F9, F10, F11) | **Open** |
+| 5 | Bound the output and trim metadata (F9, F10, F11) | **Done** (0.0.8) |
 | 6 | CI running G1–G6 | **Open** (Actions billing) |
 
 New providers (file/S3), a richer policy language and hardware-key storage wait
-until step 5 is closed enough that expanding surface does not reintroduce F1-class leaks.
+until step 6 is in place so every expansion is continuously gated.
