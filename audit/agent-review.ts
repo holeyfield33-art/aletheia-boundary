@@ -5,24 +5,17 @@
  * checklist row from the tool result alone, exits non-zero on any FAIL.
  *
  * Usage:
- *   # Stub path (always available)
  *   npx tsx audit/agent-review.ts
- *
- *   # Real Postgres path
- *   DATABASE_URL=postgres://readonly:readonly@localhost:5434/boundary \
- *     npx tsx audit/agent-review.ts
- *
- * Report also written to docs/AGENT-REVIEW-<date>.md when --write-report is set.
+ *   DATABASE_URL=... npx tsx audit/agent-review.ts --write-report
  */
 
-import { mkdtempSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { mkdtempSync, writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createPublicKey } from "node:crypto";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { verifyHash } from "../src/receipt/crypto.js";
-import { computeContentHash } from "../src/receipt/log.js";
 
 type Grade = "PASS" | "FAIL" | "SKIP";
 
@@ -91,7 +84,6 @@ async function main() {
     BOUNDARY_LOG_PATH: logPath,
     BOUNDARY_POLICY: policyPath,
   };
-  // Keep DATABASE_URL if the operator set it (real path); otherwise stub.
   const live = Boolean(process.env.DATABASE_URL);
 
   const transport = new StdioClientTransport({
@@ -110,7 +102,6 @@ async function main() {
     results.push({ id, name, grade: pass ? "PASS" : "FAIL", evidence });
   };
 
-  // --- List tools (smoke that MCP surface exists) ---
   const listed = await client.listTools();
   const hasTool = listed.tools.some((t) => t.name === "boundary_request");
   grade(
@@ -122,7 +113,6 @@ async function main() {
       : "boundary_request missing",
   );
 
-  // --- 1. Errors carry reasons ---
   {
     const { body } = await callBoundary(client, {
       action: "query",
@@ -142,7 +132,6 @@ async function main() {
     );
   }
 
-  // --- 2. Real or fake is visible ---
   {
     const { body } = await callBoundary(client, {
       action: "schema",
@@ -150,16 +139,14 @@ async function main() {
     });
     const ds = body.dataSource;
     const expected = live ? "postgres" : "stub";
-    const pass = ds === expected;
     grade(
       "C2",
       "Real or fake is visible (dataSource)",
-      pass,
+      ds === expected,
       `dataSource=${ds} expected=${expected} live=${live}`,
     );
   }
 
-  // --- 3. Bounded output (declared limits exist; hard max documented via transforms/limit) ---
   {
     if (live) {
       const { body } = await callBoundary(client, {
@@ -194,7 +181,6 @@ async function main() {
     }
   }
 
-  // --- 4. Declared scope (rule + transforms) ---
   {
     const { body } = await callBoundary(client, {
       action: "schema",
@@ -213,10 +199,9 @@ async function main() {
     );
   }
 
-  // --- 5. Honest completion (truncation flagged when limited) ---
   {
     if (live) {
-      // Seed has 4 orders; force limit 2 and expect truncated or rowCount<=2 with limit transform
+      // Seed has 4 orders; limit 2 must return 2 rows AND stats.truncated=true
       const { body } = await callBoundary(client, {
         action: "query",
         resource: "public.orders",
@@ -225,10 +210,7 @@ async function main() {
       const rows =
         (body.data as { rows?: unknown[] })?.rows?.length ?? body.stats?.rows ?? 0;
       const pass =
-        body.ok === true &&
-        rows <= 2 &&
-        (body.stats?.truncated === true ||
-          (body.transforms ?? []).some((t) => t.includes("limit:2")));
+        body.ok === true && rows === 2 && body.stats?.truncated === true;
       grade(
         "C5",
         "Honest completion (limit/truncation visible)",
@@ -245,7 +227,6 @@ async function main() {
     }
   }
 
-  // --- 6. Input handling (malformed / SQL injection path) ---
   {
     const { body } = await callBoundary(client, {
       action: "query",
@@ -264,16 +245,9 @@ async function main() {
     );
   }
 
-  // --- 7. Repeatability ---
   {
-    const a = await callBoundary(client, {
-      action: "schema",
-      resource: "*",
-    });
-    const b = await callBoundary(client, {
-      action: "schema",
-      resource: "*",
-    });
+    const a = await callBoundary(client, { action: "schema", resource: "*" });
+    const b = await callBoundary(client, { action: "schema", resource: "*" });
     const da = JSON.stringify(a.body.data);
     const db = JSON.stringify(b.body.data);
     const pass =
@@ -289,7 +263,6 @@ async function main() {
     );
   }
 
-  // --- 8. Evidence (receipt hash + signature verify with public key) ---
   {
     const { body } = await callBoundary(client, {
       action: "schema",
@@ -299,13 +272,9 @@ async function main() {
     let pass = false;
     let evidence = "no receipt";
     if (r?.contentHash && r.signature && r.keyId) {
-      // Load public key written next to private key by loadOrCreateKeyPair
       const pubPath = keyPath.replace(/\.ed25519$/, "") + ".pub.pem";
       if (existsSync(pubPath)) {
-        const { readFileSync } = await import("node:fs");
         const pub = createPublicKey(readFileSync(pubPath, "utf8"));
-        // Recompute is not possible from summary-only response without full receipt body.
-        // Verify signature over the claimed contentHash (proves key signed this hash).
         const sigOk = verifyHash(pub, r.contentHash, r.signature);
         pass = sigOk && r.contentHash.length === 64;
         evidence = `sigOk=${sigOk} keyId=${r.keyId} hash=${r.contentHash.slice(0, 16)}…`;
@@ -316,18 +285,13 @@ async function main() {
     grade("C8", "Evidence (receipt signature verifies)", pass, evidence);
   }
 
-  // --- Unknown tool ---
   {
     try {
       const res = await client.callTool({
         name: "not_a_tool",
         arguments: {},
       });
-      const text = parseToolText(res.content);
-      const pass =
-        Boolean((res as { isError?: boolean }).isError) ||
-        Boolean(text.error) ||
-        JSON.stringify(res.content).includes("Unknown");
+      const pass = Boolean((res as { isError?: boolean }).isError);
       grade(
         "C9",
         "Unknown tool refused",
@@ -335,13 +299,17 @@ async function main() {
         `isError=${(res as { isError?: boolean }).isError}`,
       );
     } catch (e) {
-      grade("C9", "Unknown tool refused", true, `client threw: ${String(e).slice(0, 80)}`);
+      grade(
+        "C9",
+        "Unknown tool refused",
+        true,
+        `client threw: ${String(e).slice(0, 80)}`,
+      );
     }
   }
 
   await client.close();
 
-  // Print report
   console.log("\n=== AGENT REVIEW (SDLC §5) ===");
   console.log(`mode: ${live ? "postgres" : "stub"}`);
   console.log(`package: aletheia-boundary agent-review`);

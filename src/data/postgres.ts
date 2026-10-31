@@ -5,7 +5,7 @@
  *   1. Startup write probe (catalog inspection, fail-closed)
  *   2. READ ONLY transaction, always rolled back
  *   3. Structured reads only — no agent-supplied SQL (I1 / F1)
- *   4. Bounded cursor fetch (F9)
+ *   4. Bounded cursor fetch (F9) with honest truncation (I6)
  *   5. statement_timeout
  *   6. Minimizer applies policy constraints after fetch
  */
@@ -157,6 +157,8 @@ function minimize(
       transforms.push(`redact:${keys.join(",")}`);
     }
 
+    // limit/sample already applied at SQL with honest truncation; only
+    // re-slice if constraints ask for a *lower* bound than what we fetched.
     if (c.type === "limit" && typeof c.value === "number") {
       const lim = Math.max(0, Math.floor(c.value));
       if (rows.length > lim) {
@@ -225,32 +227,57 @@ export class PostgresProvider implements DataProvider {
     }
   }
 
+  /**
+   * Fetch up to `fetchCap` rows. Caller is responsible for slicing to the
+   * public limit and setting truncated when fetchCap was used as limit+1.
+   */
   private readLimited(
     client: PoolClient,
     text: string,
     values: unknown[],
+    fetchCap: number,
   ): Promise<QueryResult> {
     return new Promise((resolve, reject) => {
       const cursor = client.query(new Cursor(text, values));
       cursor.read(
-        this.maxRows + 1,
+        fetchCap,
         (err: Error | undefined, rows: any[], result: any) => {
           if (err) {
             cursor.close(() => {});
             reject(err);
             return;
           }
-          const truncated = rows.length > this.maxRows;
-          const out = truncated ? rows.slice(0, this.maxRows) : rows;
           const fields = ((result?.fields ?? []) as { name: string }[]).map(
             (f) => ({ name: f.name }),
           );
           cursor.close(() =>
-            resolve({ rows: out, fields, truncated, rowCount: out.length }),
+            resolve({
+              rows,
+              fields,
+              truncated: false, // set by applyRowCap
+              rowCount: rows.length,
+            }),
           );
         },
       );
     });
+  }
+
+  /** Slice to public limit; mark truncated if a sentinel extra row was present. */
+  private applyRowCap(result: QueryResult, lim: number): QueryResult {
+    if (result.rows.length > lim) {
+      return {
+        rows: result.rows.slice(0, lim),
+        fields: result.fields,
+        truncated: true,
+        rowCount: lim,
+      };
+    }
+    return {
+      ...result,
+      truncated: false,
+      rowCount: result.rows.length,
+    };
   }
 
   private async loadSchema() {
@@ -298,11 +325,15 @@ export class PostgresProvider implements DataProvider {
     return key;
   }
 
+  /**
+   * Build SELECT with LIMIT lim+1 so we can detect truncation without
+   * releasing the extra row (I6 honest completion).
+   */
   private buildSelect(
     tableKey: string,
     params?: Record<string, unknown>,
     constraints?: Constraint[],
-  ): { sql: string; transforms: string[] } {
+  ): { sql: string; lim: number; transforms: string[] } {
     const transforms: string[] = [`table:${tableKey}`];
 
     let cols = "*";
@@ -352,9 +383,10 @@ export class PostgresProvider implements DataProvider {
     if (policyLim != null) lim = Math.min(lim, Math.max(0, policyLim));
     lim = Math.max(1, Math.min(lim, this.maxRows, HARD_MAX_ROWS));
 
-    const sql = `SELECT ${cols} FROM ${quoteIdent(tableKey)} LIMIT ${lim}`;
+    // Fetch one extra row to learn if more data exists; never release it.
+    const sql = `SELECT ${cols} FROM ${quoteIdent(tableKey)} LIMIT ${lim + 1}`;
     transforms.push(`limit:${lim}`);
-    return { sql, transforms };
+    return { sql, lim, transforms };
   }
 
   async execute(
@@ -384,11 +416,24 @@ export class PostgresProvider implements DataProvider {
       case "sample": {
         assertNoAgentSql(req.params);
         const tableKey = this.resolveTable(req.resource);
-        const { sql } = this.buildSelect(tableKey, req.params, constraints);
-        const result = await this.readOnly((client) =>
-          this.readLimited(client, sql, []),
+        const built = this.buildSelect(tableKey, req.params, constraints);
+        const raw = await this.readOnly((client) =>
+          this.readLimited(client, built.sql, [], built.lim + 1),
         );
-        return minimize(result, constraints);
+        const capped = this.applyRowCap(raw, built.lim);
+        const minimized = minimize(capped, constraints);
+        minimized.transforms = [
+          ...built.transforms,
+          ...minimized.transforms.filter((t) => t !== "none"),
+        ];
+        // Preserve SQL-level truncation flag if minimizer didn't clear it
+        if (capped.truncated && minimized.stats) {
+          minimized.stats.truncated = true;
+          if (minimized.data && typeof minimized.data === "object") {
+            (minimized.data as { truncated?: boolean }).truncated = true;
+          }
+        }
+        return minimized;
       }
 
       case "query":
@@ -396,14 +441,21 @@ export class PostgresProvider implements DataProvider {
         assertNoAgentSql(req.params);
         const tableKey = this.resolveTable(req.resource);
         const built = this.buildSelect(tableKey, req.params, constraints);
-        const result = await this.readOnly((client) =>
-          this.readLimited(client, built.sql, []),
+        const raw = await this.readOnly((client) =>
+          this.readLimited(client, built.sql, [], built.lim + 1),
         );
-        const minimized = minimize(result, constraints);
+        const capped = this.applyRowCap(raw, built.lim);
+        const minimized = minimize(capped, constraints);
         minimized.transforms = [
           ...built.transforms,
           ...minimized.transforms.filter((t) => t !== "none"),
         ];
+        if (capped.truncated && minimized.stats) {
+          minimized.stats.truncated = true;
+          if (minimized.data && typeof minimized.data === "object") {
+            (minimized.data as { truncated?: boolean }).truncated = true;
+          }
+        }
         return minimized;
       }
 

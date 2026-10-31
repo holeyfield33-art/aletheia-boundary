@@ -1,0 +1,63 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  unit:
+    name: G1–G3 install typecheck unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: G1 clean install
+        run: npm ci
+      - name: G2 typecheck
+        run: npm run typecheck
+      - name: G3 unit tests
+        run: npm test
+
+  integration:
+    name: G4–G5 integration + attacks
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: boundary
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://readonly:readonly@localhost:5434/boundary
+      DATABASE_URL_WRITABLE: postgres://writable:writable@localhost:5434/boundary
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Seed schema + roles
+        env:
+          PGPASSWORD: postgres
+        run: |
+          until pg_isready -h localhost -p 5434 -U postgres; do sleep 1; done
+          # scripts/init-readonly.sql expects to run as superuser into boundary
+          psql -h localhost -p 5434 -U postgres -d boundary -f scripts/init-readonly.sql
+      - name: G4 integration
+        run: npm run test:integration
+      - name: G5 attack suite
+        run: npm run test:attacks

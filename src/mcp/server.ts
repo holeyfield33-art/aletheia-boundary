@@ -1,14 +1,6 @@
 #!/usr/bin/env node
 /**
  * Aletheia Boundary MCP server.
- *
- * Exposes a single tool: boundary_request.
- * The agent never talks to the data source directly.
- *
- * Fail closed at startup:
- *   - invalid / unreadable policy → exit 1
- *   - DATABASE_URL set but Postgres probe fails → exit 1 (never stub)
- *   - no DATABASE_URL → StubProvider only for local dev, and responses mark data as stub
  */
 
 import { readFileSync } from "node:fs";
@@ -28,7 +20,7 @@ import { loadOrCreateKeyPair } from "../receipt/crypto.js";
 import { StubProvider } from "../data/provider.js";
 import type { DataProvider } from "../data/provider.js";
 
-const PACKAGE_VERSION = "0.0.8";
+const PACKAGE_VERSION = "0.0.10";
 
 function loadPolicy(): PolicyEngine {
   const path =
@@ -114,7 +106,8 @@ async function main() {
           "Request data through the local Aletheia Boundary. " +
           "Policy is evaluated on the resource (table). " +
           "Free-form SQL is not accepted; the boundary builds the statement. " +
-          "All releases are minimized and receipted. Schema omits denied tables.",
+          "All releases are minimized and receipted. Schema omits denied tables. " +
+          "stats.truncated is true when more rows existed than the applied limit.",
         inputSchema: {
           type: "object",
           properties: {
@@ -126,32 +119,22 @@ async function main() {
             resource: {
               type: "string",
               description:
-                "Table identifier the policy matches and the boundary will read (e.g. public.orders). Not a free-form label over arbitrary SQL.",
+                "Table identifier the policy matches and the boundary will read (e.g. public.orders).",
             },
             params: {
               type: "object",
               description:
-                "Structured only. Optional: columns (string[]), limit (number). params.sql is rejected. Row count is capped (default 500, hard max 2000).",
+                "Structured only. Optional: columns (string[]), limit (number). params.sql is rejected.",
               properties: {
                 columns: {
                   type: "array",
                   items: { type: "string" },
-                  description: "Column names to select (intersected with policy)",
                 },
-                limit: {
-                  type: "number",
-                  description: "Max rows (further capped by policy and hard max)",
-                },
+                limit: { type: "number" },
               },
             },
-            purpose: {
-              type: "string",
-              description: "Claimed purpose / context for the request",
-            },
-            caller: {
-              type: "string",
-              description: "Optional caller / session identity",
-            },
+            purpose: { type: "string" },
+            caller: { type: "string" },
           },
           required: ["action", "resource"],
         },
