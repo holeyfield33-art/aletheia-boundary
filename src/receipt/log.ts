@@ -9,6 +9,7 @@ import type {
 } from "../types.js";
 import { signHash, verifyHash, type KeyPair } from "./crypto.js";
 import { canonicalJson } from "./canonical.js";
+import { parseReceiptCheckpoint, publicKeySha256, verifyReceiptCheckpoint, type ReceiptCheckpoint } from "./checkpoint.js";
 
 /**
  * Append-only, hash-chained, Ed25519-signed receipt log.
@@ -26,9 +27,13 @@ export class ReceiptLog {
   constructor(
     private readonly keyPair: KeyPair,
     logPath?: string,
-    options?: { verifyOnLoad?: boolean },
+    options?: { verifyOnLoad?: boolean; checkpoint?: ReceiptCheckpoint },
   ) {
     this.logPath = logPath ? resolve(logPath) : null;
+    const checkpoint = options?.checkpoint === undefined ? undefined : parseReceiptCheckpoint(options.checkpoint);
+    if (checkpoint && (!this.logPath || !fs.existsSync(this.logPath))) {
+      throw new Error("Checkpoint requires an existing receipt log; refusing to recreate history");
+    }
     if (this.logPath) {
       if (options?.verifyOnLoad === false) throw new Error("Receipt verification cannot be disabled");
       fs.mkdirSync(dirname(this.logPath), { recursive: true });
@@ -42,6 +47,10 @@ export class ReceiptLog {
         }
       }
       this.hydrateFromDisk(true);
+      if (checkpoint) {
+        const verified = verifyReceiptCheckpoint(this.receipts, this.keyPair.publicKey, checkpoint);
+        if (!verified.ok) throw new Error(`Receipt checkpoint verification failed: ${verified.reason}`);
+      }
     }
   }
 
@@ -214,4 +223,18 @@ export function verifyReceiptChain(
     prev = r.contentHash;
   }
   return { ok: true };
+}
+
+/** Export a candidate only from a fully verified, nonempty history. Publication is host-owned. */
+export function createReceiptCheckpoint(
+  receipts: readonly Receipt[], publicKey: import("node:crypto").KeyObject,
+): ReceiptCheckpoint {
+  const verified = verifyReceiptChain(receipts, publicKey);
+  if (!verified.ok || receipts.length === 0) throw new Error("Cannot checkpoint empty or invalid receipt history");
+  return parseReceiptCheckpoint({
+    version: 1,
+    publicKeySha256: publicKeySha256(publicKey),
+    receiptCount: receipts.length,
+    contentHash: receipts[receipts.length - 1].contentHash,
+  });
 }

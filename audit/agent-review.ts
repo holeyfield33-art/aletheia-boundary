@@ -81,6 +81,8 @@ async function main() {
 
   const env: Record<string, string> = {
     ...process.env,
+    NODE_ENV: "test",
+    BOUNDARY_CHECKPOINT_PATH: "", // This harness owns disposable keys/logs, not host production anchors.
     BOUNDARY_KEY_PATH: keyPath,
     BOUNDARY_LOG_PATH: logPath,
     BOUNDARY_POLICY: policyPath,

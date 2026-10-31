@@ -19,6 +19,7 @@ export {
 } from "./policy/schema.js";
 export {
   ReceiptLog,
+  createReceiptCheckpoint,
   computeContentHash,
   verifyReceipt,
   verifyReceiptChain,
@@ -42,3 +43,6 @@ export {
   assertReadOnlyRole,
 } from "./data/postgres.js";
 export { Boundary } from "./boundary.js";
+
+export { loadReceiptCheckpoint, parseReceiptCheckpoint, verifyReceiptCheckpoint, publicKeySha256 } from "./receipt/checkpoint.js";
+export type { ReceiptCheckpoint } from "./receipt/checkpoint.js";
