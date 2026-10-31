@@ -1,0 +1,63 @@
+
+> aletheia-boundary@0.0.10 test
+> tsx --test src/receipt/recovery.test.ts src/hardening.test.ts src/boundary.test.ts src/policy/failclosed.test.ts src/policy/bounds.test.ts src/receipt/receipt.test.ts
+
+▶ Boundary smoke
+  ✔ allows schema and produces a verifiable receipt (21.874ms)
+  ✔ denies PII resource and still signs the receipt (2.8989ms)
+  ✔ applies default deny for unmatched requests (1.6525ms)
+  ✔ maintains a hash chain across receipts (5.4586ms)
+  ✔ exposes a stable ed25519 key id (1.4816ms)
+✔ Boundary smoke (37.4882ms)
+✔ H1 append and fsync failures release no data, leave memory unchanged, poison writer (71.1374ms)
+✔ H2 restart verifies; partial, tampered and wrong-key logs refuse recovery (37.1906ms)
+✔ H3 deletion, truncation and same-size edits while serving refuse append (35.7165ms)
+✔ H4 concurrent handles serialize a verifiable persisted chain; callers cannot mutate it (100.6136ms)
+✔ H5 schema projects intersection of read and schema constraints and hides redacted names (4.2972ms)
+✔ H6 provider and policy exceptions omit secrets from result and signed receipt (2.3478ms)
+✔ H7 production refuses missing DB and probe bypass before connecting (2729.0502ms)
+✔ H8 MCP caller spoofing fails; host identity wins; receipt failure is sanitized (4783.9169ms)
+✔ H9 offline verifier rejects incomplete tail and validates full log (690.9133ms)
+✔ H10 schema enumeration honors initial constraints as well as table rules (1.4968ms)
+▶ output limits (F9)
+  ✔ defaults to DEFAULT_MAX_ROWS (1.553ms)
+  ✔ clamps above HARD_MAX_ROWS (0.2895ms)
+  ✔ rejects non-positive (0.3274ms)
+✔ output limits (F9) (4.7723ms)
+▶ schema filtering (F10)
+  ✔ omits tables the policy would deny (38.3302ms)
+  ✔ *users* matches public.users (1.9222ms)
+✔ schema filtering (F10) (43.9588ms)
+▶ policy load fail-closed
+  ✔ rejects misspelled effect (F4) (10.1917ms)
+  ✔ rejects unimplemented constraint type aggregate (F5) (1.292ms)
+  ✔ rejects unimplemented constraint type rows (0.6603ms)
+  ✔ rejects allow_with_constraints without constraints (1.1158ms)
+  ✔ accepts a valid policy (0.5599ms)
+✔ policy load fail-closed (16.2724ms)
+▶ receipt integrity (F2)
+  ✔ canonicalJson includes nested keys (1.7038ms)
+  ✔ old broken replacer would drop nested fields (documents the bug) (1.1226ms)
+  ✔ forging decision deny->allow invalidates contentHash (A6) (15.0126ms)
+  ✔ untampered receipt verifies (5.1845ms)
+✔ receipt integrity (F2) (26.0839ms)
+✔ R-before-append: forced termination preserves evidence and enforces restart contract (1481.8855ms)
+ℹ phase=before-append response=false offlineExit=0 restartExit=0 prefixPreserved=true
+✔ R-partial-append: forced termination preserves evidence and enforces restart contract (2132.4141ms)
+ℹ phase=partial-append response=false offlineExit=1 restartExit=2 prefixPreserved=true
+✔ R-after-append-before-sync: forced termination preserves evidence and enforces restart contract (2546.8102ms)
+ℹ phase=after-append-before-sync response=false offlineExit=0 restartExit=0 prefixPreserved=true
+✔ R-after-sync: forced termination preserves evidence and enforces restart contract (2026.0824ms)
+ℹ phase=after-sync response=false offlineExit=0 restartExit=0 prefixPreserved=true
+✔ R-before-response: forced termination preserves evidence and enforces restart contract (1773.6535ms)
+ℹ phase=before-response response=false offlineExit=0 restartExit=0 prefixPreserved=true
+✔ R-after-response: forced termination preserves evidence and enforces restart contract (1847.7694ms)
+ℹ phase=after-response response=true offlineExit=0 restartExit=0 prefixPreserved=true
+ℹ tests 35
+ℹ suites 5
+ℹ pass 35
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13856.4991

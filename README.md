@@ -2,7 +2,7 @@
 
 **Local, independent data-boundary enforcer for AI agents.**
 
-The cloud model never touches your data. It asks this program.
+Agents request approved data projections through this program. Approved projections can enter a cloud model's tool context.
 
 Aletheia Boundary runs on the customer's machine (or in their VPC) next to the data. It decides what the agent may see, releases only the minimal cleaned projection, and writes a tamper-evident log that the customer owns and the AI vendor cannot edit.
 
@@ -27,10 +27,12 @@ OpenAI, Anthropic, or any other model provider cannot credibly be the thing that
 ## Status
 
 **0.0.10 package; unreleased hardening candidate. Production: NO-GO.**
-PRs #1–#3 are merged in base main `ab847a9`. This branch adds persistence-before-release,
+PR #4 is merged into main `05612f2`, including receipt persistence hardening,
 schema column minimization, sanitized errors, and production/caller regressions.
+This follow-up adds a six-phase process termination/restart drill.
 
-Fresh results and remaining blockers: [hardening evidence](docs/HARDENING-2026-10-30.md).
+Current recovery evidence and remaining blockers: [receipt recovery drill](docs/RECOVERY-2026-10-30.md).
+Previous hardening evidence: [hardening report](docs/HARDENING-2026-10-30.md).
 Historical green reports do not authorize production. Mandatory release evidence includes
 successful CI on the release commit, independent review, host isolation and storage recovery validation.
 PR #4 CI jobs did not start because of a GitHub account billing lock; CI remains NOT RUN.
@@ -78,6 +80,7 @@ npm ci
 ```bash
 npm test
 npm run typecheck
+npm run test:recovery  # six process-termination/restart cases; no DB needed
 ```
 
 ### Live Postgres (integration + attacks + agent review)
@@ -211,8 +214,9 @@ or an interrupted response without proving data was received.
 A local chain alone cannot detect deletion or rollback to a valid prefix across restarts.
 External checkpoints/retention and a recovery drill are required before production.
 File sync is not proof against faulty disks or power loss. New-file directory sync is attempted on POSIX;
-Node does not provide it here on Windows. Multiwriter, Windows power-loss durability, disk-full hardware
-behavior and key rotation remain unverified. See [remaining blockers](docs/HARDENING-2026-10-30.md).
+Node does not provide it here on Windows. A forced-process-termination drill now exercises six write/response phases and fresh-process recovery.
+This is a Boundary-library drill, not an MCP transport-disconnect test. Multiwriter, Windows power-loss durability,
+physical disk-full behavior and key rotation remain unverified. See [remaining blockers](docs/RECOVERY-2026-10-30.md).
 
 ## Adversarial coverage (redteam-kit)
 

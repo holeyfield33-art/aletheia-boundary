@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased - process interruption recovery drill (2026-10-30)
+
+- Add `npm run test:recovery`, also included in `npm test`: forcibly terminate a child at six append/sync/response phases, then verify offline and restart in a fresh process.
+- Assert synced-prefix preservation, fail-closed partial-tail recovery without modification, linked continuation of complete logs and correspondence between returned data receipts and persisted evidence.
+- Test-only filesystem wrappers live in an audit fixture; production request handling is unchanged.
+- [Recovery evidence and limits](docs/RECOVERY-2026-10-30.md). Power loss, physical disk-full, cross-process writers, external checkpoints and independent review remain open. CI skipped for billing per user instruction; production remains NO-GO.
+
 ## Unreleased — security hardening candidate (2026-10-30)
 
 Production remains **NO-GO**; no version/tag or production approval is implied.
