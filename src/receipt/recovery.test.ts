@@ -67,6 +67,16 @@ for (const phase of phases) {
     const crashed = fs.readFileSync(path);
     assert.deepEqual(crashed.subarray(0, checkpoint.length), checkpoint, "Previously synced evidence must survive byte-for-byte");
     const offline = spawnSync(process.execPath, ["--import", "tsx", "src/receipt/verify-cli.ts", "--log", path, "--pub", publicPath], { encoding: "utf8", timeout: 10000 });
+    const crashedLock = fs.existsSync(path + ".writer-lock");
+    assert.equal(crashedLock, !["before-response", "after-response"].includes(phase));
+    if (crashedLock) {
+      const lockedRestart = spawnSync(process.execPath, ["--import", "tsx", childPath, dir, "recover"], { encoding: "utf8", timeout: 10000 });
+      assert.equal(lockedRestart.error, undefined);
+      assert.equal(lockedRestart.status, 2, "Crash lock must refuse restart until operator recovery");
+      assert.deepEqual(fs.readFileSync(path), crashed, "Locked restart cannot change evidence");
+      // Disposable-fixture operator drill: child is confirmed dead and evidence preserved.
+      fs.renameSync(path + ".writer-lock", join(dir, "quarantined-writer-lock"));
+    }
     const restarted = spawnSync(process.execPath, ["--import", "tsx", childPath, dir, "recover"], { encoding: "utf8", timeout: 10000 });
     assert.equal(offline.error, undefined);
     assert.equal(restarted.error, undefined);
@@ -94,6 +104,6 @@ for (const phase of phases) {
         assert.deepEqual(response.receipt, receipts[1], "Published receipt must exactly match persisted evidence");
       }
     }
-    t.diagnostic(`phase=${phase} response=${Boolean(response)} offlineExit=${offline.status} restartExit=${restarted.status} prefixPreserved=true`);
+    t.diagnostic(`phase=${phase} response=${Boolean(response)} offlineExit=${offline.status} restartExit=${restarted.status} prefixPreserved=true staleLockRefused=${crashedLock} operatorQuarantine=${crashedLock}`);
   });
 }

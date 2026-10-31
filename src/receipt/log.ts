@@ -9,6 +9,7 @@ import type {
 } from "../types.js";
 import { signHash, verifyHash, type KeyPair } from "./crypto.js";
 import { canonicalJson } from "./canonical.js";
+import { canonicalReceiptPath, withReceiptWriterLock } from "./writer-lock.js";
 import { parseReceiptCheckpoint, publicKeySha256, verifyReceiptCheckpoint, type ReceiptCheckpoint } from "./checkpoint.js";
 
 /**
@@ -36,21 +37,25 @@ export class ReceiptLog {
     }
     if (this.logPath) {
       if (options?.verifyOnLoad === false) throw new Error("Receipt verification cannot be disabled");
-      fs.mkdirSync(dirname(this.logPath), { recursive: true });
-      if (!fs.existsSync(this.logPath)) {
-        const fd = fs.openSync(this.logPath, "wx", 0o600);
-        try { fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
-        // Node cannot fsync a directory on Windows. See operational limits.
-        if (process.platform !== "win32") {
-          const dir = fs.openSync(dirname(this.logPath), "r");
-          try { fs.fsyncSync(dir); } finally { fs.closeSync(dir); }
+      this.logPath = canonicalReceiptPath(this.logPath);
+      const path = this.logPath;
+      withReceiptWriterLock(path, () => {
+        if (!fs.existsSync(path)) {
+          if (checkpoint) throw new Error("Checkpoint requires an existing receipt log; refusing to recreate history");
+          const fd = fs.openSync(path, "wx", 0o600);
+          try { fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+          // Node cannot fsync a directory on Windows. See operational limits.
+          if (process.platform !== "win32") {
+            const dir = fs.openSync(dirname(path), "r");
+            try { fs.fsyncSync(dir); } finally { fs.closeSync(dir); }
+          }
         }
-      }
-      this.hydrateFromDisk(true);
-      if (checkpoint) {
-        const verified = verifyReceiptCheckpoint(this.receipts, this.keyPair.publicKey, checkpoint);
-        if (!verified.ok) throw new Error(`Receipt checkpoint verification failed: ${verified.reason}`);
-      }
+        this.hydrateFromDisk(true);
+        if (checkpoint) {
+          const verified = verifyReceiptCheckpoint(this.receipts, this.keyPair.publicKey, checkpoint);
+          if (!verified.ok) throw new Error(`Receipt checkpoint verification failed: ${verified.reason}`);
+        }
+      });
     }
   }
 
@@ -123,26 +128,33 @@ export class ReceiptLog {
     };
 
     if (this.logPath) {
-      let fd: number | undefined;
       try {
-        // One writer per path; never recreate a log deleted during service.
-        fd = fs.openSync(this.logPath, "r+");
-        if (fs.readFileSync(fd, "utf8") !== this.diskContents) {
-          throw new Error("Receipt log changed outside this writer");
-        }
-        const line = JSON.stringify(receipt) + "\n";
-        const bytes = Buffer.from(line);
-        const n = fs.writeSync(fd, bytes, 0, bytes.length, Buffer.byteLength(this.diskContents));
-        if (n !== bytes.length) throw new Error("Incomplete receipt append");
-        fs.fsyncSync(fd);
-        fs.closeSync(fd);
-        fd = undefined;
-        this.diskContents += line;
+        const persistedLine = withReceiptWriterLock(this.logPath, (assertOwned) => {
+          let fd: number | undefined;
+          try {
+            fd = fs.openSync(this.logPath!, "r+");
+            if (fs.readFileSync(fd, "utf8") !== this.diskContents) {
+              throw new Error("Receipt log changed outside this writer");
+            }
+            assertOwned();
+            const line = JSON.stringify(receipt) + "\n";
+            const bytes = Buffer.from(line);
+            const n = fs.writeSync(fd, bytes, 0, bytes.length, Buffer.byteLength(this.diskContents));
+            if (n !== bytes.length) throw new Error("Incomplete receipt append");
+            fs.fsyncSync(fd);
+            fs.closeSync(fd);
+            fd = undefined;
+            assertOwned();
+            // Publish disk state only after the lock has also been released successfully.
+            return line;
+          } finally {
+            if (fd !== undefined) { try { fs.closeSync(fd); } catch { /* failed */ } }
+          }
+        });
+        this.diskContents += persistedLine;
       } catch {
         this.failed = true;
         throw new Error("Receipt persistence failed; no data released");
-      } finally {
-        if (fd !== undefined) { try { fs.closeSync(fd); } catch { /* failed */ } }
       }
     }
     this.receipts.push(structuredClone(receipt));
