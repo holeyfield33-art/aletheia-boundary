@@ -1,6 +1,6 @@
 # SDLC: how aletheia-boundary is built, verified and released
 
-**Current production decision: NO-GO.** Read the [latest checkpoint handoff](CHECKPOINT-2026-10-30.md) first; [prior hardening checkpoint](HARDENING-2026-10-30.md) retains its historical results. Sections 2, 5 and 6 preserve historical assessments; their green labels do not certify current main.
+**Current production decision: NO-GO.** Read the [latest writer-lock handoff](WRITER-LOCK-2026-10-30.md) first; [prior hardening checkpoint](HARDENING-2026-10-30.md) retains its historical results. Sections 2, 5 and 6 preserve historical assessments; their green labels do not certify current main.
 
 This is the process every change follows, whoever writes it: a person, Claude,
 or any other model in a relay. A boundary that is mostly right is a leak.
@@ -171,3 +171,19 @@ Host operations must protect checkpoint custody outside the log writer's rollbac
 independent reconciliation/approval, retained prior checkpoints, durable publication and an acceptable
 freshness window. Those operational guarantees are not supplied by a local JSON file alone.
 CI remains NOT RUN/deferred for billing at the user's direction. Production remains NO-GO.
+
+## 10. Receipt writer exclusion follow-up - 2026-10-30
+
+Builds on PR #6's checkpoint candidate. See [WRITER-LOCK-2026-10-30.md](WRITER-LOCK-2026-10-30.md)
+for dependency/base revision and the actual gate ledger. G3 adds `src/receipt/writer-lock.test.ts`
+(also `npm run test:writer-lock`) and keeps the six-phase recovery drill with explicit stale-lock handling.
+Startup snapshots and append/read/compare/sync operations must hold the same canonical-path exclusive lock.
+A stale instance may not publish a competing successor; contention/lost ownership/release failure refuses.
+No lock expiry/steal or recursive cleanup is allowed. One service writer/log remains the deployment topology.
+
+Killed owners retain their sidecar lock. Recovery requires stopping all potential writers, preserving and
+independently reconciling key/log/checkpoint/lock evidence, and quarantining only the confirmed stale lock.
+Never remove an active lock, auto-trim partial history or lower a checkpoint. The drill performs this only
+against disposable fixtures after confirmed process termination; damaged logs still refuse afterward.
+Network filesystems, mixed old binaries and external lock deletion are outside this cooperating-process
+local-filesystem contract. CI remains NOT RUN/deferred for billing. Production stays NO-GO.

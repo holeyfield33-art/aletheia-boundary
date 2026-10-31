@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased - receipt writer exclusion (2026-10-30)
+
+- Serialize verified startup snapshots and append/read/compare/sync operations with an exclusive filesystem lock directory on the canonical log path.
+- Fail closed on contention, lost ownership or lock-release failure; never auto-expire or steal stale locks. A crash inside the critical section requires explicit operator quarantine after all writers stop and evidence is reconciled.
+- Reject leaf symlinks and hard-linked logs; parent-directory aliases share one lock. Multiple idle processes are not a supported service topology; stale disk heads refuse append.
+- Add `npm run test:writer-lock` and subprocess adversarial tests; extend all six kill/restart cases to distinguish crash-held locks from cleanly released operations.
+- [Writer-lock handoff, dependency, evidence and recovery limits](docs/WRITER-LOCK-2026-10-30.md). Builds on PR #6 checkpoint controls. No production GO; CI stays deferred for billing.
+
 ## Unreleased - host-trusted receipt checkpoints (2026-10-30)
 
 - Production MCP now requires `BOUNDARY_CHECKPOINT_PATH` pointing to a valid, nonempty checkpoint and matching existing receipt history. This is an operator configuration/migration requirement.

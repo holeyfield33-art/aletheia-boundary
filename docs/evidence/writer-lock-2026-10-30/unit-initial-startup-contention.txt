@@ -1,0 +1,106 @@
+
+> aletheia-boundary@0.0.10 test
+> tsx --test src/receipt/writer-lock.test.ts src/receipt/checkpoint.test.ts src/receipt/recovery.test.ts src/hardening.test.ts src/boundary.test.ts src/policy/failclosed.test.ts src/policy/bounds.test.ts src/receipt/receipt.test.ts
+
+▶ Boundary smoke
+  ✔ allows schema and produces a verifiable receipt (37.3827ms)
+  ✔ denies PII resource and still signs the receipt (3.8539ms)
+  ✔ applies default deny for unmatched requests (3.4391ms)
+  ✔ maintains a hash chain across receipts (2.7773ms)
+  ✔ exposes a stable ed25519 key id (1.799ms)
+✔ Boundary smoke (52.8543ms)
+✔ H1 append and fsync failures release no data, leave memory unchanged, poison writer (157.015ms)
+✔ H2 restart verifies; partial, tampered and wrong-key logs refuse recovery (104.4642ms)
+✔ H3 deletion, truncation and same-size edits while serving refuse append (104.79ms)
+✔ H4 concurrent handles serialize a verifiable persisted chain; callers cannot mutate it (351.0577ms)
+✔ H5 schema projects intersection of read and schema constraints and hides redacted names (26.9083ms)
+✔ H6 provider and policy exceptions omit secrets from result and signed receipt (16.1778ms)
+✔ H7 production refuses missing DB and probe bypass before connecting (5703.308ms)
+✔ H8 MCP caller spoofing fails; host identity wins; receipt failure is sanitized (5332.4827ms)
+✔ H9 offline verifier rejects incomplete tail and validates full log (2739.2568ms)
+✔ H10 schema enumeration honors initial constraints as well as table rules (29.3525ms)
+▶ output limits (F9)
+  ✔ defaults to DEFAULT_MAX_ROWS (1.4089ms)
+  ✔ clamps above HARD_MAX_ROWS (1.1326ms)
+  ✔ rejects non-positive (0.7166ms)
+✔ output limits (F9) (5.6799ms)
+▶ schema filtering (F10)
+  ✔ omits tables the policy would deny (38.9332ms)
+  ✔ *users* matches public.users (0.6856ms)
+✔ schema filtering (F10) (42.869ms)
+▶ policy load fail-closed
+  ✔ rejects misspelled effect (F4) (12.5475ms)
+  ✔ rejects unimplemented constraint type aggregate (F5) (1.9703ms)
+  ✔ rejects unimplemented constraint type rows (1.4855ms)
+  ✔ rejects allow_with_constraints without constraints (3.0297ms)
+  ✔ accepts a valid policy (5.5459ms)
+✔ policy load fail-closed (32.5715ms)
+✔ K1 anchored history accepts exact match and verified extensions (1196.6758ms)
+✔ K2 deletion, empty replacement and valid-prefix rollback refuse without rewriting evidence (199.9215ms)
+✔ K3 same-key valid fork, wrong-key anchor and corrupt extensions fail closed (348.9601ms)
+✔ K4 strict checkpoint parsing rejects malformed, oversized or unavailable anchors (525.0604ms)
+✔ K5 export verifies before producing a candidate and never overwrites files (5099.6392ms)
+✔ K6 offline anchored verification rejects empty, rolled-back and missing history (3526.4027ms)
+✔ K7 production requires explicit checkpoint configuration before opening a DB (3565.7945ms)
+✔ K8 MCP anchored startup succeeds; deleted/rolled-back history and missing anchor refuse (11197.249ms)
+ℹ MCP anchored startup/refusal mode=development-stub
+✔ K9 freshness limit: old floor permits suffix removal; advanced checkpoint detects it (240.4373ms)
+ℹ Rollback is detected only through the independently retained checkpoint; unanchored suffix loss remains a documented limit
+✔ K10 CLI rejects missing/unknown checkpoint arguments rather than disabling checks (3292.5292ms)
+▶ receipt integrity (F2)
+  ✔ canonicalJson includes nested keys (2.2328ms)
+  ✔ old broken replacer would drop nested fields (documents the bug) (0.6279ms)
+  ✔ forging decision deny->allow invalidates contentHash (A6) (21.6884ms)
+  ✔ untampered receipt verifies (8.7222ms)
+✔ receipt integrity (F2) (40.326ms)
+✔ R-before-append: forced termination preserves evidence and enforces restart contract (5124.2183ms)
+ℹ phase=before-append response=false offlineExit=0 restartExit=0 prefixPreserved=true staleLockRefused=true operatorQuarantine=true
+✔ R-partial-append: forced termination preserves evidence and enforces restart contract (4550.7732ms)
+ℹ phase=partial-append response=false offlineExit=1 restartExit=2 prefixPreserved=true staleLockRefused=true operatorQuarantine=true
+✔ R-after-append-before-sync: forced termination preserves evidence and enforces restart contract (5066.1019ms)
+ℹ phase=after-append-before-sync response=false offlineExit=0 restartExit=0 prefixPreserved=true staleLockRefused=true operatorQuarantine=true
+✔ R-after-sync: forced termination preserves evidence and enforces restart contract (5342.4044ms)
+ℹ phase=after-sync response=false offlineExit=0 restartExit=0 prefixPreserved=true staleLockRefused=true operatorQuarantine=true
+✔ R-before-response: forced termination preserves evidence and enforces restart contract (3564.3335ms)
+ℹ phase=before-response response=false offlineExit=0 restartExit=0 prefixPreserved=true staleLockRefused=false operatorQuarantine=false
+✔ R-after-response: forced termination preserves evidence and enforces restart contract (3914.624ms)
+ℹ phase=after-response response=true offlineExit=0 restartExit=0 prefixPreserved=true staleLockRefused=false operatorQuarantine=false
+✔ W1 reentrant/competing critical sections refuse and poison the losing writer (105.6022ms)
+✖ W2 independently initialized processes cannot publish competing successors (1254.0045ms)
+✔ W3 live contention and stale crash locks refuse; explicit quarantine permits verified recovery (3094.0907ms)
+✔ W4 verified startup snapshot excludes another process's writes (2366.1231ms)
+✔ W5 canonical parent aliases share a lock; hard-linked log aliases are rejected (174.8359ms)
+✔ W6 ownership replacement fails closed and never deletes replacement lock contents (168.1333ms)
+✔ W7 lock release failure refuses response and preserves uncertain lock (116.2945ms)
+✔ W8 MCP startup refuses contended log; starts after clean release with trusted checkpoint (6000.26ms)
+ℹ MCP lock validation mode=development-stub
+ℹ tests 53
+ℹ suites 5
+ℹ pass 52
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 32890.2389
+
+✖ failing tests:
+
+test at src\receipt\writer-lock.test.ts:82:1
+✖ W2 independently initialized processes cannot publish competing successors (1254.0045ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'startup-refused'
+  - 'ready'
+  
+      at TestContext.<anonymous> (C:\Users\SuperAdmin\Documents\Codex\2026-10-30\referenced-chatgpt-conversation-this-is-an\work\aletheia-boundary\src\receipt\writer-lock.test.ts:86:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'startup-refused',
+    expected: 'ready',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
