@@ -61,3 +61,5 @@ jobs:
         run: npm run test:integration
       - name: G5 attack suite
         run: npm run test:attacks
+      - name: MCP agent review and G6 persisted receipt verification
+        run: npm run test:agent-review

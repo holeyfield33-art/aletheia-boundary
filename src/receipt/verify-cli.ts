@@ -42,7 +42,12 @@ function main() {
   const pubPem = readFileSync(pubPath, "utf8");
   const publicKey = createPublicKey(pubPem);
 
-  const lines = readFileSync(logPath, "utf8").split("\n").filter(Boolean);
+  const text = readFileSync(logPath, "utf8");
+  if (text && !text.endsWith("\n")) {
+    console.error("VERIFY FAILED: incomplete receipt log tail");
+    process.exit(1);
+  }
+  const lines = text.split("\n").filter(Boolean);
   const receipts: Receipt[] = lines.map((line, i) => {
     try {
       return JSON.parse(line) as Receipt;

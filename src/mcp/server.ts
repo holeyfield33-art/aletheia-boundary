@@ -112,7 +112,7 @@ async function main() {
           "Request data through the local Aletheia Boundary. " +
           "Policy is evaluated on the resource (table). " +
           "Free-form SQL is not accepted; the boundary builds the statement. " +
-          "All releases are minimized and receipted. Schema omits denied tables. " +
+          "All releases are minimized and receipted. Schema omits denied tables and restricted columns. " +
           "stats.truncated is true when more rows existed than the applied limit.",
         inputSchema: {
           type: "object",
@@ -140,7 +140,7 @@ async function main() {
               },
             },
             purpose: { type: "string" },
-            caller: { type: "string" },
+            caller: { type: "string", description: "Ignored; identity is configured by the host" },
           },
           required: ["action", "resource"],
         },
@@ -151,7 +151,7 @@ async function main() {
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
     if (req.params.name !== "boundary_request") {
       return {
-        content: [{ type: "text", text: `Unknown tool: ${req.params.name}` }],
+        content: [{ type: "text", text: "Unknown tool" }],
         isError: true,
       };
     }
@@ -164,41 +164,47 @@ async function main() {
       caller?: string;
     };
 
-    const result = await boundary.handle({
-      action: args.action,
-      resource: args.resource,
-      params: args.params,
-      purpose: args.purpose,
-      caller: process.env.BOUNDARY_TRUSTED_CALLER,
-    });
+    try {
+      const result = await boundary.handle({
+        action: args.action,
+        resource: args.resource,
+        params: args.params,
+        purpose: args.purpose,
+        caller: process.env.BOUNDARY_TRUSTED_CALLER,
+      });
 
-    const body = {
-      ok: result.ok,
-      decision: result.decision,
-      data: result.payload?.data ?? null,
-      transforms: result.payload?.transforms ?? [],
-      stats: result.payload?.stats,
-      dataSource: isStub ? "stub" : "postgres",
-      receipt: {
-        id: result.receipt.id,
-        contentHash: result.receipt.contentHash,
-        signature: result.receipt.signature,
-        prevHash: result.receipt.prevHash,
-        keyId: result.receipt.keyId,
-        createdAt: result.receipt.createdAt,
-      },
-      error: result.error,
-    };
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(body, null, 2),
+      const body = {
+        ok: result.ok,
+        decision: result.decision,
+        data: result.payload?.data ?? null,
+        transforms: result.payload?.transforms ?? [],
+        stats: result.payload?.stats,
+        dataSource: isStub ? "stub" : "postgres",
+        receipt: {
+          id: result.receipt.id,
+          contentHash: result.receipt.contentHash,
+          signature: result.receipt.signature,
+          prevHash: result.receipt.prevHash,
+          keyId: result.receipt.keyId,
+          createdAt: result.receipt.createdAt,
         },
-      ],
-      isError: !result.ok,
-    };
+        error: result.error,
+      };
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(body, null, 2),
+          },
+        ],
+        isError: !result.ok,
+      };
+    } catch {
+      return { content: [{ type: "text", text: JSON.stringify({
+        ok: false, data: null, error: "Receipt unavailable; request refused",
+      }) }], isError: true };
+    }
   });
 
   const transport = new StdioServerTransport();

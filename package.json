@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "start": "node dist/mcp/server.js",
     "dev": "tsx src/mcp/server.ts",
-    "test": "tsx --test src/boundary.test.ts src/policy/failclosed.test.ts src/policy/bounds.test.ts src/receipt/receipt.test.ts",
+    "test": "tsx --test src/hardening.test.ts src/boundary.test.ts src/policy/failclosed.test.ts src/policy/bounds.test.ts src/receipt/receipt.test.ts",
     "test:integration": "tsx src/integration.test.ts",
     "test:attacks": "tsx audit/attacks.ts",
     "test:agent-review": "tsx audit/agent-review.ts --write-report",

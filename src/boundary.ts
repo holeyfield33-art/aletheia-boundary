@@ -39,10 +39,10 @@ export class Boundary {
 
     try {
       decision = this.policy.evaluate(request);
-    } catch (err) {
+    } catch {
       decision = {
         outcome: "deny",
-        reason: `Policy evaluation failed: ${String(err)}`,
+        reason: "Policy evaluation failed",
         decidedAt: new Date().toISOString(),
       };
       const receipt = this.log.create(request, decision);
@@ -54,20 +54,18 @@ export class Boundary {
       return { ok: false, decision, receipt };
     }
 
+    let payload: MinimizedPayload;
     try {
-      let payload = await this.provider.execute(request, decision.constraints);
+      payload = await this.provider.execute(request, decision.constraints);
 
       // F10: do not advertise tables the policy would deny for access.
       if (request.action === "schema") {
         payload = this.filterSchemaPayload(payload, request);
       }
-
-      const receipt = this.log.create(request, decision, payload);
-      return { ok: true, decision, payload, receipt };
-    } catch (err) {
+    } catch {
       const failDecision: Decision = {
         outcome: "deny",
-        reason: `Data plane error: ${String(err)}`,
+        reason: "Data request failed; input not allowed or provider unavailable",
         decidedAt: new Date().toISOString(),
         ruleId: decision.ruleId,
       };
@@ -79,6 +77,8 @@ export class Boundary {
         error: failDecision.reason,
       };
     }
+    const receipt = this.log.create(request, decision, payload);
+    return { ok: true, decision, payload, receipt };
   }
 
   /**
@@ -100,7 +100,7 @@ export class Boundary {
       columns: unknown[];
     }[];
 
-    const allowed = tables.filter((t) => {
+    const allowed = tables.flatMap((t) => {
       const key = `${t.schema}.${t.name}`;
       const base = {
         id: request.id,
@@ -114,7 +114,7 @@ export class Boundary {
         action: "schema",
         resource: key,
       });
-      if (schemaD.outcome === "deny") return false;
+      if (schemaD.outcome === "deny") return [];
 
       const sampleD = this.policy.evaluate({
         ...base,
@@ -126,14 +126,26 @@ export class Boundary {
         action: "query",
         resource: key,
       });
-      if (sampleD.outcome === "deny" && queryD.outcome === "deny") return false;
+      if (sampleD.outcome === "deny" && queryD.outcome === "deny") return [];
 
-      return true;
+      // Conservative metadata intersection across schema and reachable reads.
+      const paths = [schemaD, ...[sampleD, queryD].filter(d => d.outcome !== "deny")];
+      const columns = t.columns.filter(column => {
+        if (!column || typeof column !== "object" || !("name" in column)) return false;
+        const name = (column as { name: string }).name;
+        return paths.every(d => (d.constraints ?? []).every(c => {
+          if (c.type === "columns") return Array.isArray(c.value) && c.value.includes(name);
+          if (c.type === "redact") return Array.isArray(c.value) && !c.value.includes(name);
+          return true;
+        }));
+      });
+      return [{ schema: t.schema, name: t.name, columns }];
     });
 
     const dropped = tables.length - allowed.length;
     const transforms = [
       ...payload.transforms,
+      "schema-columns-projected",
       ...(dropped > 0 ? [`schema-filtered:${dropped}`] : []),
     ];
 
@@ -144,6 +156,7 @@ export class Boundary {
       stats: {
         ...payload.stats,
         rows: allowed.length,
+        bytes: Buffer.byteLength(JSON.stringify(allowed)),
       },
     };
   }

@@ -466,6 +466,9 @@ export class PostgresProvider implements DataProvider {
 }
 
 export async function createPostgresProviderFromEnv(): Promise<PostgresProvider> {
+  if (process.env.NODE_ENV === "production" && process.env.BOUNDARY_SKIP_READONLY_PROBE === "1") {
+    throw new Error("Production cannot bypass read-only verification");
+  }
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is required for Postgres provider");
 

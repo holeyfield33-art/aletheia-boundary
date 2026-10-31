@@ -204,6 +204,27 @@ async function main() {
       `ok=${r1.ok} reason=${(r1.decision.reason ?? "").slice(0, 120)} canaryRows=${n}`,
     );
   }
+  // A8: schema must not disclose columns removed or redacted on read paths.
+  {
+    const pol = new PolicyEngine(loadPolicyFromObject({version: "1", defaultEffect: "deny", rules: [
+      {id: "schema", match: {action: "schema"}, effect: "allow"},
+      {id: "read", match: {action: ["query", "sample"], resource: "public.users"}, effect: "allow_with_constraints", constraints: [{type: "columns", value: ["id"]}]},
+    ]}));
+    const r = await new Boundary(pol, provider, new ReceiptLog(keys)).handle({action: "schema", resource: "*"});
+    const tables = r.payload?.data as {schema: string; name: string; columns: {name: string}[]}[];
+    const held = r.ok && tables.length === 1 && tables[0].name === "users" && tables[0].columns.every(c => c.name === "id");
+    report("A8 restricted schema metadata", !held, JSON.stringify(tables));
+  }
+  // A9: provider exception strings never reach agent results or signed decisions.
+  {
+    const pol = new PolicyEngine(loadPolicyFromObject({version: "1", defaultEffect: "allow", rules: []}));
+    const r = await new Boundary(pol, {async execute() {throw new Error("SYNTHETIC_SECRET postgres://password@private");}}, new ReceiptLog(keys)).handle({action: "query", resource: "public.orders"});
+    report("A9 secret-bearing provider error", r.ok || /SYNTHETIC_SECRET|password@private/.test(JSON.stringify(r)), `ok=${r.ok} error=${r.error}`);
+    for (const resource of ["public.orders;SELECT", "../private", "cHVibGljLnVzZXJz"]) {
+      const bad = await new Boundary(pol, provider, new ReceiptLog(keys)).handle({action: "query", resource});
+      report(`A10 malformed/encoded identifier ${resource}`, bad.ok || bad.payload !== undefined, `ok=${bad.ok}`);
+    }
+  }
   await pool.end();
 
   for (const r of results)
