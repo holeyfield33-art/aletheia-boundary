@@ -136,7 +136,7 @@ export class ReceiptLog {
         if (fd !== undefined) { try { fs.closeSync(fd); } catch { /* failed */ } }
       }
     }
-    this.receipts.push(receipt);
+    this.receipts.push(structuredClone(receipt));
     this.lastHash = contentHash;
     return structuredClone(receipt);
   }

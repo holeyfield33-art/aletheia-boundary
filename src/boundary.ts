@@ -60,7 +60,7 @@ export class Boundary {
 
       // F10: do not advertise tables the policy would deny for access.
       if (request.action === "schema") {
-        payload = this.filterSchemaPayload(payload, request);
+        payload = this.filterSchemaPayload(payload, request, decision);
       }
     } catch {
       const failDecision: Decision = {
@@ -91,6 +91,7 @@ export class Boundary {
   private filterSchemaPayload(
     payload: MinimizedPayload,
     request: BoundaryRequest,
+    initialDecision: Decision,
   ): MinimizedPayload {
     if (!Array.isArray(payload.data)) return payload;
 
@@ -129,7 +130,7 @@ export class Boundary {
       if (sampleD.outcome === "deny" && queryD.outcome === "deny") return [];
 
       // Conservative metadata intersection across schema and reachable reads.
-      const paths = [schemaD, ...[sampleD, queryD].filter(d => d.outcome !== "deny")];
+      const paths = [initialDecision, schemaD, ...[sampleD, queryD].filter(d => d.outcome !== "deny")];
       const columns = t.columns.filter(column => {
         if (!column || typeof column !== "object" || !("name" in column)) return false;
         const name = (column as { name: string }).name;
@@ -142,11 +143,10 @@ export class Boundary {
       return [{ schema: t.schema, name: t.name, columns }];
     });
 
-    const dropped = tables.length - allowed.length;
     const transforms = [
       ...payload.transforms,
       "schema-columns-projected",
-      ...(dropped > 0 ? [`schema-filtered:${dropped}`] : []),
+      "schema-filtered",
     ];
 
     return {

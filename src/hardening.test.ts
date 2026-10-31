@@ -84,6 +84,10 @@ test("H4 concurrent handles serialize a verifiable persisted chain; callers cann
   results[0].receipt.decision.reason = "mutated";
   assert.equal(verifyReceiptChain(log.getAll(), keys.publicKey).ok, true);
   assert.equal(new ReceiptLog(keys, path).getAll().length, 20);
+  const mutable = { ...request, params: { limit: 1 } };
+  log.create(mutable, decision);
+  mutable.params.limit = 999;
+  assert.equal(verifyReceiptChain(log.getAll(), keys.publicKey).ok, true);
 });
 
 test("H5 schema projects intersection of read and schema constraints and hides redacted names", async () => {
@@ -153,4 +157,15 @@ test("H9 offline verifier rejects incomplete tail and validates full log", t => 
   assert.equal(verify().status, 0);
   fs.writeFileSync(path, fs.readFileSync(path, "utf8").trimEnd());
   assert.equal(verify().status, 1);
+});
+
+test("H10 schema enumeration honors initial constraints as well as table rules", async () => {
+  const p = policy([
+    { id: "list", match: { action: "schema", resource: "public" }, effect: "allow_with_constraints", constraints: [{ type: "columns", value: ["id"] }] },
+    { id: "table", match: { action: ["schema", "sample", "query"], resource: "public.orders" }, effect: "allow" },
+  ]);
+  const r = await new Boundary(p, { async execute() { return { data: [{ schema: "public", name: "orders", columns: [{ name: "id" }, { name: "secret" }] }], transforms: ["schema"], stats: { rows: 99, bytes: 999 } }; } }, new ReceiptLog(keys)).handle({ action: "schema", resource: "public" });
+  assert.equal(r.ok, true);
+  assert.doesNotMatch(JSON.stringify(r.payload), /secret|999|99|schema-filtered:/);
+  assert.equal(r.payload?.stats?.bytes, Buffer.byteLength(JSON.stringify(r.payload?.data)));
 });
