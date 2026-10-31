@@ -1,6 +1,6 @@
 # Hardening evidence and release handoff — 2026-10-30
 
-**Production: NO-GO.** Reviewable hardening candidate; package/server remain 0.0.10.
+**Production: NO-GO.** [Reviewable PR #4](https://github.com/holeyfield33-art/aletheia-boundary/pull/4); hardening candidate; package/server remain 0.0.10.
 Date is America/Los_Angeles; the generated agent report uses UTC (2026-10-31).
 
 ## Revision and environment
@@ -29,7 +29,7 @@ All final commands below exited **0**. Captured output is in [evidence/hardening
 | G6 | `npm run verify-log -- --log docs/evidence/hardening-2026-10-30/receipts.jsonl --pub docs/evidence/hardening-2026-10-30/signing-public.txt` | 9 persisted MCP receipts verified; [verify-log.txt](evidence/hardening-2026-10-30/verify-log.txt) |
 | Dependency audit | `npm audit --json` | 0 vulnerabilities reported; [npm-audit.json](evidence/hardening-2026-10-30/npm-audit.json) |
 | Diff hygiene | `git diff --check` | PASS |
-| Release CI | GitHub Actions on exact PR/main/tag commit | Not established by local gates; inspect PR checks. No release-tag run performed |
+| Release CI | [Actions run 41170375037](https://github.com/holeyfield33-art/aletheia-boundary/actions/runs/41170375037) at PR head `137ee48c8843122b831893e0b9d3f247a9c595a9` | **NOT RUN / BLOCKED**: both jobs concluded failure before starting because the account is locked for billing. No release-tag run performed; later documentation-only head still needs CI |
 | Independent review | Separate reviewer/threat-model approval | NOT RUN; automated agent checklist is not an independent security review |
 
 G4/G5/Agent use `DATABASE_URL=postgres://readonly:readonly@localhost:5434/boundary` and
@@ -42,6 +42,12 @@ version ranges. One later integration attempt ran while clean install was replac
 exited **127** (`tsx: command not found`); [failed-attempt output](evidence/hardening-2026-10-30/integration-interrupted-install.txt)
 is retained. It is not a security result. Integration/attacks/review were rerun after install completed;
 the successful final outputs above supersede that attempt.
+
+CI annotations for both jobs (`124446844725`, `124446844812`) state:
+“The job was not started because your account is locked due to a billing issue.”
+This is an execution blocker, not a test assertion failure and not a pass.
+Maintainer must resolve billing and rerun CI on the final PR head and release main/tag.
+See [CI status snapshot](evidence/hardening-2026-10-30/ci-status.json).
 
 ## Findings and permanent regression evidence
 
@@ -82,7 +88,7 @@ Do not silently trim partial records or recreate deleted history. See README for
 
 | Blocker | Owner | Evidence still required |
 |---|---|---|
-| Exact release commit CI and independent review | Maintainer/release reviewer | Successful main/tag gates, separate security review and accepted threat model; local Windows results do not certify Ubuntu Node 22 |
+| Exact release commit CI and independent review | Maintainer/release reviewer | Resolve account billing lock, successful PR/main/tag gates, separate security review and accepted threat model; local Windows results do not certify Ubuntu Node 22 |
 | Crash/power-loss and real ENOSPC recovery | Storage/operations owner | Process interruption at append/sync/response boundaries, physical disk-full/storage faults, verified recovery drill; mocked failures are not hardware evidence |
 | History rollback/deletion across restart | Storage/operations owner | External trusted head checkpoints and retention. A signed local chain cannot detect a removed valid suffix or a wholly deleted/recreated log |
 | Single writer, keys, permissions and rotation | Host/operations owner | Enforce one writer/log and directory ACLs, preprovision stable keys, backup/restore/rotation tests. No cross-process lock; Node lacks directory fsync here on Windows; nested-directory/power-loss durability unproved |

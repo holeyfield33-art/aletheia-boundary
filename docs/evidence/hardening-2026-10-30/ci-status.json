@@ -1,0 +1,13 @@
+{
+  "pullRequest": "https://github.com/holeyfield33-art/aletheia-boundary/pull/4",
+  "headRevision": "137ee48c8843122b831893e0b9d3f247a9c595a9",
+  "runId": 41170375037,
+  "gateDisposition": "NOT RUN / BLOCKED",
+  "checks": [
+    { "id": 124446844812, "name": "G1–G3 install typecheck unit", "status": "completed", "conclusion": "failure" },
+    { "id": 124446844725, "name": "G4–G5 integration + attacks", "status": "completed", "conclusion": "failure" }
+  ],
+  "annotation": "The job was not started because your account is locked due to a billing issue.",
+  "source": "GitHub check diagnostics via connected account",
+  "note": "A subsequent documentation-only commit must be checked separately. This is not runtime test evidence."
+}

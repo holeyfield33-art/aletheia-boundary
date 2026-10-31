@@ -133,3 +133,7 @@ for crash/power-loss recovery, external log checkpoints and retention, permissio
 host DB bypass prevention and resource controls. Do not share one log across processes.
 A partial or uncertain receipt append requires operator recovery; never silently repair or reset history.
 An in-memory library log is only for tests/development and cannot establish I4 durability.
+
+PR #4 CI run [41170375037](https://github.com/holeyfield33-art/aletheia-boundary/actions/runs/41170375037)
+at `137ee48` did not start either job: account locked due to billing. Record as **NOT RUN / BLOCKED**,
+not PASS and not a test assertion failure. Maintainer owns billing resolution and final-head/main/tag reruns.

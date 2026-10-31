@@ -33,6 +33,7 @@ schema column minimization, sanitized errors, and production/caller regressions.
 Fresh results and remaining blockers: [hardening evidence](docs/HARDENING-2026-10-30.md).
 Historical green reports do not authorize production. Mandatory release evidence includes
 successful CI on the release commit, independent review, host isolation and storage recovery validation.
+PR #4 CI jobs did not start because of a GitHub account billing lock; CI remains NOT RUN.
 
 Process: [docs/SDLC.md](docs/SDLC.md) · Audit: [docs/AUDIT-2026-10-29.md](docs/AUDIT-2026-10-29.md) · [CHANGELOG.md](CHANGELOG.md)
 
