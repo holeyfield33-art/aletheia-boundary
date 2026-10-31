@@ -10,6 +10,7 @@
  */
 
 import { mkdtempSync, writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createPublicKey } from "node:crypto";
@@ -87,8 +88,8 @@ async function main() {
   const live = Boolean(process.env.DATABASE_URL);
 
   const transport = new StdioClientTransport({
-    command: process.platform === "win32" ? "npx.cmd" : "npx",
-    args: ["tsx", "src/mcp/server.ts"],
+    command: process.execPath,
+    args: ["--import", "tsx", "src/mcp/server.ts"],
     cwd: process.cwd(),
     env,
     stderr: "pipe",
@@ -309,6 +310,10 @@ async function main() {
   }
 
   await client.close();
+  console.log(`Receipt verification artifacts: ${work}`);
+  const verification = spawnSync(process.execPath, ["--import", "tsx", "src/receipt/verify-cli.ts", "--log", logPath, "--pub", keyPath.replace(/\.ed25519$/, "") + ".pub.pem"], { encoding: "utf8", timeout: 15000 });
+  grade("C10", "Offline persisted receipt chain (G6)", verification.status === 0,
+    (verification.stdout || verification.stderr || String(verification.error)).trim());
 
   console.log("\n=== AGENT REVIEW (SDLC §5) ===");
   console.log(`mode: ${live ? "postgres" : "stub"}`);

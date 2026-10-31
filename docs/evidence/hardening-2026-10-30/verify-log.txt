@@ -1,0 +1,5 @@
+
+> aletheia-boundary@0.0.10 verify-log
+> tsx src/receipt/verify-cli.ts --log docs/evidence/hardening-2026-10-30/receipts.jsonl --pub docs/evidence/hardening-2026-10-30/signing-public.txt
+
+OK: 9 receipt(s) verified. lastHash=191097fd7b621e80a01b1750dcd4e492064f43a5fd6008c478d82c4bac10f511

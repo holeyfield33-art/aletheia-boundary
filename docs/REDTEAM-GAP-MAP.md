@@ -3,6 +3,8 @@
 **Boundary repo:** [aletheia-boundary](https://github.com/holeyfield33-art/aletheia-boundary)  
 **Redteam kit:** [aletheia-redteam-kit](https://github.com/holeyfield33-art/aletheia-redteam-kit)
 
+**Current evidence and production NO-GO:** [hardening checkpoint](HARDENING-2026-10-30.md). Historical coverage labels below are not release certification.
+
 This document maps kit attack *categories* to what the boundary is responsible for. Use it to decide which findings are in-scope product bugs vs out-of-scope (must be handled by the agent host, policy author, or Aletheia Core).
 
 ## Responsibility split
@@ -44,7 +46,7 @@ Legend:
 | `side_channel` | **Gap** | Timing/size oracles on deny vs allow not normalized |
 | `session_campaigns` / multi-turn | **N/A** | Stateless per request; session policy is host |
 | `rag_injection` / `context_poisoning` | **N/A** | No RAG surface in boundary |
-| `auth_context_confusion` | **Partial** | `caller` is a match field only if policy uses it; not authenticated identity |
+| `auth_context_confusion` | **Partial** | MCP ignores client caller and uses host process identity; purpose remains untrusted. Separate process per identity; embedded callers need trusted host context |
 | `spec_violation` | **Covered** for MCP schema | Unknown tool / bad SQL refused; fuzz remaining JSON edge cases |
 | Repo / supply-chain (kit `--mode repo`) | **Use kit** | Run against this tree for dependency and secret hygiene |
 
@@ -93,3 +95,16 @@ When an agent uses Boundary as its only data tool, run kit `--mode api` or `--mo
 | Integration | `npm run test:integration` | Probe, policy, SQL reject, canary |
 
 Update this map when kit categories change or when a kit finding is promoted into `audit/attacks.ts`.
+
+## Hardening regression map
+
+| Boundary objective | Permanent evidence | Remaining limitation |
+|---|---|---|
+| Caller spoofing / production config | H7/H8 (MCP), exported factory guard | No per-session authentication; purpose is a claim |
+| Receipt persistence/recovery | H1–H4/H9; agent C10/G6 | Injected failures, not physical disk-full or power loss; external anchor and single writer required |
+| Restricted metadata | H5/H10, live A8 | Conservative intersection; export-only discovery omitted |
+| Sanitized errors | H6/H8, A9 | Operator policy text and startup diagnostics remain host-owned |
+| Invalid/encoded identifiers | Three live A10 cases | Full JSON fuzzing and external kit campaign not run |
+
+External kit scan/campaign and host bypass/permission/rotation/resource exhaustion drills
+were not executed in this cycle. Do not mark those categories closed.

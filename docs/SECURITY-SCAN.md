@@ -1,5 +1,7 @@
 # Security scan triage
 
+**Current checkpoint:** [hardening evidence](HARDENING-2026-10-30.md); production NO-GO. The full kit scan below is historical and was not repeated in this cycle. The committed lockfile now resolves Zod 4.6.7; clean install audit reports zero vulnerabilities, which does not establish overall product security.
+
 Last full [aletheia-redteam-kit](https://github.com/holeyfield33-art/aletheia-redteam-kit) repo scan: **2026-10-30** (profile `full`).
 
 ## Disposition
@@ -14,7 +16,7 @@ Last full [aletheia-redteam-kit](https://github.com/holeyfield33-art/aletheia-re
 
 ```bash
 git pull
-npm install          # refresh lockfile for zod 4.6.7+
+npm ci               # lockfile is now synchronized
 npm audit
 npm test
 

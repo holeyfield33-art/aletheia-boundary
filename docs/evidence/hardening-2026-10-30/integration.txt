@@ -1,0 +1,17 @@
+
+> aletheia-boundary@0.0.10 test:integration
+> tsx src/integration.test.ts
+
+[integration] connecting to postgres://readonly:***@localhost:5434/boundary
+[ok] read-only probe accepted
+[ok] writable role refused by probe
+[ok] schema allowed, receipt verifies
+[ok] users denied by policy
+[ok] free-form SQL rejected: Data request failed; input not allowed or provider unavailable
+[ok] sample orders: 4 rows, transforms=table:public.orders,limit:10,limit:10,redact:email
+[ok] analytics query minimized: 4 rows, transforms=table:public.analytics_daily,select-columns:date,metric,value,segment,limit:100,columns:date,metric,value,segment,limit:100
+[ok] structured orders query: 4 rows, transforms=table:public.orders,select-columns:id,amount,limit:50,limit:50
+[ok] write_canary empty — no unauthorized writes
+[ok] hash chain intact across 6 receipts
+
+All integration checks passed.

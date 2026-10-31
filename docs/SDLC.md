@@ -1,5 +1,7 @@
 # SDLC: how aletheia-boundary is built, verified and released
 
+**Current production decision: NO-GO.** Read the [current checkpoint](HARDENING-2026-10-30.md) first. Sections 2, 5 and 6 preserve historical assessments; their green labels do not certify current main.
+
 This is the process every change follows, whoever writes it: a person, Claude,
 or any other model in a relay. A boundary that is mostly right is a leak.
 
@@ -12,7 +14,7 @@ or any other model in a relay. A boundary that is mostly right is a leak.
 
 ---
 
-## 2. Invariants (0.0.9)
+## 2. Historical invariant results (0.0.9; not release approval)
 
 | ID | Invariant | Status |
 |---|---|---|
@@ -72,7 +74,7 @@ Every **boundary-owned** kit miss becomes a permanent row in `audit/attacks.ts`.
 
 ---
 
-## 6. Purple-team handoff and release decision (2026-10-30)
+## 6. Original purple-team handoff (before merged PR #3)
 
 **Current target:** package and MCP server report 0.0.10. **Production verdict: NO-GO pending remediation and reproducible verification.** This is not proof of exploitation. Historical local green results do not replace a fresh release-commit run. README/SDLC version references lag package metadata.
 
@@ -113,3 +115,25 @@ Boundary is a **local Postgres-to-MCP data authorization and minimization enforc
 ### Handoff format for every future agent
 
 At the end of a session, append a dated checkpoint to this SDLC or a linked review artifact containing: **base/head SHA; files changed; exact tests run and outputs; findings with evidence and disposition; open blockers and owner; current GO/NO-GO; next three actions; rollback instructions**. Never label a source inspection as a completed purple-team execution. Prefer a reviewable PR; do not merge or tag a production release without approval.
+
+## 7. Hardening checkpoint — 2026-10-30 (America/Los_Angeles)
+
+See [HARDENING-2026-10-30.md](HARDENING-2026-10-30.md) for base and tested implementation
+SHA, environment, evidence, findings, owners, rollback and next three actions.
+PRs #1/#2/#3 are verified merged; caller is now host-configured on the MCP path.
+The source candidates in section 6 describe the pre-hardening state.
+
+G1 must use the committed lockfile. G3 now includes `src/hardening.test.ts` H1–H10.
+G5 now has 12 rows, including metadata, sanitized-error and malformed-identifier attacks.
+Agent review C10 invokes G6 on the actual persisted MCP log/public key; CI runs it after G5.
+A process exit or a test that never executed is a failure to run, never a held attack.
+
+No runtime gate substitutes for independent review. Release approval also requires evidence
+for crash/power-loss recovery, external log checkpoints and retention, permissions/key rotation,
+host DB bypass prevention and resource controls. Do not share one log across processes.
+A partial or uncertain receipt append requires operator recovery; never silently repair or reset history.
+An in-memory library log is only for tests/development and cannot establish I4 durability.
+
+PR #4 CI run [41170375037](https://github.com/holeyfield33-art/aletheia-boundary/actions/runs/41170375037)
+at `137ee48` did not start either job: account locked due to billing. Record as **NOT RUN / BLOCKED**,
+not PASS and not a test assertion failure. Maintainer owns billing resolution and final-head/main/tag reruns.

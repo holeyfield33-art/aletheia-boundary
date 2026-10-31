@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { appendFileSync, existsSync, readFileSync, mkdirSync } from "node:fs";
+import fs from "node:fs";
 import { dirname, resolve } from "node:path";
 import type {
   BoundaryRequest,
@@ -17,6 +17,8 @@ import { canonicalJson } from "./canonical.js";
  * Vendor cannot rewrite history.
  */
 export class ReceiptLog {
+  private failed = false;
+  private diskContents = "";
   private lastHash: string | null = null;
   private readonly receipts: Receipt[] = [];
   private readonly logPath: string | null;
@@ -28,13 +30,28 @@ export class ReceiptLog {
   ) {
     this.logPath = logPath ? resolve(logPath) : null;
     if (this.logPath) {
-      this.hydrateFromDisk(options?.verifyOnLoad !== false);
+      if (options?.verifyOnLoad === false) throw new Error("Receipt verification cannot be disabled");
+      fs.mkdirSync(dirname(this.logPath), { recursive: true });
+      if (!fs.existsSync(this.logPath)) {
+        const fd = fs.openSync(this.logPath, "wx", 0o600);
+        try { fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+        // Node cannot fsync a directory on Windows. See operational limits.
+        if (process.platform !== "win32") {
+          const dir = fs.openSync(dirname(this.logPath), "r");
+          try { fs.fsyncSync(dir); } finally { fs.closeSync(dir); }
+        }
+      }
+      this.hydrateFromDisk(true);
     }
   }
 
   private hydrateFromDisk(verify: boolean): void {
-    if (!this.logPath || !existsSync(this.logPath)) return;
-    const lines = readFileSync(this.logPath, "utf8").split("\n").filter(Boolean);
+    if (!this.logPath) return;
+    this.diskContents = fs.readFileSync(this.logPath, "utf8");
+    if (this.diskContents && !this.diskContents.endsWith("\n")) {
+      throw new Error("Incomplete receipt log tail; refusing to start");
+    }
+    const lines = this.diskContents.split("\n").filter(Boolean);
     const loaded: Receipt[] = [];
     for (let i = 0; i < lines.length; i++) {
       let r: Receipt;
@@ -68,6 +85,7 @@ export class ReceiptLog {
     decision: Decision,
     payload?: MinimizedPayload,
   ): Receipt {
+    if (this.failed) throw new Error("Receipt log unavailable; operator recovery required");
     const id = randomUUID();
     const createdAt = new Date().toISOString();
 
@@ -95,21 +113,36 @@ export class ReceiptLog {
       signature,
     };
 
-    this.receipts.push(receipt);
-    this.lastHash = contentHash;
-
     if (this.logPath) {
-      mkdirSync(dirname(this.logPath), { recursive: true });
-      appendFileSync(this.logPath, JSON.stringify(receipt) + "\n", {
-        mode: 0o600,
-      });
+      let fd: number | undefined;
+      try {
+        // One writer per path; never recreate a log deleted during service.
+        fd = fs.openSync(this.logPath, "r+");
+        if (fs.readFileSync(fd, "utf8") !== this.diskContents) {
+          throw new Error("Receipt log changed outside this writer");
+        }
+        const line = JSON.stringify(receipt) + "\n";
+        const bytes = Buffer.from(line);
+        const n = fs.writeSync(fd, bytes, 0, bytes.length, Buffer.byteLength(this.diskContents));
+        if (n !== bytes.length) throw new Error("Incomplete receipt append");
+        fs.fsyncSync(fd);
+        fs.closeSync(fd);
+        fd = undefined;
+        this.diskContents += line;
+      } catch {
+        this.failed = true;
+        throw new Error("Receipt persistence failed; no data released");
+      } finally {
+        if (fd !== undefined) { try { fs.closeSync(fd); } catch { /* failed */ } }
+      }
     }
-
-    return receipt;
+    this.receipts.push(structuredClone(receipt));
+    this.lastHash = contentHash;
+    return structuredClone(receipt);
   }
 
   getAll(): readonly Receipt[] {
-    return this.receipts;
+    return structuredClone(this.receipts);
   }
 
   getLastHash(): string | null {
