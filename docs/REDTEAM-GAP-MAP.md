@@ -108,3 +108,11 @@ Update this map when kit categories change or when a kit finding is promoted int
 
 External kit scan/campaign and host bypass/permission/rotation/resource exhaustion drills
 were not executed in this cycle. Do not mark those categories closed.
+
+## Receipt process interruption follow-up
+
+[Recovery drill](RECOVERY-2026-10-30.md): six subprocess termination phases, retained-prefix oracle,
+offline signatures and fresh-process restart/continuation are tested by `src/receipt/recovery.test.ts`.
+`npm run test:recovery` needs no database. This narrows the process-interruption gap only;
+physical disk-full, power loss, cross-process writers, external checkpoints and MCP transport interruption
+remain outside the demonstrated coverage. CI was skipped at the user's direction for billing.

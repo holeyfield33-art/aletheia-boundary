@@ -1,0 +1,33 @@
+
+> aletheia-boundary@0.0.10 test:agent-review
+> tsx audit/agent-review.ts --write-report
+
+Receipt verification artifacts: C:\Users\SUPERA~1\AppData\Local\Temp\aletheia-agent-review-WIXeHX
+
+=== AGENT REVIEW (SDLC §5) ===
+mode: postgres
+package: aletheia-boundary agent-review
+PASS  C0  MCP exposes boundary_request
+      tools=boundary_request
+PASS  C1  Errors carry reasons
+      ok=false outcome=deny reason=PII / credential tables are denied by default
+PASS  C2  Real or fake is visible (dataSource)
+      dataSource=postgres expected=postgres live=true
+PASS  C3  Bounded output
+      ok=true rows=4 transforms=table:public.orders,limit:50,limit:50
+PASS  C4  Declared scope (rule/reason + transforms)
+      ruleId=allow-schema reason=Schema inspection is permitted transforms=schema,schema-columns-projected,schema-filtered
+PASS  C5  Honest completion (limit/truncation visible)
+      rows=2 truncated=true transforms=table:public.orders,limit:2,limit:50
+PASS  C6  Input handling (malformed/SQL clean refusal)
+      ok=false reason=Data request failed; input not allowed or provider unavailable Data request failed; input not allowed or provider unavailable
+PASS  C7  Repeatability
+      sameData=true outcomes=allow/allow
+PASS  C8  Evidence (receipt signature verifies)
+      sigOk=true keyId=ed25519:5913e260891f900b hash=66b8f962604c3205…
+PASS  C9  Unknown tool refused
+      isError=true
+PASS  C10  Offline persisted receipt chain (G6)
+      OK: 9 receipt(s) verified. lastHash=66b8f962604c32057e9f9414775085de64addbdd5a07be3e2d603ac71c22c2e9
+{"pass":11,"fail":0,"skip":0,"live":true}
+report written: C:\Users\SuperAdmin\Documents\Codex\2026-10-30\referenced-chatgpt-conversation-this-is-an\work\aletheia-boundary\docs\AGENT-REVIEW-2026-10-31.md

@@ -3,6 +3,8 @@
 **Production: NO-GO.** [Reviewable PR #4](https://github.com/holeyfield33-art/aletheia-boundary/pull/4); hardening candidate; package/server remain 0.0.10.
 Date is America/Los_Angeles; the generated agent report uses UTC (2026-10-31).
 
+> Follow-up: PR #4 was merged at `05612f2`; the [receipt interruption drill](RECOVERY-2026-10-30.md) adds process-kill/restart evidence. Remaining hardware and release limitations still apply. The ledger below is the original hardening snapshot.
+
 ## Revision and environment
 
 - Base main: `ab847a9d45ad9ee6e2df0c47c61f95c2cca9791d`; remote main rechecked unchanged during work.

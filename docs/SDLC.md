@@ -1,6 +1,6 @@
 # SDLC: how aletheia-boundary is built, verified and released
 
-**Current production decision: NO-GO.** Read the [current checkpoint](HARDENING-2026-10-30.md) first. Sections 2, 5 and 6 preserve historical assessments; their green labels do not certify current main.
+**Current production decision: NO-GO.** Read the [latest recovery checkpoint](RECOVERY-2026-10-30.md) first; [prior hardening checkpoint](HARDENING-2026-10-30.md) retains its historical results. Sections 2, 5 and 6 preserve historical assessments; their green labels do not certify current main.
 
 This is the process every change follows, whoever writes it: a person, Claude,
 or any other model in a relay. A boundary that is mostly right is a leak.
@@ -137,3 +137,18 @@ An in-memory library log is only for tests/development and cannot establish I4 d
 PR #4 CI run [41170375037](https://github.com/holeyfield33-art/aletheia-boundary/actions/runs/41170375037)
 at `137ee48` did not start either job: account locked due to billing. Record as **NOT RUN / BLOCKED**,
 not PASS and not a test assertion failure. Maintainer owns billing resolution and final-head/main/tag reruns.
+
+## 8. Receipt interruption follow-up - 2026-10-30
+
+PR #4 is verified merged at main `05612f27eca1af91be3c9cf9ebff6b82265b9192`.
+The next bounded gap is process interruption/restart evidence; see
+[RECOVERY-2026-10-30.md](RECOVERY-2026-10-30.md) for tested SHA, outputs and recovery matrix.
+`npm run test:recovery` is a DB-free six-phase subprocess drill included in G3 (`npm test`).
+It performs actual writes/syncs and forced process termination, offline verification and fresh-process restart.
+Test-only wrappers choose interruption points; production code has no test switches.
+
+Partial-tail restart must refuse without rewriting bytes. Complete recovered logs must verify and
+accept only a linked continuation. A previously returned receipt must exist identically on disk.
+These cases do not certify power-loss persistence, real ENOSPC, MCP transport disconnect or host controls.
+The user directed CI to be skipped for the billing issue in this cycle: **NOT RUN**, never PASS.
+Do not spend this cycle polling or retrying CI. Production remains NO-GO pending the remaining evidence.
