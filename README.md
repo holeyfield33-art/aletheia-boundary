@@ -26,24 +26,13 @@ OpenAI, Anthropic, or any other model provider cannot credibly be the thing that
 
 ## Status
 
-**0.0.9** — F1–F11 closed; I1–I6 enforced; MCP agent review **10/10**; honest `stats.truncated`.
+**0.0.10 package; unreleased hardening candidate. Production: NO-GO.**
+PRs #1�#3 are merged in base main `ab847a9`. This branch adds persistence-before-release,
+schema column minimization, sanitized errors, and production/caller regressions.
 
-| Invariant | Status | Evidence |
-|---|---|---|
-| I1 Policy binds to what executes | **Enforced** | Structured queries; A1–A3 HELD |
-| I2 No over-release | **Enforced** | Column/limit on boundary-built SELECT |
-| I3 Fail closed | **Enforced** | Zod policy; no stub when `DATABASE_URL` set |
-| I4 Receipts are evidence | **Enforced** | Canonical hash; A6 HELD; `npm run verify-log` |
-| I5 No writes | **Enforced** | Read-only probe + READ ONLY txn; A7 HELD |
-| I6 Agent contract | **Enforced** | `dataSource`, reasons, transforms, row caps, schema filter, `stats.truncated` |
-
-| Gate | Status |
-|---|---|
-| Unit / attacks / integration | Green locally |
-| Agent review | [docs/AGENT-REVIEW-2026-10-30.md](docs/AGENT-REVIEW-2026-10-30.md) |
-| CI G1–G5 | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — enable after Actions billing |
-
-> **Not 1.0 yet.** Call it 1.0 only after CI is green on `main` and the production threat model is accepted.
+Fresh results and remaining blockers: [hardening evidence](docs/HARDENING-2026-10-30.md).
+Historical green reports do not authorize production. Mandatory release evidence includes
+successful CI on the release commit, independent review, host isolation and storage recovery validation.
 
 Process: [docs/SDLC.md](docs/SDLC.md) · Audit: [docs/AUDIT-2026-10-29.md](docs/AUDIT-2026-10-29.md) · [CHANGELOG.md](CHANGELOG.md)
 
@@ -97,7 +86,7 @@ docker compose up -d
 export DATABASE_URL=postgres://readonly:readonly@localhost:5434/boundary
 export DATABASE_URL_WRITABLE=postgres://writable:writable@localhost:5434/boundary
 
-npm run test:attacks        # must print {"leaks":0,"total":7}
+npm run test:attacks        # must print {"leaks":0,"total":12}
 npm run test:integration    # All integration checks passed
 npm run test:agent-review   # MCP client checklist; writes docs/AGENT-REVIEW-*.md
 ```
@@ -149,7 +138,7 @@ npm start
 # or: node dist/mcp/server.js
 ```
 
-Without `DATABASE_URL` the server starts with **StubProvider** (dev only). Responses set `dataSource: "stub"`. With `DATABASE_URL` set, a failed probe **exits 1** (never silent stub).
+With `NODE_ENV=production`, missing `DATABASE_URL` or `BOUNDARY_SKIP_READONLY_PROBE=1` refuses startup. Outside production, without `DATABASE_URL` the server starts with **StubProvider** (synthetic dev data only). Responses set `dataSource: "stub"`. With `DATABASE_URL` set, a failed probe **exits 1** (never silent stub).
 
 ### Tool: `boundary_request`
 
@@ -170,6 +159,13 @@ Without `DATABASE_URL` the server starts with **StubProvider** (dev only). Respo
 | `params.columns` | Optional string[]; intersected with policy |
 | `params.limit` | Optional; capped by policy and hard max **2000** (default **500**) |
 
+`purpose` is an agent claim, not authentication. Do not use it as the sole basis
+for privileged access. Embedded library users must supply their own trusted caller context.
+Schema metadata uses the intersection of schema constraints and all allowed sample/query
+paths: column allowlists apply and redacted names/types are omitted. Denied tables are omitted.
+Export-only tables remain hidden from schema discovery. This conservative contract may hide
+columns a less restricted read path could otherwise return.
+
 Response includes `ok`, `decision`, `data`, `transforms`, `stats` (incl. **`truncated`**), `dataSource` (`postgres` \| `stub`), and a receipt summary.
 
 ---
@@ -178,6 +174,8 @@ Response includes `ok`, `decision`, `data`, `transforms`, `stats` (incl. **`trun
 
 | Variable | Purpose |
 |---|---|
+| `NODE_ENV` | Set `production` explicitly to enforce production startup guards |
+| `BOUNDARY_TRUSTED_CALLER` | Host-controlled, process-wide identity; client `caller` is ignored. Use a separate process per identity |
 | `DATABASE_URL` | Postgres connection (read-only role recommended) |
 | `DATABASE_URL_WRITABLE` | Integration only — prove probe refuses writers |
 | `BOUNDARY_POLICY` | Path to YAML policy (default `policies/example.yaml`) |
@@ -189,6 +187,31 @@ Response includes `ok`, `decision`, `data`, `transforms`, `stats` (incl. **`trun
 | `BOUNDARY_DB_IDENTITY` | Label for receipts (never the connection string) |
 
 ---
+
+## Receipt operations and recovery
+
+MCP always uses a disk log. The library's no-path `ReceiptLog` is in-memory and has no durability guarantee.
+For disk logs, a complete JSONL append and file sync must succeed before an allow response is returned.
+On any write/sync/change failure the writer stays unavailable: MCP returns `ok:false`, `data:null`,
+a generic error and **no receipt**. Library calls reject. No fallback deny receipt is invented.
+Provider/policy exceptions use fixed public errors; raw exception text is excluded from signed decisions.
+Operator-authored policy reasons and rule/constraint details remain visible; keep secrets out of policy text.
+
+Use **one process/writer per log path**, on a trusted local filesystem with stable key custody.
+Concurrent calls in that process serialize receipt writes. External writer changes are checked before append;
+this is not a cross-process lock. Protect the log/key directory with host ACLs and restrict alternative DB tools.
+
+Restart verifies every loaded receipt and refuses malformed, tampered or unterminated tails.
+After failure: stop the process, preserve log and key, verify a copy offline, compare with an externally
+stored last-hash checkpoint, and restore only independently verified evidence. Never automatically
+trim a partial tail or delete the log to make startup pass. An appended receipt may survive a failed sync
+or an interrupted response without proving data was received.
+
+A local chain alone cannot detect deletion or rollback to a valid prefix across restarts.
+External checkpoints/retention and a recovery drill are required before production.
+File sync is not proof against faulty disks or power loss. New-file directory sync is attempted on POSIX;
+Node does not provide it here on Windows. Multiwriter, Windows power-loss durability, disk-full hardware
+behavior and key rotation remain unverified. See [remaining blockers](docs/HARDENING-2026-10-30.md).
 
 ## Adversarial coverage (redteam-kit)
 

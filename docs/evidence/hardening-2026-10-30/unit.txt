@@ -1,0 +1,51 @@
+
+> aletheia-boundary@0.0.10 test
+> tsx --test src/hardening.test.ts src/boundary.test.ts src/policy/failclosed.test.ts src/policy/bounds.test.ts src/receipt/receipt.test.ts
+
+▶ Boundary smoke
+  ✔ allows schema and produces a verifiable receipt (70.8764ms)
+  ✔ denies PII resource and still signs the receipt (4.1804ms)
+  ✔ applies default deny for unmatched requests (3.5042ms)
+  ✔ maintains a hash chain across receipts (2.9566ms)
+  ✔ exposes a stable ed25519 key id (3.8511ms)
+✔ Boundary smoke (91.5973ms)
+✔ H1 append and fsync failures release no data, leave memory unchanged, poison writer (51.0409ms)
+✔ H2 restart verifies; partial, tampered and wrong-key logs refuse recovery (34.0473ms)
+✔ H3 deletion, truncation and same-size edits while serving refuse append (42.4789ms)
+✔ H4 concurrent handles serialize a verifiable persisted chain; callers cannot mutate it (108.4034ms)
+✔ H5 schema projects intersection of read and schema constraints and hides redacted names (4.8329ms)
+✔ H6 provider and policy exceptions omit secrets from result and signed receipt (2.2994ms)
+✔ H7 production refuses missing DB and probe bypass before connecting (2270.7432ms)
+✔ H8 MCP caller spoofing fails; host identity wins; receipt failure is sanitized (2575.7602ms)
+✔ H9 offline verifier rejects incomplete tail and validates full log (465.8234ms)
+✔ H10 schema enumeration honors initial constraints as well as table rules (1.2217ms)
+▶ output limits (F9)
+  ✔ defaults to DEFAULT_MAX_ROWS (1.4771ms)
+  ✔ clamps above HARD_MAX_ROWS (0.3042ms)
+  ✔ rejects non-positive (0.2396ms)
+✔ output limits (F9) (4.3098ms)
+▶ schema filtering (F10)
+  ✔ omits tables the policy would deny (40.0763ms)
+  ✔ *users* matches public.users (2.9894ms)
+✔ schema filtering (F10) (44.8454ms)
+▶ policy load fail-closed
+  ✔ rejects misspelled effect (F4) (12.9718ms)
+  ✔ rejects unimplemented constraint type aggregate (F5) (2.0486ms)
+  ✔ rejects unimplemented constraint type rows (0.8707ms)
+  ✔ rejects allow_with_constraints without constraints (1.1178ms)
+  ✔ accepts a valid policy (0.7013ms)
+✔ policy load fail-closed (21.0765ms)
+▶ receipt integrity (F2)
+  ✔ canonicalJson includes nested keys (1.9471ms)
+  ✔ old broken replacer would drop nested fields (documents the bug) (0.4881ms)
+  ✔ forging decision deny->allow invalidates contentHash (A6) (13.5447ms)
+  ✔ untampered receipt verifies (4.6086ms)
+✔ receipt integrity (F2) (22.8206ms)
+ℹ tests 29
+ℹ suites 5
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7448.7046

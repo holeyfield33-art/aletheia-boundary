@@ -1,0 +1,29 @@
+
+> aletheia-boundary@0.0.10 test:attacks
+> tsx audit/attacks.ts
+
+HELD  A1 label/SQL mismatch + column alias (shipped policy)
+      ok=false rule=undefined err=No matching rule; applied defaultEffect
+HELD  A2 row_to_json into allowed column
+      ok=false err=
+HELD  A3 integration-test policy: orders label, users SQL
+      ok=false rule=allow-orders-query err=Data request failed; input not allowed or provider unavailable
+HELD  A4 'aggregate' constraint rejected at load
+      policy load threw (held)
+HELD  A5 misspelled effect 'denny' rejected at load
+      policy load threw (held)
+HELD  A6 edit decision deny->allow, receipt still verifies
+      hashUnchanged=false verifyOk=false reason=contentHash mismatch (stored=18a2fe21acef… recomputed=c16e92e50f66…)
+HELD  A7 set_config read-write escape
+      ok=false reason=Data request failed; input not allowed or provider unavailable canaryRows=0
+HELD  A8 restricted schema metadata
+      [{"schema":"public","name":"users","columns":[{"name":"id","type":"integer","nullable":false}]}]
+HELD  A9 secret-bearing provider error
+      ok=false error=Data request failed; input not allowed or provider unavailable
+HELD  A10 malformed/encoded identifier public.orders;SELECT
+      ok=false
+HELD  A10 malformed/encoded identifier ../private
+      ok=false
+HELD  A10 malformed/encoded identifier cHVibGljLnVzZXJz
+      ok=false
+{"leaks":0,"total":12}

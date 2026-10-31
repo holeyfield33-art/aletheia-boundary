@@ -1,0 +1,5 @@
+
+> aletheia-boundary@0.0.10 test:integration
+> tsx src/integration.test.ts
+
+/usr/bin/bash: line 1: tsx: command not found
