@@ -1,0 +1,24 @@
+
+> aletheia-boundary@0.0.10 test:checkpoint
+> tsx --test src/receipt/checkpoint.test.ts
+
+✔ K1 anchored history accepts exact match and verified extensions (748.2035ms)
+✔ K2 deletion, empty replacement and valid-prefix rollback refuse without rewriting evidence (48.4046ms)
+✔ K3 same-key valid fork, wrong-key anchor and corrupt extensions fail closed (49.6687ms)
+✔ K4 strict checkpoint parsing rejects malformed, oversized or unavailable anchors (42.0648ms)
+✔ K5 export verifies before producing a candidate and never overwrites files (2685.5632ms)
+✔ K6 offline anchored verification rejects empty, rolled-back and missing history (3103.6099ms)
+✔ K7 production requires explicit checkpoint configuration before opening a DB (2309.0403ms)
+✔ K8 MCP anchored startup succeeds; deleted/rolled-back history and missing anchor refuse (12988.6905ms)
+ℹ MCP anchored startup/refusal mode=production-postgres
+✔ K9 freshness limit: old floor permits suffix removal; advanced checkpoint detects it (100.6767ms)
+ℹ Rollback is detected only through the independently retained checkpoint; unanchored suffix loss remains a documented limit
+✔ K10 CLI rejects missing/unknown checkpoint arguments rather than disabling checks (2571.8081ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 26620.5152

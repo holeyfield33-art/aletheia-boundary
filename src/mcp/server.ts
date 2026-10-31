@@ -16,6 +16,7 @@ import YAML from "yaml";
 import { Boundary } from "../boundary.js";
 import { PolicyEngine, loadPolicyFromObject } from "../policy/engine.js";
 import { ReceiptLog } from "../receipt/log.js";
+import { loadReceiptCheckpoint } from "../receipt/checkpoint.js";
 import { loadOrCreateKeyPair } from "../receipt/crypto.js";
 import { StubProvider } from "../data/provider.js";
 import type { DataProvider } from "../data/provider.js";
@@ -47,6 +48,9 @@ async function createProvider(): Promise<{
   }
   if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
     throw new Error("Production requires DATABASE_URL");
+  }
+  if (process.env.NODE_ENV === "production" && !process.env.BOUNDARY_CHECKPOINT_PATH) {
+    throw new Error("Production requires BOUNDARY_CHECKPOINT_PATH");
   }
   if (process.env.DATABASE_URL) {
     try {
@@ -85,7 +89,10 @@ async function main() {
   const logPath =
     process.env.BOUNDARY_LOG_PATH ??
     resolve(process.cwd(), "logs/receipts.jsonl");
-  const log = new ReceiptLog(keyPair, logPath);
+  const checkpointPath = process.env.BOUNDARY_CHECKPOINT_PATH;
+  const checkpoint = checkpointPath ? loadReceiptCheckpoint(checkpointPath) : undefined;
+  const log = new ReceiptLog(keyPair, logPath, { checkpoint });
+  console.error(`[aletheia-boundary] Trusted receipt checkpoint: ${checkpoint ? "verified" : "not configured (dev only)"}`);
   console.error(
     `[aletheia-boundary] Receipt log: ${logPath} (${log.getAll().length} existing)`,
   );

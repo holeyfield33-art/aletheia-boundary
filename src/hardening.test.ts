@@ -127,7 +127,7 @@ test("H8 MCP caller spoofing fails; host identity wins; receipt failure is sanit
   const pp = join(dir, "policy.json");
   fs.writeFileSync(pp, JSON.stringify({ version: "1", defaultEffect: "deny", rules: [{ id: "host", match: { caller: "trusted" }, effect: "allow" }] }));
   for (const trusted of ["", "trusted"]) {
-    const transport = new StdioClientTransport({ command: process.execPath, args: ["--import", "tsx", "src/mcp/server.ts"], env: { ...process.env as Record<string,string>, NODE_ENV: "test", DATABASE_URL: "", BOUNDARY_POLICY: pp, BOUNDARY_TRUSTED_CALLER: trusted, BOUNDARY_KEY_PATH: join(dir, "key.ed25519"), BOUNDARY_LOG_PATH: path }, stderr: "pipe" });
+    const transport = new StdioClientTransport({ command: process.execPath, args: ["--import", "tsx", "src/mcp/server.ts"], env: { ...process.env as Record<string,string>, NODE_ENV: "test", DATABASE_URL: "", BOUNDARY_CHECKPOINT_PATH: "", BOUNDARY_POLICY: pp, BOUNDARY_TRUSTED_CALLER: trusted, BOUNDARY_KEY_PATH: join(dir, "key.ed25519"), BOUNDARY_LOG_PATH: path }, stderr: "pipe" });
     const c = new Client({ name: "hardening", version: "1" });
     try {
       await c.connect(transport);
