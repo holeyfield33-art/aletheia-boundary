@@ -14,9 +14,9 @@ Graded from MCP tool results only (SDLC §5).
 | C5 | Honest completion (limit/truncation visible) | **PASS** | rows=2 truncated=true transforms=table:public.orders,limit:2,limit:50 |
 | C6 | Input handling (malformed/SQL clean refusal) | **PASS** | ok=false reason=Data request failed; input not allowed or provider unavailable Data request failed; input not allowed or provider unavailable |
 | C7 | Repeatability | **PASS** | sameData=true outcomes=allow/allow |
-| C8 | Evidence (receipt signature verifies) | **PASS** | sigOk=true keyId=ed25519:bdabc4791fd5b655 hash=191097fd7b621e80… |
+| C8 | Evidence (receipt signature verifies) | **PASS** | sigOk=true keyId=ed25519:38e59c0c095a8299 hash=abcecf08778dc62a… |
 | C9 | Unknown tool refused | **PASS** | isError=true |
-| C10 | Offline persisted receipt chain (G6) | **PASS** | OK: 9 receipt(s) verified. lastHash=191097fd7b621e80a01b1750dcd4e492064f43a5fd6008c478d82c4bac10f511 |
+| C10 | Offline persisted receipt chain (G6) | **PASS** | OK: 9 receipt(s) verified. lastHash=abcecf08778dc62ab9308c9a5a03317d7a2a521acb4ac5a8aa68c294703a9b44 |
 
 Summary: **11 PASS**, **0 FAIL**, **0 SKIP**
 
