@@ -1,6 +1,8 @@
 # Security scan triage
 
-**Latest functional follow-up:** [trusted receipt checkpoint validation](CHECKPOINT-2026-10-30.md). No new external kit scan is claimed.
+**Latest functional follow-up:** [receipt writer exclusion](WRITER-LOCK-2026-10-30.md); no new external kit scan is claimed.
+
+**Prior functional follow-up:** [trusted receipt checkpoint validation](CHECKPOINT-2026-10-30.md). No new external kit scan is claimed.
 
 **Prior checkpoint:** [hardening evidence](HARDENING-2026-10-30.md); production NO-GO. The full kit scan below is historical and was not repeated in this cycle. The committed lockfile now resolves Zod 4.6.7; clean install audit reports zero vulnerabilities, which does not establish overall product security.
 

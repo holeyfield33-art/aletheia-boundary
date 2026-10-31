@@ -1,0 +1,21 @@
+
+> aletheia-boundary@0.0.10 test:writer-lock
+> tsx --test src/receipt/writer-lock.test.ts
+
+✔ W1 reentrant/competing critical sections refuse and poison the losing writer (89.899ms)
+✔ W2 independently initialized processes cannot publish competing successors (2021.7999ms)
+✔ W3 live contention and stale crash locks refuse; explicit quarantine permits verified recovery (2618.9524ms)
+✔ W4 verified startup snapshot excludes another process's writes (1618.0894ms)
+✔ W5 canonical parent aliases share a lock; hard-linked log aliases are rejected (101.15ms)
+✔ W6 ownership replacement fails closed and never deletes replacement lock contents (79.9458ms)
+✔ W7 lock release failure refuses response and preserves uncertain lock (63.0284ms)
+✔ W8 MCP startup refuses contended log; starts after clean release with trusted checkpoint (6072.4224ms)
+ℹ MCP lock validation mode=production-postgres
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15021.9925

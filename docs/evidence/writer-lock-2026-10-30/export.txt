@@ -1,0 +1,6 @@
+
+> aletheia-boundary@0.0.10 verify-log
+> tsx src/receipt/verify-cli.ts --log docs/evidence/writer-lock-2026-10-30/receipts.jsonl --pub docs/evidence/writer-lock-2026-10-30/signing-public.txt --export-checkpoint docs/evidence/writer-lock-2026-10-30/candidate.json
+
+Checkpoint candidate exported; independently approve and publish outside the log trust domain
+OK: 9 receipt(s) verified. lastHash=e7d51edc0554f0eac54d43a0b463c6bdec2772c71b659f9a444a8f398afebb82 checkpoint=not supplied

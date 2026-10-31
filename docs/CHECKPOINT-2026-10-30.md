@@ -4,6 +4,8 @@
 This candidate adds fail-closed verification against an independently retained **minimum history**.
 It does not implement a remote witness, automatic publication or checkpoint freshness guarantees.
 
+> Follow-up: [writer exclusion](WRITER-LOCK-2026-10-30.md) adds local-filesystem operation locks. Check that handoff for dependency status and current evidence; the checkpoint ledger below remains its original snapshot.
+
 ## Revision and environment
 
 - Base main: `5173efb7f8f4bb31a86b12c9a4a919464e450cdb`; GitHub confirms PR #5 merged there. Remote main was rechecked unchanged during validation.

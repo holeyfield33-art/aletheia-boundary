@@ -125,3 +125,11 @@ production startup and the explicit stale-floor limitation. Startup and CLI veri
 Protection applies only through an independently retained checkpoint; rolling back both histories or
 removing a newer unanchored suffix remains outside detection. External storage, freshness, custody and
 publication guarantees are host-owned and unverified. This narrows receipt rollback risk, not host compromise.
+
+## Local receipt writer exclusion
+
+[Writer-lock handoff](WRITER-LOCK-2026-10-30.md): W1-W8 cover overlapping operations, independent
+processes with the same predecessor, startup snapshots, killed/stale owners, parent aliases and hard links,
+ownership/release failure and MCP startup. Six crash phases additionally test explicit stale-lock quarantine.
+Only cooperating code on a trusted local filesystem is covered; this is not a raw-host write barrier,
+network-filesystem lease or automatic crash recovery service. Checkpoint freshness/custody remain separate.

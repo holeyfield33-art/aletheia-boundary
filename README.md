@@ -28,9 +28,11 @@ OpenAI, Anthropic, or any other model provider cannot credibly be the thing that
 
 **0.0.10 package; unreleased hardening candidate. Production: NO-GO.**
 PR #5 is merged into main `5173efb`, including hardening and six-phase crash/restart tests.
-This candidate adds host-trusted receipt checkpoints and requires one for production MCP startup.
+The checkpoint candidate (PR #6) requires a trusted checkpoint for production MCP startup.
+This follow-up adds exclusive startup/append critical sections and explicit stale-lock recovery.
+See [writer-lock handoff](docs/WRITER-LOCK-2026-10-30.md) for dependency status, evidence and limits.
 
-Current configuration, migration, evidence and limits: [checkpoint handoff](docs/CHECKPOINT-2026-10-30.md).
+Checkpoint configuration and migration: [checkpoint handoff](docs/CHECKPOINT-2026-10-30.md).
 Prior evidence: [recovery drill](docs/RECOVERY-2026-10-30.md) and [hardening report](docs/HARDENING-2026-10-30.md).
 Historical green reports do not authorize production. Mandatory release evidence includes
 successful CI on the release commit, independent review, host isolation and storage recovery validation.
@@ -81,6 +83,7 @@ npm test
 npm run typecheck
 npm run test:recovery  # six process-termination/restart cases; no DB needed
 npm run test:checkpoint # checkpoint, rollback and MCP startup cases; no DB needed
+npm run test:writer-lock # competing processes, aliases and stale locks; no DB needed
 ```
 
 ### Live Postgres (integration + attacks + agent review)
@@ -202,9 +205,24 @@ a generic error and **no receipt**. Library calls reject. No fallback deny recei
 Provider/policy exceptions use fixed public errors; raw exception text is excluded from signed decisions.
 Operator-authored policy reasons and rule/constraint details remain visible; keep secrets out of policy text.
 
-Use **one process/writer per log path**, on a trusted local filesystem with stable key custody.
-Concurrent calls in that process serialize receipt writes. External writer changes are checked before append;
-this is not a cross-process lock. Protect the log/key directory with host ACLs and restrict alternative DB tools.
+Use **one process/writer per log path**, on a trusted local filesystem with stable preprovisioned keys.
+Startup and append/read/compare/sync sections now acquire an exclusive `<log-path>.writer-lock` directory.
+Parent-directory aliases resolve to one canonical location; leaf symlinks and hard-linked logs are rejected.
+Ownership checks and an exclusive nonce marker prevent normal cleanup from removing a replacement lock.
+Contention fails immediately; an append failure poisons that instance. There is no queue or automatic retry.
+Multiple processes may initialize while idle, but a stale process cannot append over a newer disk head.
+This is cooperating-process exclusion around critical sections, not a lifetime process lease or support
+for running a multiprocess service against one log. Protect directories with host ACLs; raw filesystem
+writers, mixed old versions, remote/network filesystems and external lock deletion are outside the guarantee.
+
+Normal completion releases the operation lock. A kill inside the locked section leaves it behind;
+startup refuses until an operator recovers it. Locks never expire based on age, PID or a clock.
+After stopping **all** potential writers, preserve the log, keys, approved checkpoint and lock directory;
+independently verify/reconcile the history; then quarantine that exact lock directory through the host's
+recovery procedure before restarting against the unchanged approved checkpoint. Do not remove a live
+lock or downgrade an anchor to force startup. A partial tail still refuses even after lock quarantine.
+Crashes after clean lock release can restart normally if history/checkpoint verification succeeds.
+See the [recovery drill and limits](docs/WRITER-LOCK-2026-10-30.md).
 
 Restart verifies every loaded receipt and refuses malformed, tampered or unterminated tails.
 After failure: stop the process, preserve log and key, verify a copy offline, compare with an independently
@@ -241,8 +259,8 @@ and the resulting maximum unanchored-loss window require operations review. Dire
 explicitly pass `{ checkpoint }` to `ReceiptLog`; optional development/in-memory modes do not enforce it.
 File sync is not proof against faulty disks or power loss. New-file directory sync is attempted on POSIX;
 Node does not provide it here on Windows. A forced-process-termination drill now exercises six write/response phases and fresh-process recovery.
-This is a Boundary-library drill, not an MCP transport-disconnect test. Multiwriter, Windows power-loss durability,
-physical disk-full behavior and key rotation remain unverified. See [remaining blockers](docs/CHECKPOINT-2026-10-30.md).
+The drill also checks stale-lock refusal before explicit test-only quarantine. This is not an MCP transport-disconnect test. Windows power-loss durability,
+physical disk-full behavior and key rotation remain unverified. See [remaining blockers](docs/WRITER-LOCK-2026-10-30.md).
 
 ## Adversarial coverage (redteam-kit)
 
