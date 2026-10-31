@@ -81,8 +81,9 @@ test("W1 reentrant/competing critical sections refuse and poison the losing writ
 
 test("W2 independently initialized processes cannot publish competing successors", async t => {
   const f = fixture(t);
-  const a = f.start(), b = f.start();
+  const a = f.start();
   assert.equal((await a.next()).kind, "ready");
+  const b = f.start();
   assert.equal((await b.next()).kind, "ready");
   a.send("append");
   const first = await a.next();
@@ -104,8 +105,9 @@ test("W2 independently initialized processes cannot publish competing successors
 
 test("W3 live contention and stale crash locks refuse; explicit quarantine permits verified recovery", async t => {
   const f = fixture(t);
-  const a = f.start(), b = f.start();
+  const a = f.start();
   assert.equal((await a.next()).kind, "ready");
+  const b = f.start();
   assert.equal((await b.next()).kind, "ready");
   a.send("hold");
   assert.equal((await a.next()).kind, "held");
@@ -118,7 +120,8 @@ test("W3 live contention and stale crash locks refuse; explicit quarantine permi
   assert.equal(fs.existsSync(f.lock), true);
   fs.utimesSync(f.lock, new Date(0), new Date(0));
   assert.throws(() => new ReceiptLog(f.keys, f.path), /writer lock unavailable/);
-  assert.equal(verifyReceiptChain(f.log.getAll(), f.keys.publicKey).ok, true);
+  const onDisk = fs.readFileSync(f.path, "utf8").trim().split("\n").map(line => JSON.parse(line));
+  assert.equal(verifyReceiptChain(onDisk, f.keys.publicKey).ok, true);
   // Test-only operator step, after owner termination and independent evidence verification.
   fs.renameSync(f.lock, join(f.dir, "quarantined-lock"));
   const recovered = new ReceiptLog(f.keys, f.path);
