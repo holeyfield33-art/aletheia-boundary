@@ -116,3 +116,12 @@ offline signatures and fresh-process restart/continuation are tested by `src/rec
 `npm run test:recovery` needs no database. This narrows the process-interruption gap only;
 physical disk-full, power loss, cross-process writers, external checkpoints and MCP transport interruption
 remain outside the demonstrated coverage. CI was skipped at the user's direction for billing.
+
+## Trusted checkpoint follow-up
+
+[Checkpoint handoff](CHECKPOINT-2026-10-30.md): K1-K10 cover matching/extended history,
+missing/empty/rolled-back logs, valid forks, key binding, malformed/missing checkpoints, CLI export safety,
+production startup and the explicit stale-floor limitation. Startup and CLI verify the full chain first.
+Protection applies only through an independently retained checkpoint; rolling back both histories or
+removing a newer unanchored suffix remains outside detection. External storage, freshness, custody and
+publication guarantees are host-owned and unverified. This narrows receipt rollback risk, not host compromise.

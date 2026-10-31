@@ -27,12 +27,11 @@ OpenAI, Anthropic, or any other model provider cannot credibly be the thing that
 ## Status
 
 **0.0.10 package; unreleased hardening candidate. Production: NO-GO.**
-PR #4 is merged into main `05612f2`, including receipt persistence hardening,
-schema column minimization, sanitized errors, and production/caller regressions.
-This follow-up adds a six-phase process termination/restart drill.
+PR #5 is merged into main `5173efb`, including hardening and six-phase crash/restart tests.
+This candidate adds host-trusted receipt checkpoints and requires one for production MCP startup.
 
-Current recovery evidence and remaining blockers: [receipt recovery drill](docs/RECOVERY-2026-10-30.md).
-Previous hardening evidence: [hardening report](docs/HARDENING-2026-10-30.md).
+Current configuration, migration, evidence and limits: [checkpoint handoff](docs/CHECKPOINT-2026-10-30.md).
+Prior evidence: [recovery drill](docs/RECOVERY-2026-10-30.md) and [hardening report](docs/HARDENING-2026-10-30.md).
 Historical green reports do not authorize production. Mandatory release evidence includes
 successful CI on the release commit, independent review, host isolation and storage recovery validation.
 PR #4 CI jobs did not start because of a GitHub account billing lock; CI remains NOT RUN.
@@ -81,6 +80,7 @@ npm ci
 npm test
 npm run typecheck
 npm run test:recovery  # six process-termination/restart cases; no DB needed
+npm run test:checkpoint # checkpoint, rollback and MCP startup cases; no DB needed
 ```
 
 ### Live Postgres (integration + attacks + agent review)
@@ -142,7 +142,7 @@ npm start
 # or: node dist/mcp/server.js
 ```
 
-With `NODE_ENV=production`, missing `DATABASE_URL` or `BOUNDARY_SKIP_READONLY_PROBE=1` refuses startup. Outside production, without `DATABASE_URL` the server starts with **StubProvider** (synthetic dev data only). Responses set `dataSource: "stub"`. With `DATABASE_URL` set, a failed probe **exits 1** (never silent stub).
+With `NODE_ENV=production`, missing `DATABASE_URL`, missing `BOUNDARY_CHECKPOINT_PATH`, or `BOUNDARY_SKIP_READONLY_PROBE=1` refuses startup. A configured checkpoint must validate against an existing log before MCP tools are exposed. Outside production, without `DATABASE_URL` the server starts with **StubProvider** (synthetic dev data only). Responses set `dataSource: "stub"`. With `DATABASE_URL` set, a failed probe **exits 1** (never silent stub).
 
 ### Tool: `boundary_request`
 
@@ -185,6 +185,7 @@ Response includes `ok`, `decision`, `data`, `transforms`, `stats` (incl. **`trun
 | `BOUNDARY_POLICY` | Path to YAML policy (default `policies/example.yaml`) |
 | `BOUNDARY_KEY_PATH` | Ed25519 private key PEM path |
 | `BOUNDARY_LOG_PATH` | Receipt JSONL path |
+| `BOUNDARY_CHECKPOINT_PATH` | Required in production: independently retained, trusted checkpoint JSON. Never automatically generated or updated by the server |
 | `BOUNDARY_MAX_ROWS` | Soft default row cap (clamped to hard max 2000) |
 | `BOUNDARY_STMT_TIMEOUT_MS` | Statement timeout (default 10000) |
 | `BOUNDARY_SKIP_READONLY_PROBE` | `1` to skip probe (tests only; never production) |
@@ -206,17 +207,42 @@ Concurrent calls in that process serialize receipt writes. External writer chang
 this is not a cross-process lock. Protect the log/key directory with host ACLs and restrict alternative DB tools.
 
 Restart verifies every loaded receipt and refuses malformed, tampered or unterminated tails.
-After failure: stop the process, preserve log and key, verify a copy offline, compare with an externally
-stored last-hash checkpoint, and restore only independently verified evidence. Never automatically
+After failure: stop the process, preserve log and key, verify a copy offline, compare with an independently
+retained checkpoint, and restore only independently verified evidence. Never automatically
 trim a partial tail or delete the log to make startup pass. An appended receipt may survive a failed sync
 or an interrupted response without proving data was received.
 
 A local chain alone cannot detect deletion or rollback to a valid prefix across restarts.
-External checkpoints/retention and a recovery drill are required before production.
+The server now checks a host-supplied minimum-history checkpoint (public-key SHA-256, receipt count,
+and content hash at that position). Missing logs are never recreated in checkpoint mode. Shorter histories,
+wrong keys and valid forks that omit the checkpoint refuse startup. Verified extensions are allowed.
+Checkpoint checks never skip full signature/chain verification.
+
+Stop writers and independently reconcile the log with retained receipts/checkpoints before exporting a
+new candidate; a valid local chain alone cannot establish that a rollback has not already happened:
+
+```powershell
+npm run verify-log -- --log logs/receipts.jsonl --pub keys/boundary.pub.pem --checkpoint C:/BoundaryTrust/checkpoint.json --export-checkpoint C:/BoundaryTrust/candidate-next.json
+```
+
+For first-time provisioning only, omit `--checkpoint` after an independent baseline review. The source
+must contain at least one valid receipt; an empty log cannot produce a checkpoint. For a new installation,
+create a synthetic deny receipt in an isolated nonproduction bootstrap session with the stable operator
+signing key, then independently approve that initial history. Do not bootstrap by resetting existing history.
+Export uses exclusive creation and refuses to overwrite any existing file. A candidate is not automatically
+trusted: the host must approve its advancement, durably publish it outside the log writer's change/rollback
+domain, and configure `BOUNDARY_CHECKPOINT_PATH` to the approved checkpoint before production startup.
+Keep prior checkpoints and receipts; never replace an anchor from a damaged/unreconciled log.
+
+This is a **minimum-history floor**. A stale checkpoint cannot detect loss of a newer, unanchored suffix;
+rolling back both log and checkpoint remains undetectable. No remote witness, automatic checkpoint updates,
+atomic external publication or freshness guarantee is implemented. Host ACLs, retention, update frequency
+and the resulting maximum unanchored-loss window require operations review. Direct library callers must
+explicitly pass `{ checkpoint }` to `ReceiptLog`; optional development/in-memory modes do not enforce it.
 File sync is not proof against faulty disks or power loss. New-file directory sync is attempted on POSIX;
 Node does not provide it here on Windows. A forced-process-termination drill now exercises six write/response phases and fresh-process recovery.
 This is a Boundary-library drill, not an MCP transport-disconnect test. Multiwriter, Windows power-loss durability,
-physical disk-full behavior and key rotation remain unverified. See [remaining blockers](docs/RECOVERY-2026-10-30.md).
+physical disk-full behavior and key rotation remain unverified. See [remaining blockers](docs/CHECKPOINT-2026-10-30.md).
 
 ## Adversarial coverage (redteam-kit)
 

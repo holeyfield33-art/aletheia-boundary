@@ -1,6 +1,6 @@
 # SDLC: how aletheia-boundary is built, verified and released
 
-**Current production decision: NO-GO.** Read the [latest recovery checkpoint](RECOVERY-2026-10-30.md) first; [prior hardening checkpoint](HARDENING-2026-10-30.md) retains its historical results. Sections 2, 5 and 6 preserve historical assessments; their green labels do not certify current main.
+**Current production decision: NO-GO.** Read the [latest checkpoint handoff](CHECKPOINT-2026-10-30.md) first; [prior hardening checkpoint](HARDENING-2026-10-30.md) retains its historical results. Sections 2, 5 and 6 preserve historical assessments; their green labels do not certify current main.
 
 This is the process every change follows, whoever writes it: a person, Claude,
 or any other model in a relay. A boundary that is mostly right is a leak.
@@ -152,3 +152,22 @@ accept only a linked continuation. A previously returned receipt must exist iden
 These cases do not certify power-loss persistence, real ENOSPC, MCP transport disconnect or host controls.
 The user directed CI to be skipped for the billing issue in this cycle: **NOT RUN**, never PASS.
 Do not spend this cycle polling or retrying CI. Production remains NO-GO pending the remaining evidence.
+
+## 9. Trusted history checkpoint follow-up - 2026-10-30
+
+PR #5 is merged at main `5173efb`. See [CHECKPOINT-2026-10-30.md](CHECKPOINT-2026-10-30.md)
+for the tested revision, exact gates and migration steps. Production MCP startup now requires
+`BOUNDARY_CHECKPOINT_PATH`; the supplied checkpoint must match fully verified existing history.
+The checkpoint pins a minimum history and full public-key fingerprint, not the exact latest head.
+Direct library users must opt in explicitly. No checkpoint means development-only rollback limitations remain.
+
+G3 includes `src/receipt/checkpoint.test.ts` (also `npm run test:checkpoint`). K9 permanently records
+that an older floor permits deletion of a later suffix, while an advanced retained floor detects it.
+Offline verification with `--checkpoint` must reject missing/empty/truncated/wrong-key/forked history.
+Export only creates a candidate after full chain verification and never overwrites files. No automatic
+reanchoring, log reset, damaged-tail repair or checkpoint downgrade is allowed as a recovery procedure.
+
+Host operations must protect checkpoint custody outside the log writer's rollback domain and provide
+independent reconciliation/approval, retained prior checkpoints, durable publication and an acceptable
+freshness window. Those operational guarantees are not supplied by a local JSON file alone.
+CI remains NOT RUN/deferred for billing at the user's direction. Production remains NO-GO.

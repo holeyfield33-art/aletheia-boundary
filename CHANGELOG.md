@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased - host-trusted receipt checkpoints (2026-10-30)
+
+- Production MCP now requires `BOUNDARY_CHECKPOINT_PATH` pointing to a valid, nonempty checkpoint and matching existing receipt history. This is an operator configuration/migration requirement.
+- Add strict checkpoint validation for version, full public-key SHA-256, receipt count and content hash; startup rejects deleted/shortened history, wrong-key anchors and valid forks that omit the trusted checkpoint.
+- Offline `verify-log` accepts `--checkpoint` and `--export-checkpoint`; export verifies history, refuses empty logs and never overwrites an existing file. The host owns candidate approval and external publication.
+- Add `npm run test:checkpoint` and permanent regressions for rollback, deletion, malformed anchors, production startup, export safety and the stale-floor limitation. Existing audit fixtures explicitly isolate their development checkpoint configuration.
+- Verified extensions are permitted; losses after the retained checkpoint remain undetectable until it advances. No external-store/freshness service is claimed.
+- [Checkpoint migration, evidence and remaining blockers](docs/CHECKPOINT-2026-10-30.md). CI remains deferred for billing; production NO-GO.
+
 ## Unreleased - process interruption recovery drill (2026-10-30)
 
 - Add `npm run test:recovery`, also included in `npm test`: forcibly terminate a child at six append/sync/response phases, then verify offline and restart in a fresh process.
