@@ -37,3 +37,12 @@ On exact candidate SHA, enumerate G1–G6, CI, independent review, operations, i
 
 ## P12 — Agent handoff
 Summarize base/head SHA, changed files, tested commands/results, evidence artifacts, findings, open owners, rollback and next three actions. Update user-facing docs with bounded claims only.
+
+## Shared evidence contract (P01–P14)
+For every executed task, finish with a JSON object conforming to [EVIDENCE-SCHEMA.json](EVIDENCE-SCHEMA.json). Record actual commands, exit codes, evidence artifacts, base/head SHA, unrun gates, blockers, GO/NO-GO, and next three actions. If only planning, mark execution NOT_RUN and do not invent results. Historical records are context, never fresh evidence.
+
+## P13 — Host-assumption audit
+On pinned [SHA] and named deployment [ENVIRONMENT], identify every alternate data-access route: raw DB credentials, other MCP tools, sockets, network paths, mount points and privileged processes. Test whether the agent can bypass boundary_request using synthetic canaries and host-controlled observers. Distinguish enforced host controls from documented assumptions. Record each test, independent evidence, owner and unresolved gaps. Do not claim host isolation from Boundary unit tests.
+
+## P14 — Checkpoint custody and freshness
+For [DEPLOYMENT] identify who controls the receipt writer, log, signing key, approved checkpoint and publication channel. Define maximum permitted unanchored-loss window [WINDOW]. Exercise independently observed checkpoint advancement, delayed publication, valid-prefix rollback, checkpoint rollback, key mismatch, recovery and retention using disposable evidence. Do not silently re-anchor, delete, trim or regenerate damaged history. Return proven guarantees, operational gaps, and a NO-GO if required custody/freshness evidence is absent.
