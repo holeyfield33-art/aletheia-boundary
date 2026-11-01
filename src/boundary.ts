@@ -8,11 +8,12 @@ import type {
 import { PolicyEngine } from "./policy/engine.js";
 import { ReceiptLog } from "./receipt/log.js";
 import type { DataProvider } from "./data/provider.js";
+import { assertSafeAgentRequest } from "./request/validate.js";
 
 /**
  * The main boundary object.
  *
- * Agent request in → policy decision → (optional) data plane → receipt → response.
+ * Agent request in → shape validation → policy decision → data plane → receipt.
  * Fail closed on any error.
  */
 export class Boundary {
@@ -25,6 +26,30 @@ export class Boundary {
   async handle(
     partial: Omit<BoundaryRequest, "id" | "receivedAt"> & { id?: string },
   ): Promise<BoundaryResult> {
+    try {
+      assertSafeAgentRequest(partial);
+    } catch {
+      const request: BoundaryRequest = {
+        id: partial.id ?? randomUUID(),
+        action: partial.action,
+        resource:
+          typeof partial.resource === "string"
+            ? partial.resource.slice(0, 128)
+            : "",
+        params: undefined,
+        purpose: undefined,
+        caller: undefined,
+        receivedAt: new Date().toISOString(),
+      };
+      const decision: Decision = {
+        outcome: "deny",
+        reason: "Invalid request",
+        decidedAt: new Date().toISOString(),
+      };
+      const receipt = this.log.create(request, decision);
+      return { ok: false, decision, receipt, error: decision.reason };
+    }
+
     const request: BoundaryRequest = {
       id: partial.id ?? randomUUID(),
       action: partial.action,
@@ -58,7 +83,6 @@ export class Boundary {
     try {
       payload = await this.provider.execute(request, decision.constraints);
 
-      // F10: do not advertise tables the policy would deny for access.
       if (request.action === "schema") {
         payload = this.filterSchemaPayload(payload, request, decision);
       }
@@ -81,13 +105,6 @@ export class Boundary {
     return { ok: true, decision, payload, receipt };
   }
 
-  /**
-   * Drop schema entries for relations that are not reachable under policy.
-   * Omit when:
-   *   - schema on that table is denied, or
-   *   - both sample and query are denied (no data path).
-   * Prevents column-name reconnaissance of PII tables (F10).
-   */
   private filterSchemaPayload(
     payload: MinimizedPayload,
     request: BoundaryRequest,
@@ -129,16 +146,24 @@ export class Boundary {
       });
       if (sampleD.outcome === "deny" && queryD.outcome === "deny") return [];
 
-      // Conservative metadata intersection across schema and reachable reads.
-      const paths = [initialDecision, schemaD, ...[sampleD, queryD].filter(d => d.outcome !== "deny")];
-      const columns = t.columns.filter(column => {
-        if (!column || typeof column !== "object" || !("name" in column)) return false;
+      const paths = [
+        initialDecision,
+        schemaD,
+        ...[sampleD, queryD].filter((d) => d.outcome !== "deny"),
+      ];
+      const columns = t.columns.filter((column) => {
+        if (!column || typeof column !== "object" || !("name" in column))
+          return false;
         const name = (column as { name: string }).name;
-        return paths.every(d => (d.constraints ?? []).every(c => {
-          if (c.type === "columns") return Array.isArray(c.value) && c.value.includes(name);
-          if (c.type === "redact") return Array.isArray(c.value) && !c.value.includes(name);
-          return true;
-        }));
+        return paths.every((d) =>
+          (d.constraints ?? []).every((c) => {
+            if (c.type === "columns")
+              return Array.isArray(c.value) && c.value.includes(name);
+            if (c.type === "redact")
+              return Array.isArray(c.value) && !c.value.includes(name);
+            return true;
+          }),
+        );
       });
       return [{ schema: t.schema, name: t.name, columns }];
     });
