@@ -4,9 +4,10 @@ Supplement to [the authoritative SDLC](../SDLC.md), not a replacement. Product
 is production NO-GO until the release gates and independent review are
 satisfied.
 
-Read in order: root README, docs/SDLC.md, docs/CHECKPOINT-2026-10-30.md,
-docs/REDTEAM-GAP-MAP.md, then this package. Do not treat historical PASS results
-as fresh release evidence.
+Read in order: root AGENTS.md, root README, docs/STATUS.md (current truth),
+docs/SDLC.md (stable engineering), and docs/REDTEAM-GAP-MAP.md if relevant;
+then this optional playbook. The 2026-10-30 checkpoint is historical evidence,
+not the current state. Do not treat historical PASS results as fresh release evidence.
 
 Scope: local Postgres-to-MCP authorization, data minimization, durable signed
 receipts, operator-owned checkpoints. Not an agent sandbox, identity provider,
