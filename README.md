@@ -49,6 +49,7 @@ Cross-process quotas remain host-owned. Historical green does not authorize
 production.
 
 **Current plan and audit:** [docs/STATUS.md](docs/STATUS.md)  
+**For coding agents:** [AGENTS.md](AGENTS.md) (single entrypoint; current status and SDLC remain authoritative)  
 Process: [docs/SDLC.md](docs/SDLC.md) · Gap map:
 [docs/REDTEAM-GAP-MAP.md](docs/REDTEAM-GAP-MAP.md) ·
 [CHANGELOG.md](CHANGELOG.md)
