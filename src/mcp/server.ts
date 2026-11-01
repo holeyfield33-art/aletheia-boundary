@@ -20,6 +20,11 @@ import { loadReceiptCheckpoint } from "../receipt/checkpoint.js";
 import { loadOrCreateKeyPair } from "../receipt/crypto.js";
 import { StubProvider } from "../data/provider.js";
 import type { DataProvider } from "../data/provider.js";
+import {
+  RequestLimiter,
+  resolveConcurrencyLimits,
+  LimitExceededError,
+} from "../data/concurrency.js";
 
 const PACKAGE_VERSION = "0.0.10";
 
@@ -99,6 +104,12 @@ async function main() {
 
   const boundary = new Boundary(policy, provider, log);
 
+  const concurrencyLimits = resolveConcurrencyLimits();
+  const limiter = new RequestLimiter(concurrencyLimits);
+  console.error(
+    `[aletheia-boundary] Request limits: concurrent=${concurrencyLimits.maxConcurrent || "off"} rate=${concurrencyLimits.ratePerSecond || "off"}/s burst=${concurrencyLimits.burst || "off"}`,
+  );
+
   const server = new Server(
     {
       name: "aletheia-boundary",
@@ -172,13 +183,15 @@ async function main() {
     };
 
     try {
-      const result = await boundary.handle({
-        action: args.action,
-        resource: args.resource,
-        params: args.params,
-        purpose: args.purpose,
-        caller: process.env.BOUNDARY_TRUSTED_CALLER,
-      });
+      const result = await limiter.run(() =>
+        boundary.handle({
+          action: args.action,
+          resource: args.resource,
+          params: args.params,
+          purpose: args.purpose,
+          caller: process.env.BOUNDARY_TRUSTED_CALLER,
+        }),
+      );
 
       const body = {
         ok: result.ok,
@@ -207,10 +220,35 @@ async function main() {
         ],
         isError: !result.ok,
       };
-    } catch {
-      return { content: [{ type: "text", text: JSON.stringify({
-        ok: false, data: null, error: "Receipt unavailable; request refused",
-      }) }], isError: true };
+    } catch (err) {
+      if (err instanceof LimitExceededError) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                ok: false,
+                data: null,
+                error: err.message,
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              ok: false,
+              data: null,
+              error: "Receipt unavailable; request refused",
+            }),
+          },
+        ],
+        isError: true,
+      };
     }
   });
 
