@@ -14,7 +14,7 @@
 
 Do not import the 003R selector, mutate the freeze, or treat Studio records as Boundary runtime authority. MOTHERSHIP / D-004 remain separate evidence domains (per freeze boundaries).
 
-### Immutable citation pin (BOUNDARY-NEXT-001)
+### Immutable citation pin
 
 | Field | Value |
 |---|---|
@@ -23,7 +23,7 @@ Do not import the 003R selector, mutate the freeze, or treat Studio records as B
 | Freeze repo commit | `89fe5485e37f315eab6b5131e715bcd2115bbe31` |
 | `FROZEN_STATE.json` SHA-256 | `c46aa1beeb10185def012bef6cfd362bde7effc6e867febac0cf4154a0e61e18` |
 
-Cite these identifiers (not “latest main”). Full ledger: [BOUNDARY-NEXT-001.md](BOUNDARY-NEXT-001.md).
+Cite these identifiers (not “latest main”). Ledgers: [BOUNDARY-NEXT-001.md](BOUNDARY-NEXT-001.md), [BOUNDARY-NEXT-002.md](BOUNDARY-NEXT-002.md).
 
 ---
 
@@ -35,7 +35,7 @@ Boundary implements a **narrow slice** of that loop at the data edge:
 
 | Loop step | Boundary role today | Boundary does *not* own |
 |---|---|---|
-| Understand / intake | Host supplies structured `boundary_request` args | Project diagnosis, repo snapshot interpretation |
+| Understand / intake | Host supplies structured `boundary_request` args; **shape + encoding validation** (NEXT-002) | Project diagnosis, repo snapshot interpretation |
 | Assess risk / select | Local policy evaluate + fail-closed defaults | Lifecycle work selection, Studio selector |
 | Specify | Policy constraints (columns, limit, redact, sample) | ADRs, task DAGs, product requirements |
 | Execute bounded change | Structured read only; no free-form SQL; row/rate/concurrency caps | Code edits, deploy, multi-tool orchestration |
@@ -49,81 +49,63 @@ Boundary implements a **narrow slice** of that loop at the data edge:
 
 | UNIVERSAL-ARCH module | Closest Boundary artifacts | Fit | Notes |
 |---|---|---|---|
-| Project intake and diagnosis | MCP args (`action`, `resource`, `params`, `purpose`); host env | Partial | `purpose` is a claim, not authentication. Client `caller` is ignored; host sets `BOUNDARY_TRUSTED_CALLER`. |
-| Research registry adapter | This freeze (read-only); `docs/agent-playbook`, gap map | Out of process | Pin freeze digests if citing; do not rewrite freeze contents from Boundary. |
-| Risk and selection evaluator | `PolicyEngine`, policy YAML, fail-closed load | Strong (data path only) | No network side effects in evaluate path. Abstain = deny / error, not invent allow. |
-| Specification and artifact graph | Constraints on decision; schema projection (F10) | Partial | No ADR/task graph. Schema omits denied tables and restricted columns. |
-| Bounded executor adapter | `PostgresProvider` / `StubProvider`; MCP `boundary_request` | Strong | Capability boundary is host + process; tool schema rejects free-form SQL. Grants are env/process, not prompt text. |
-| Verification and review | `ReceiptLog`, `verify-cli`, checkpoint K-suite, recovery R-suite, hardening H-suite, concurrency R1–R7, `audit/attacks.ts` | Strong (library evidence) | Negative results retained in tests. Independent human review still required for production. |
-| Lifecycle and state coordinator | Single-writer receipt append + fsync; checkpoint minimum-history floor | Partial | Process-local writer serialization; not a cross-process lock. Multi-writer deferred (host-owned). |
-| Human decision interface | Operator policy authoring; checkpoint approval; production config | Host-owned | Boundary does not present product options UI. |
+| Project intake and diagnosis | MCP args; `assertSafeAgentRequest` | Partial | Encoded / path-like resources rejected. Client `caller` ignored; host `BOUNDARY_TRUSTED_CALLER`. |
+| Research registry adapter | This freeze (read-only); playbook, gap map | Out of process | Pin freeze digests; do not rewrite freeze from Boundary. |
+| Risk and selection evaluator | `PolicyEngine`, policy YAML | Strong (data path) | Abstain = deny. |
+| Specification and artifact graph | Constraints; schema projection (F10) | Partial | No ADR/task graph. |
+| Bounded executor adapter | Postgres / Stub providers; MCP tool | Strong | Free-form SQL rejected. |
+| Verification and review | Receipts, H/K/R/recovery suites, attacks | Strong (library) | Human review still required for production. |
+| Lifecycle and state coordinator | Single-writer receipt append | Partial | Cross-process lock host-owned. |
+| Human decision interface | Operator policy + checkpoint approval | Host-owned | |
 
-Trust rule shared with UNIVERSAL-ARCH: external content (tool args, model text, issue text) is **untrusted**. User/host configuration and verified decisions travel on a **trusted control channel** (`BOUNDARY_*` env, key/checkpoint paths). Sanitization of agent text is not treated as sufficient authorization.
+Trust rule: external content is **untrusted**. Host configuration is the **trusted control channel**.
 
 ---
 
 ## 3. Studio selector failure modes → Boundary lessons
 
-003R selector is **NO-GO** for generalization. Known issues still inform Boundary hardening language:
-
 | Studio failure (003R) | Boundary analogue | Local posture |
 |---|---|---|
-| False “missing fact” rationale when justification + owner present | Wrong or stale deny/limit reasons | Prefer fixed public errors; operator policy `reason` text must stay free of secrets; do not claim a missing condition that is present |
-| Cross-field auth / write authority contradictions | Client `caller` vs host identity; `purpose` vs real authority | Host identity wins (H8); `purpose` never sole basis for privilege |
-| Malformed facts → unhandled AttributeError | Bad MCP args / bad policy document | Fail closed on policy load; structured params only; no unhandled throw to agent with secrets |
-| Unjustified tool/side-effect obligations when features excluded | Implying writes, export, or extra tools | Read-only probe; no free-form SQL; limit denials before policy/data path |
-
-These are **design reminders**, not a claim that Boundary implements the Studio selector.
+| False “missing fact” rationale | Wrong deny reasons | Fixed public errors; no secret leakage |
+| Cross-field auth contradictions | Client caller vs host | Host identity wins |
+| Malformed facts → crashes | Bad MCP args | Fail closed validation + policy load |
+| Unjustified side effects | Implied writes | Read-only probe; no agent SQL |
 
 ---
 
-## 4. Local evidence vs Studio-style gates
+## 4. Local evidence (not production GO)
 
-Boundary already holds permanent tests that line up with several verification ideas in the freeze/architecture candidate. Labels below are **in-repo evidence**, not Studio GO or production approval.
-
-| Concern | Boundary evidence | Command / location | Residual limit |
-|---|---|---|---|
-| Policy fail-closed | F4/F5 load rejects; default deny | `src/policy/failclosed.test.ts`, `bounds.test.ts` | Customer can still write a bad allow rule |
-| Structured data path only | F1; attacks A1–A7 | `audit/attacks.ts`, provider asserts | Encoding dual-use in `purpose` not decoded |
-| Honest truncation | F9 `stats.truncated` | limits + postgres provider | — |
-| Schema minimization | F10, H5/H10 | `boundary.ts`, hardening tests | Conservative intersection may hide more than a looser read path |
-| Receipt integrity | F2; H1–H4/H9 | receipt tests, hardening | Physical disk-full / power loss not proven |
-| Process interruption | Recovery six phases | `npm run test:recovery` | Not MCP transport disconnect; not multi-writer |
-| Trusted checkpoint floor | K1–K10 | `npm run test:checkpoint` | Stale floor; rollback of log+checkpoint together |
-| Host caller identity | H7/H8 | hardening MCP tests | No per-session auth |
-| Process-local resource limits | R1–R7 | `src/data/concurrency.test.ts` | Cross-process quotas host-owned |
-| Sanitized errors | H6/H8 | hardening | Operator policy text still visible |
-
-Studio freeze verification (dataset schema/graph, 13-case oracle, manifest) lives **only** in the freeze repo. Boundary does not re-run those oracles.
+| Concern | Evidence |
+|---|---|
+| Policy fail-closed | `failclosed.test.ts` |
+| Structured path + encoding reject | attacks A1–A7; `request/validate.test.ts` |
+| Honest truncation | F9 |
+| Schema minimization | F10 / H5 |
+| Receipts / recovery / checkpoint | H/K/recovery suites |
+| Process-local resource limits | R1–R7 |
 
 ---
 
-## 5. What to reuse from the freeze (practices, not code)
+## 5. Practices to reuse from freeze (not code)
 
-Safe to copy as *process*:
+1. Immutable baseline + verify script  
+2. Explicit GO/NO-GO split  
+3. UNIVERSAL-ARCH read order for design notes  
+4. Agent playbook phases
 
-1. **Immutable baseline + verify script** — same spirit as Boundary checkpoint export + `verify-log`.
-2. **Explicit GO/NO-GO split** — dataset integrity vs selection reliability vs product integration (Boundary already splits unit green vs production NO-GO).
-3. **UNIVERSAL-ARCH read order** — Evidence → Architecture → Coverage → Policy → Contracts → Roadmap → Review when writing new Boundary design notes.
-4. **Agent playbook alignment** — `docs/agent-playbook` phases (Pin → Specify → Design → Implement → Verify → Release review → Handoff) sit comfortably next to the universal lifecycle responsibilities table.
-
-Do **not**:
-
-- Submodule the freeze as mutable application code
-- Call Studio selection GO from Boundary docs
-- Begin Stage 004 / commercial Studio features from this mapping
-- Treat `coverage.json` / `evidence-index.json` as proof that Boundary implements those research IDs
+Do **not** submodule the freeze, call Studio selection GO, or treat research IDs as Boundary enforcement.
 
 ---
 
-## 6. Suggested Boundary follow-ups (optional)
+## 6. Boundary follow-ups
 
-Prioritized against current Boundary gap map and [BOUNDARY-NEXT-001](BOUNDARY-NEXT-001.md)—not a Studio roadmap:
-
-1. Normalize deny timing (side_channel) — deferred until timing harness/CI justification.  
-2. Process-local limits are documented in README env table; cross-process remains host-owned.  
-3. When citing Studio research, use the **immutable citation pin** above.  
-4. Only after an explicit product decision: list which `gate.*` / `practice.*` IDs are aspirational for Aletheia Core vs enforced in Boundary today.
+| Item | Status |
+|---|---|
+| Process-local rate/concurrency | **Done** (R1–R7) |
+| Encoded / malformed request reject | **Done** (NEXT-002) |
+| Deny timing side_channel | Deferred (NEXT-001) |
+| CI on release commit | Open (ops) |
+| Independent review + custody drills | Open (ops) |
 
 ---
 
@@ -132,15 +114,11 @@ Prioritized against current Boundary gap map and [BOUNDARY-NEXT-001](BOUNDARY-NE
 | Resource | Location |
 |---|---|
 | Freeze repository | https://github.com/holeyfield33-art/software-research-studio-freeze-2026-10-31 |
-| Freeze state | `FROZEN_STATE.json` (SHA-256 pinned above) |
-| Architecture candidate | `architecture/UNIVERSAL-ARCH-001/` |
-| Unexecuted selector fix directive | `next_unexecuted/STUDIO_KNOWLEDGE_003R2_DIRECTIVE.md` |
-| Release evidence ledger | [BOUNDARY-NEXT-001.md](BOUNDARY-NEXT-001.md) |
-| Boundary SDLC | [SDLC.md](SDLC.md) |
-| Boundary agent playbook | [agent-playbook/README.md](agent-playbook/README.md) |
-| Boundary redteam gap map | [REDTEAM-GAP-MAP.md](REDTEAM-GAP-MAP.md) |
-| Checkpoint handoff | [CHECKPOINT-2026-10-30.md](CHECKPOINT-2026-10-30.md) |
+| NEXT-001 | [BOUNDARY-NEXT-001.md](BOUNDARY-NEXT-001.md) |
+| NEXT-002 | [BOUNDARY-NEXT-002.md](BOUNDARY-NEXT-002.md) |
+| SDLC | [SDLC.md](SDLC.md) |
+| Gap map | [REDTEAM-GAP-MAP.md](REDTEAM-GAP-MAP.md) |
 
 ---
 
-*Document version: 2026-11-01 (pin update). Production remains NO-GO. Studio selector and Studio integration remain NO-GO.*
+*Document version: 2026-11-01 (NEXT-002). Production remains NO-GO. Studio selector and Studio integration remain NO-GO.*
