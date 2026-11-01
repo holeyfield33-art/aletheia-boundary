@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased - process-local request limits (2026-10-31)
+
+- Added process-local concurrency and rate limiting for `boundary_request` (token bucket).
+  - `BOUNDARY_MAX_CONCURRENT` (default 4, hard max 32; 0 disables)
+  - `BOUNDARY_RATE_LIMIT` (default 10/s, hard max 100; 0 disables)
+  - `BOUNDARY_RATE_BURST` (default = rate, hard max 200; 0 disables)
+- Limit rejections fail closed before policy evaluation or data access; no receipt is written for pure limit denials.
+- Permanent unit coverage in `src/data/concurrency.test.ts` (R1–R7).
+- Cross-process / multi-instance quotas remain host-owned. Production remains NO-GO.
+
 ## Unreleased - host-trusted receipt checkpoints (2026-10-30)
 
 - Production MCP now requires `BOUNDARY_CHECKPOINT_PATH` pointing to a valid, nonempty checkpoint and matching existing receipt history. This is an operator configuration/migration requirement.
@@ -16,7 +26,7 @@
 - Test-only filesystem wrappers live in an audit fixture; production request handling is unchanged.
 - [Recovery evidence and limits](docs/RECOVERY-2026-10-30.md). Power loss, physical disk-full, cross-process writers, external checkpoints and independent review remain open. CI skipped for billing per user instruction; production remains NO-GO.
 
-## Unreleased � security hardening candidate (2026-10-30)
+## Unreleased — security hardening candidate (2026-10-30)
 
 Production remains **NO-GO**; no version/tag or production approval is implied.
 

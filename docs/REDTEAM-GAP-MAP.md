@@ -42,7 +42,7 @@ Legend:
 | `environment_variable_leakage` / `key_leakage` | **Partial** | Keys on disk; never returned in tool payload. Ensure host does not mount key dir into agent sandbox |
 | `sandbox_escape_attempt` / `test_harness_escape` | **N/A** | Process isolation is host/sandbox (aletheia-sandbox), not this binary |
 | `supply_chain_sandbox_egress` | **Gap** | Boundary does not control agent network; pair with egress proxy (Aegis) |
-| `resource_exhaustion` | **Partial** | Row cap + statement_timeout; no global rate limit / concurrency quota yet |
+| `resource_exhaustion` | **Partial** | Row cap + statement_timeout + process-local max concurrent (default 4) + token-bucket rate (default 10/s). Cross-process / multi-instance quotas remain host-owned |
 | `side_channel` | **Gap** | Timing/size oracles on deny vs allow not normalized |
 | `session_campaigns` / multi-turn | **N/A** | Stateless per request; session policy is host |
 | `rag_injection` / `context_poisoning` | **N/A** | No RAG surface in boundary |
@@ -78,11 +78,11 @@ When an agent uses Boundary as its only data tool, run kit `--mode api` or `--mo
 
 ## Gaps prioritized for Boundary follow-ups
 
-1. **Rate / concurrency limits** on `boundary_request` (resource_exhaustion).  
-2. **Normalize deny timing** (side_channel).  
-3. **File / S3 provider** with path allowlists (path_traversal) — only after CI green.  
-4. **Optional decode-and-reject** of encoded identifiers in `resource` / columns.  
-5. **Wire kit corpus** → permanent rows in `audit/attacks.ts` for every boundary-owned miss.
+1. **Normalize deny timing** (side_channel).  
+2. **File / S3 provider** with path allowlists (path_traversal) — only after CI green.  
+3. **Optional decode-and-reject** of encoded identifiers in `resource` / columns.  
+4. **Wire kit corpus** → permanent rows in `audit/attacks.ts` for every boundary-owned miss.  
+5. Cross-process / multi-instance rate & concurrency quotas (host-owned; process-local limits are in place).
 
 ---
 
@@ -93,6 +93,7 @@ When an agent uses Boundary as its only data tool, run kit `--mode api` or `--mo
 | Attack suite | `npm run test:attacks` | A1–A7 HELD, leaks 0 |
 | Agent review | `npm run test:agent-review` | SDLC §5 C0–C9 |
 | Integration | `npm run test:integration` | Probe, policy, SQL reject, canary |
+| Concurrency limits | `npm test` (R1–R7) | Process-local max concurrent + rate limit; clamped env |
 
 Update this map when kit categories change or when a kit finding is promoted into `audit/attacks.ts`.
 
@@ -101,12 +102,13 @@ Update this map when kit categories change or when a kit finding is promoted int
 | Boundary objective | Permanent evidence | Remaining limitation |
 |---|---|---|
 | Caller spoofing / production config | H7/H8 (MCP), exported factory guard | No per-session authentication; purpose is a claim |
-| Receipt persistence/recovery | H1�H4/H9; agent C10/G6 | Injected failures, not physical disk-full or power loss; external anchor and single writer required |
+| Receipt persistence/recovery | H1–H4/H9; agent C10/G6 | Injected failures, not physical disk-full or power loss; external anchor and single writer required |
 | Restricted metadata | H5/H10, live A8 | Conservative intersection; export-only discovery omitted |
 | Sanitized errors | H6/H8, A9 | Operator policy text and startup diagnostics remain host-owned |
 | Invalid/encoded identifiers | Three live A10 cases | Full JSON fuzzing and external kit campaign not run |
+| Process-local resource limits | R1–R7 | Cross-process / multi-instance quotas are host-owned |
 
-External kit scan/campaign and host bypass/permission/rotation/resource exhaustion drills
+External kit scan/campaign and host bypass/permission/rotation drills
 were not executed in this cycle. Do not mark those categories closed.
 
 ## Receipt process interruption follow-up
