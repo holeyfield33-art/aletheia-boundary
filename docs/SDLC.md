@@ -247,3 +247,37 @@ rollback domain and provide independent reconciliation/approval, retained prior
 checkpoints, durable publication and an acceptable freshness window. Those
 operational guarantees are not supplied by a local JSON file alone. CI remains
 NOT RUN/deferred for billing at the user's direction. Production remains NO-GO.
+
+
+## 10. Repository maintenance and operational assurance — current engineering policy
+
+This section adopts the **maintenance and operations** part of the [OWASP Web Security Testing Framework](https://wstg.owasp.org/stable/3-The_OWASP_Testing_Framework/0-The_Web_Security_Testing_Framework/) while retaining the existing Boundary invariants and G1–G6. The OWASP reference is flexible, not a mandated waterfall. The [Studio engineering knowledge guide](https://github.com/holeyfield33-art/software-research-studio/blob/main/docs/REPOSITORY_KNOWLEDGE_LAYOUT.md) informs this section but adds **no runtime dependency, authorization, or new service**.
+
+**The only current status/priority authority is [STATUS.md](STATUS.md).** Sections 2 and 5–9 above preserve historical results and plans; dates and prior release matrices do **not** override current status. Root [AGENTS.md](../AGENTS.md) is the agent entrypoint. Dated reports, redteam cases and raw evidence remain immutable historical records.
+
+### Before and during changes
+
+1. **Baseline and ownership.** Pin exact branch/HEAD, package version, lockfile, policy configuration, public-key fingerprint where legitimately available, target host environment and current production disposition. Identify maintainer, host operator, reviewer and actual trust boundaries; do not invent approvals or display secrets.
+2. **Applicable standards and test criteria.** Check relevant TypeScript/Node, MCP protocol, Postgres role, policy and cryptographic/receipt contracts. Reassess whether customer identity is host-trusted, whether purpose claims are untrusted, and whether authorizing rules bind to the actual projected query. Set focused success and failure oracles *before* implementation. Use threat model or architecture walk-through for changed boundaries; use code walkthrough **before** detailed security review if unfamiliar with the path.
+3. **Smallest bounded implementation.** Preserve I1–I6: policy-to-execution binding, minimization, fail closed, durable/verified receipts, no writes, honest agent results. Keep host enforcement (alternate DB tools, checkpoint custody, single-writer, network/credential isolation) **separate** from in-process code. Update relevant redteam/permanent regressions when a Boundary-owned defect is confirmed. Do not weaken gates to make CI green.
+4. **PR verification.** Run and record `npm ci`, `npm run typecheck`, `npm test` on the exact candidate when possible. For changes in DB, policy, MCP or receipts use disposable Postgres fixtures for `test:integration`, `test:attacks` and `test:agent-review`; run offline `verify-log` with independent checkpoint inputs when applicable. Exact commands, output, environment, test-skips and oracles belong in evidence. **NOT_RUN is not PASS**.
+5. **Configuration/release check.** Review `NODE_ENV`, read-only `DATABASE_URL`, trusted caller configuration, production probe, policy paths, file ACLs, keys, logs, host-owned checkpoint, rate/concurrency limits and alternative agent tools. Validate dependency and lockfile changes, migration/recovery, rollback and install on the exact release commit. Security testing against actual services requires explicit scope/authorization; prefer synthetic/staging targets.
+6. **Post-deployment change verification (only after an authorized deployment).** Independently check least privilege and raw-DB bypass prevention, allowed/denied structured requests, actual data projections, receipt chain/checkpoint consistency and host isolation assumptions. Compare baseline and actual logs/health/error behavior; reconcile persisted receipts without trimming/resetting/reanchoring history. Record owner sign-off or rollback. No deployment is authorized by this section.
+
+### Ongoing repository and operational health
+
+| Trigger / proposed cadence | Checks | Owner and evidence |
+| --- | --- | --- |
+| **Each code/config change** | Source and dependency diff, side-effect/permission changes, relevant G1–G6 oracles, stable UX/agent contract, rollback and status update | Implementer records actual runs; independent reviewer for consequential security changes |
+| **Before and after each release** | Exact-tag CI, policy/secret/config review, durable receipt and checkpoint path, immutable approved history, recovery readiness, runtime authority and smoke checks | Operator/release approver; release remains **NO-GO** without mandatory evidence |
+| **Advisory, incident or unexpected deny/allow** | Lockfile/transitive exposure, source reachability, policy regression, possible canary/secret leak, compromised signing keys or history, independent forensics and targeted negatives | App/host owner assigned in current STATUS; preserve original evidence, do not silently erase logs |
+| **Periodic security health (suggest monthly for this exposed security boundary)** | CI job execution and flaky tests, outstanding PRs, npm/Node support/advisories, baseline/config drift, read-only DB role, host bypass paths, checkpoint freshness/custody, filesystem durability, key rotation, resource exhaustion, audit log verification, runbooks/restore drills and docs/links | Operator + security reviewer approve actual cadence. Record review date, exact evidence, gaps, owners and next trigger; **not scheduled or executed by this documentation** |
+| **Ownership transfer or retirement** | Access/credential revocation, key and log/evidence custody, customer export/retention, user notice/compatibility, dependent agents, backups and documented recovery/disposition | Explicit host/customer authority; do not destroy records automatically |
+
+**Priority:** existing release blockers remain higher priority than optional timing normalization or speculative new features. A monthly review proposal is **not** an automation or a claim of an executed assessment. If the host/release owner cannot be verified, record `UNKNOWN` and hold the affected operation.
+
+### One living maintenance record
+
+After a meaningful change or health review update [STATUS.md](STATUS.md) with: observed UTC date and current HEAD; maintainer/operator/reviewer; change/advisory/health trigger; invariant(s)/threat boundary affected; exact commands, environment and `PASS/FAIL/NOT_RUN/SKIP`; configuration and post-deployment observations or `NOT_APPLICABLE`; remaining risks and owner; the existing **NO-GO** disposition unless separately approved; evidence locations and next 1–3 actions. Update `CHANGELOG.md` for real behavior/release changes, not duplicated status. If evidence warrants preservation, add an immutable dated artifact in `docs/evidence/` rather than appending another current plan to this SDLC. **Historical instructions above to append every handoff to SDLC are superseded by this one-current-STATUS rule.**
+
+**Documentation-only adoption:** this change does not execute G1–G6, review live host configuration, independently verify checkpoint custody, rerun CI, complete independent security review or approve production. Those observations remain `NOT_RUN`/open until proven on an exact candidate/environment. No change to the product's **production NO-GO** posture.
