@@ -2,25 +2,36 @@
 
 **Local, independent data-boundary enforcer for AI agents.**
 
-Agents request approved data projections through this program. Approved projections can enter a cloud model's tool context.
+Agents request approved data projections through this program. Approved
+projections can enter a cloud model's tool context.
 
-Aletheia Boundary runs on the customer's machine (or in their VPC) next to the data. It decides what the agent may see, releases only the minimal cleaned projection, and writes a tamper-evident log that the customer owns and the AI vendor cannot edit.
+Aletheia Boundary runs on the customer's machine (or in their VPC) next to the
+data. It decides what the agent may see, releases only the minimal cleaned
+projection, and writes a tamper-evident log that the customer owns and the AI
+vendor cannot edit.
 
-> A visual rule alone cannot secure a system. Enforcement at the data boundary is the product; everything else is decoration.
+> A visual rule alone cannot secure a system. Enforcement at the data boundary
+> is the product; everything else is decoration.
 
-**Related:** adversarial coverage and gap hunting → [aletheia-redteam-kit](https://github.com/holeyfield33-art/aletheia-redteam-kit) · mapping → [docs/REDTEAM-GAP-MAP.md](docs/REDTEAM-GAP-MAP.md)
+**Related:** adversarial coverage and gap hunting →
+[aletheia-redteam-kit](https://github.com/holeyfield33-art/aletheia-redteam-kit)
+· mapping → [docs/REDTEAM-GAP-MAP.md](docs/REDTEAM-GAP-MAP.md)
 
 ---
 
 ## Why this exists
 
-OpenAI, Anthropic, or any other model provider cannot credibly be the thing that controls and audits their own model's access to your data. The enforcement point has to be local and independent of them.
+OpenAI, Anthropic, or any other model provider cannot credibly be the thing that
+controls and audits their own model's access to your data. The enforcement point
+has to be local and independent of them.
 
 ### The three jobs
 
-1. **Decide** — local policy: allow, deny, or allow-with-constraints.  
-2. **Keep the data in** — structured reads only; column/limit/redact; no free-form SQL.  
-3. **Log what happened** — hash-chained Ed25519 receipts the customer owns and can verify offline.
+1. **Decide** — local policy: allow, deny, or allow-with-constraints.
+2. **Keep the data in** — structured reads only; column/limit/redact; no
+   free-form SQL.
+3. **Log what happened** — hash-chained Ed25519 receipts the customer owns and
+   can verify offline.
 
 ---
 
@@ -28,12 +39,19 @@ OpenAI, Anthropic, or any other model provider cannot credibly be the thing that
 
 **0.0.11. Production: NO-GO.**
 
-Unit suite **62 PASS / 0 FAIL** (encoding/shape validation, purpose residual, concurrency R1–R7, checkpoint/recovery/hardening). Process-local rate limits, host-trusted checkpoints, and fail-closed request validation are in code.
+Unit suite **62 PASS / 0 FAIL** (encoding/shape validation, purpose residual,
+concurrency R1–R7, checkpoint/recovery/hardening). Process-local rate limits,
+host-trusted checkpoints, and fail-closed request validation are in code.
 
-**Still blocking GO:** CI on the release commit (Actions billing), independent review, host isolation / single-writer ops proof, checkpoint custody drills. Cross-process quotas remain host-owned. Historical green does not authorize production.
+**Still blocking GO:** CI on the release commit (Actions billing), independent
+review, host isolation / single-writer ops proof, checkpoint custody drills.
+Cross-process quotas remain host-owned. Historical green does not authorize
+production.
 
 **Current plan and audit:** [docs/STATUS.md](docs/STATUS.md)  
-Process: [docs/SDLC.md](docs/SDLC.md) · Gap map: [docs/REDTEAM-GAP-MAP.md](docs/REDTEAM-GAP-MAP.md) · [CHANGELOG.md](CHANGELOG.md)
+Process: [docs/SDLC.md](docs/SDLC.md) · Gap map:
+[docs/REDTEAM-GAP-MAP.md](docs/REDTEAM-GAP-MAP.md) ·
+[CHANGELOG.md](CHANGELOG.md)
 
 ---
 
@@ -104,7 +122,8 @@ npm run test:integration
 npm run test:agent-review
 ```
 
-Postgres listens on **host port 5434** → container 5432. Roles `readonly` / `writable` are created by `scripts/init-readonly.sql`.
+Postgres listens on **host port 5434** → container 5432. Roles `readonly` /
+`writable` are created by `scripts/init-readonly.sql`.
 
 ### Receipt verification
 
@@ -139,7 +158,12 @@ npm start
 # or: node dist/mcp/server.js
 ```
 
-With `NODE_ENV=production`, missing `DATABASE_URL`, missing `BOUNDARY_CHECKPOINT_PATH`, or `BOUNDARY_SKIP_READONLY_PROBE=1` refuses startup. A configured checkpoint must validate against an existing log before MCP tools are exposed. Outside production, without `DATABASE_URL` the server starts with **StubProvider** (synthetic dev data only). Responses set `dataSource: "stub"`. With `DATABASE_URL` set, a failed probe **exits 1** (never silent stub).
+With `NODE_ENV=production`, missing `DATABASE_URL`, missing
+`BOUNDARY_CHECKPOINT_PATH`, or `BOUNDARY_SKIP_READONLY_PROBE=1` refuses startup.
+A configured checkpoint must validate against an existing log before MCP tools
+are exposed. Outside production, without `DATABASE_URL` the server starts with
+**StubProvider** (synthetic dev data only). Responses set `dataSource: "stub"`.
+With `DATABASE_URL` set, a failed probe **exits 1** (never silent stub).
 
 ### Tool: `boundary_request`
 
@@ -152,111 +176,135 @@ With `NODE_ENV=production`, missing `DATABASE_URL`, missing `BOUNDARY_CHECKPOINT
 }
 ```
 
-| Field | Rules |
-|---|---|
-| `action` | `query` \| `schema` \| `export` \| `sample` |
-| `resource` | Table the policy matches **and** the table executed |
-| `params.sql` / `params.query` | **Rejected** |
-| `params.columns` | Optional string[]; intersected with policy |
-| `params.limit` | Optional; capped by policy and hard max **2000** (default **500**) |
+| Field                         | Rules                                                              |
+| ----------------------------- | ------------------------------------------------------------------ |
+| `action`                      | `query` \| `schema` \| `export` \| `sample`                        |
+| `resource`                    | Table the policy matches **and** the table executed                |
+| `params.sql` / `params.query` | **Rejected**                                                       |
+| `params.columns`              | Optional string[]; intersected with policy                         |
+| `params.limit`                | Optional; capped by policy and hard max **2000** (default **500**) |
 
 `purpose` is an agent claim, not authentication. Do not use it as the sole basis
-for privileged access. Embedded library users must supply their own trusted caller context.
-Schema metadata uses the intersection of schema constraints and all allowed sample/query
-paths: column allowlists apply and redacted names/types are omitted. Denied tables are omitted.
-Export-only tables remain hidden from schema discovery. This conservative contract may hide
-columns a less restricted read path could otherwise return.
+for privileged access. Embedded library users must supply their own trusted
+caller context. Schema metadata uses the intersection of schema constraints and
+all allowed sample/query paths: column allowlists apply and redacted names/types
+are omitted. Denied tables are omitted. Export-only tables remain hidden from
+schema discovery. This conservative contract may hide columns a less restricted
+read path could otherwise return.
 
-MCP applies process-local concurrency and rate limits before policy evaluation. When a limit is hit the tool returns `ok: false` with a public error and **no receipt**.
+MCP applies process-local concurrency and rate limits before policy evaluation.
+When a limit is hit the tool returns `ok: false` with a public error and **no
+receipt**.
 
-Response includes `ok`, `decision`, `data`, `transforms`, `stats` (incl. **`truncated`**), `dataSource` (`postgres` \| `stub`), and a receipt summary (when a receipt was written).
+Response includes `ok`, `decision`, `data`, `transforms`, `stats` (incl.
+**`truncated`**), `dataSource` (`postgres` \| `stub`), and a receipt summary
+(when a receipt was written).
 
 ---
 
 ## Configuration (env)
 
-| Variable | Purpose |
-|---|---|
-| `NODE_ENV` | Set `production` explicitly to enforce production startup guards |
-| `BOUNDARY_TRUSTED_CALLER` | Host-controlled, process-wide identity; client `caller` is ignored. Use a separate process per identity |
-| `DATABASE_URL` | Postgres connection (read-only role recommended) |
-| `DATABASE_URL_WRITABLE` | Integration only — prove probe refuses writers |
-| `BOUNDARY_POLICY` | Path to YAML policy (default `policies/example.yaml`) |
-| `BOUNDARY_KEY_PATH` | Ed25519 private key PEM path |
-| `BOUNDARY_LOG_PATH` | Receipt JSONL path |
-| `BOUNDARY_CHECKPOINT_PATH` | Required in production: independently retained, trusted checkpoint JSON. Never automatically generated or updated by the server |
-| `BOUNDARY_MAX_ROWS` | Soft default row cap (clamped to hard max 2000) |
-| `BOUNDARY_STMT_TIMEOUT_MS` | Statement timeout (default 10000) |
-| `BOUNDARY_MAX_CONCURRENT` | Max in-flight `boundary_request` calls (default 4, hard max 32; 0 disables) |
-| `BOUNDARY_RATE_LIMIT` | Token-bucket rate in requests/sec (default 10, hard max 100; 0 disables) |
-| `BOUNDARY_RATE_BURST` | Token-bucket burst size (default = rate, hard max 200; 0 disables) |
-| `BOUNDARY_SKIP_READONLY_PROBE` | `1` to skip probe (tests only; never production) |
-| `BOUNDARY_DB_IDENTITY` | Label for receipts (never the connection string) |
+| Variable                       | Purpose                                                                                                                         |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`                     | Set `production` explicitly to enforce production startup guards                                                                |
+| `BOUNDARY_TRUSTED_CALLER`      | Host-controlled, process-wide identity; client `caller` is ignored. Use a separate process per identity                         |
+| `DATABASE_URL`                 | Postgres connection (read-only role recommended)                                                                                |
+| `DATABASE_URL_WRITABLE`        | Integration only — prove probe refuses writers                                                                                  |
+| `BOUNDARY_POLICY`              | Path to YAML policy (default `policies/example.yaml`)                                                                           |
+| `BOUNDARY_KEY_PATH`            | Ed25519 private key PEM path                                                                                                    |
+| `BOUNDARY_LOG_PATH`            | Receipt JSONL path                                                                                                              |
+| `BOUNDARY_CHECKPOINT_PATH`     | Required in production: independently retained, trusted checkpoint JSON. Never automatically generated or updated by the server |
+| `BOUNDARY_MAX_ROWS`            | Soft default row cap (clamped to hard max 2000)                                                                                 |
+| `BOUNDARY_STMT_TIMEOUT_MS`     | Statement timeout (default 10000)                                                                                               |
+| `BOUNDARY_MAX_CONCURRENT`      | Max in-flight `boundary_request` calls (default 4, hard max 32; 0 disables)                                                     |
+| `BOUNDARY_RATE_LIMIT`          | Token-bucket rate in requests/sec (default 10, hard max 100; 0 disables)                                                        |
+| `BOUNDARY_RATE_BURST`          | Token-bucket burst size (default = rate, hard max 200; 0 disables)                                                              |
+| `BOUNDARY_SKIP_READONLY_PROBE` | `1` to skip probe (tests only; never production)                                                                                |
+| `BOUNDARY_DB_IDENTITY`         | Label for receipts (never the connection string)                                                                                |
 
-Process-local limits apply only inside a single Node process. Cross-process or multi-instance quotas are host-owned.
+Process-local limits apply only inside a single Node process. Cross-process or
+multi-instance quotas are host-owned.
 
 ---
 
 ## Receipt operations and recovery
 
-MCP always uses a disk log. The library's no-path `ReceiptLog` is in-memory and has no durability guarantee.
-For disk logs, a complete JSONL append and file sync must succeed before an allow response is returned.
-On any write/sync/change failure the writer stays unavailable: MCP returns `ok:false`, `data:null`,
-a generic error and **no receipt**. Library calls reject. No fallback deny receipt is invented.
-Provider/policy exceptions use fixed public errors; raw exception text is excluded from signed decisions.
-Operator-authored policy reasons and rule/constraint details remain visible; keep secrets out of policy text.
+MCP always uses a disk log. The library's no-path `ReceiptLog` is in-memory and
+has no durability guarantee. For disk logs, a complete JSONL append and file
+sync must succeed before an allow response is returned. On any write/sync/change
+failure the writer stays unavailable: MCP returns `ok:false`, `data:null`, a
+generic error and **no receipt**. Library calls reject. No fallback deny receipt
+is invented. Provider/policy exceptions use fixed public errors; raw exception
+text is excluded from signed decisions. Operator-authored policy reasons and
+rule/constraint details remain visible; keep secrets out of policy text.
 
-Use **one process/writer per log path**, on a trusted local filesystem with stable key custody.
-Concurrent calls in that process serialize receipt writes. External writer changes are checked before append;
-this is not a cross-process lock. Protect the log/key directory with host ACLs and restrict alternative DB tools.
+Use **one process/writer per log path**, on a trusted local filesystem with
+stable key custody. Concurrent calls in that process serialize receipt writes.
+External writer changes are checked before append; this is not a cross-process
+lock. Protect the log/key directory with host ACLs and restrict alternative DB
+tools.
 
-Restart verifies every loaded receipt and refuses malformed, tampered or unterminated tails.
-After failure: stop the process, preserve log and key, verify a copy offline, compare with an independently
-retained checkpoint, and restore only independently verified evidence. Never automatically
-trim a partial tail or delete the log to make startup pass. An appended receipt may survive a failed sync
-or an interrupted response without proving data was received.
+Restart verifies every loaded receipt and refuses malformed, tampered or
+unterminated tails. After failure: stop the process, preserve log and key,
+verify a copy offline, compare with an independently retained checkpoint, and
+restore only independently verified evidence. Never automatically trim a partial
+tail or delete the log to make startup pass. An appended receipt may survive a
+failed sync or an interrupted response without proving data was received.
 
-A local chain alone cannot detect deletion or rollback to a valid prefix across restarts.
-The server now checks a host-supplied minimum-history checkpoint (public-key SHA-256, receipt count,
-and content hash at that position). Missing logs are never recreated in checkpoint mode. Shorter histories,
-wrong keys and valid forks that omit the checkpoint refuse startup. Verified extensions are allowed.
-Checkpoint checks never skip full signature/chain verification.
+A local chain alone cannot detect deletion or rollback to a valid prefix across
+restarts. The server now checks a host-supplied minimum-history checkpoint
+(public-key SHA-256, receipt count, and content hash at that position). Missing
+logs are never recreated in checkpoint mode. Shorter histories, wrong keys and
+valid forks that omit the checkpoint refuse startup. Verified extensions are
+allowed. Checkpoint checks never skip full signature/chain verification.
 
-Stop writers and independently reconcile the log with retained receipts/checkpoints before exporting a
-new candidate; a valid local chain alone cannot establish that a rollback has not already happened:
+Stop writers and independently reconcile the log with retained
+receipts/checkpoints before exporting a new candidate; a valid local chain alone
+cannot establish that a rollback has not already happened:
 
 ```powershell
 npm run verify-log -- --log logs/receipts.jsonl --pub keys/boundary.pub.pem --checkpoint C:/BoundaryTrust/checkpoint.json --export-checkpoint C:/BoundaryTrust/candidate-next.json
 ```
 
-For first-time provisioning only, omit `--checkpoint` after an independent baseline review. The source
-must contain at least one valid receipt; an empty log cannot produce a checkpoint. For a new installation,
-create a synthetic deny receipt in an isolated nonproduction bootstrap session with the stable operator
-signing key, then independently approve that initial history. Do not bootstrap by resetting existing history.
-Export uses exclusive creation and refuses to overwrite any existing file. A candidate is not automatically
-trusted: the host must approve its advancement, durably publish it outside the log writer's change/rollback
-domain, and configure `BOUNDARY_CHECKPOINT_PATH` to the approved checkpoint before production startup.
-Keep prior checkpoints and receipts; never replace an anchor from a damaged/unreconciled log.
+For first-time provisioning only, omit `--checkpoint` after an independent
+baseline review. The source must contain at least one valid receipt; an empty
+log cannot produce a checkpoint. For a new installation, create a synthetic deny
+receipt in an isolated nonproduction bootstrap session with the stable operator
+signing key, then independently approve that initial history. Do not bootstrap
+by resetting existing history. Export uses exclusive creation and refuses to
+overwrite any existing file. A candidate is not automatically trusted: the host
+must approve its advancement, durably publish it outside the log writer's
+change/rollback domain, and configure `BOUNDARY_CHECKPOINT_PATH` to the approved
+checkpoint before production startup. Keep prior checkpoints and receipts; never
+replace an anchor from a damaged/unreconciled log.
 
-This is a **minimum-history floor**. A stale checkpoint cannot detect loss of a newer, unanchored suffix;
-rolling back both log and checkpoint remains undetectable. No remote witness, automatic checkpoint updates,
-atomic external publication or freshness guarantee is implemented. Host ACLs, retention, update frequency
-and the resulting maximum unanchored-loss window require operations review. Direct library callers must
-explicitly pass `{ checkpoint }` to `ReceiptLog`; optional development/in-memory modes do not enforce it.
-File sync is not proof against faulty disks or power loss. New-file directory sync is attempted on POSIX;
-Node does not provide it here on Windows. A forced-process-termination drill now exercises six write/response phases and fresh-process recovery.
-This is a Boundary-library drill, not an MCP transport-disconnect test. Multiwriter, Windows power-loss durability,
-physical disk-full behavior and key rotation remain unverified. See [remaining blockers](docs/CHECKPOINT-2026-10-30.md).
+This is a **minimum-history floor**. A stale checkpoint cannot detect loss of a
+newer, unanchored suffix; rolling back both log and checkpoint remains
+undetectable. No remote witness, automatic checkpoint updates, atomic external
+publication or freshness guarantee is implemented. Host ACLs, retention, update
+frequency and the resulting maximum unanchored-loss window require operations
+review. Direct library callers must explicitly pass `{ checkpoint }` to
+`ReceiptLog`; optional development/in-memory modes do not enforce it. File sync
+is not proof against faulty disks or power loss. New-file directory sync is
+attempted on POSIX; Node does not provide it here on Windows. A
+forced-process-termination drill now exercises six write/response phases and
+fresh-process recovery. This is a Boundary-library drill, not an MCP
+transport-disconnect test. Multiwriter, Windows power-loss durability, physical
+disk-full behavior and key rotation remain unverified. See
+[remaining blockers](docs/CHECKPOINT-2026-10-30.md).
 
 ## Adversarial coverage (redteam-kit)
 
-In-repo gates (`audit/attacks.ts`, agent review) cover **data-plane** bypasses an agent can send through `boundary_request`.
+In-repo gates (`audit/attacks.ts`, agent review) cover **data-plane** bypasses
+an agent can send through `boundary_request`.
 
 Broader agent/prompt/tool abuse classes live in:
 
 **[https://github.com/holeyfield33-art/aletheia-redteam-kit](https://github.com/holeyfield33-art/aletheia-redteam-kit)**
 
-Use that kit to find **gaps this boundary does not claim to cover** (prompt injection upstream of the tool, multi-turn coercion, encoding, etc.). Map categories → boundary responsibility in:
+Use that kit to find **gaps this boundary does not claim to cover** (prompt
+injection upstream of the tool, multi-turn coercion, encoding, etc.). Map
+categories → boundary responsibility in:
 
 **[docs/REDTEAM-GAP-MAP.md](docs/REDTEAM-GAP-MAP.md)**
 
@@ -280,11 +328,11 @@ python -m kit.runner --mode repo --repo-path /path/to/aletheia-boundary --output
 
 ## Design principles
 
-1. Customer owns enforcement and the log.  
-2. Fail closed.  
-3. Minimize by default.  
-4. Receipts are first-class and offline-verifiable.  
-5. Local first.  
+1. Customer owns enforcement and the log.
+2. Fail closed.
+3. Minimize by default.
+4. Receipts are first-class and offline-verifiable.
+5. Local first.
 6. One clear MCP tool surface.
 
 ---

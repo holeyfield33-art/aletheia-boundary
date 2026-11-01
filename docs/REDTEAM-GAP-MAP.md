@@ -1,22 +1,32 @@
 # Redteam gap map — Boundary × aletheia-redteam-kit
 
-**Boundary repo:** [aletheia-boundary](https://github.com/holeyfield33-art/aletheia-boundary)  
-**Redteam kit:** [aletheia-redteam-kit](https://github.com/holeyfield33-art/aletheia-redteam-kit)
+**Boundary repo:**
+[aletheia-boundary](https://github.com/holeyfield33-art/aletheia-boundary)
 
-**Current evidence and production NO-GO:** [hardening checkpoint](HARDENING-2026-10-30.md), [BOUNDARY-NEXT-001](BOUNDARY-NEXT-001.md). Historical coverage labels below are not release certification.
+**Redteam kit:**
+[aletheia-redteam-kit](https://github.com/holeyfield33-art/aletheia-redteam-kit)
 
-This document maps kit attack *categories* to what the boundary is responsible for. Use it to decide which findings are in-scope product bugs vs out-of-scope (must be handled by the agent host, policy author, or Aletheia Core).
+**Current evidence and production NO-GO:**
+[hardening checkpoint](HARDENING-2026-10-30.md),
+[BOUNDARY-NEXT-001](BOUNDARY-NEXT-001.md). Historical coverage labels below are
+not release certification.
+
+This document maps kit attack _categories_ to what the boundary is responsible
+for. Use it to decide which findings are in-scope product bugs vs out-of-scope
+(must be handled by the agent host, policy author, or Aletheia Core).
 
 ## Responsibility split
 
-| Layer | Owns |
-|---|---|
-| **Agent / orchestrator** | Which tools exist, prompt content, multi-turn state, tool-choice |
-| **Aletheia Boundary** | Whether a `boundary_request` may touch data; minimization; receipts |
-| **DB role / network** | Physical write prevention, network egress from the DB host |
-| **Redteam kit** | Generating and scoring attacks against any of the above |
+| Layer                    | Owns                                                                |
+| ------------------------ | ------------------------------------------------------------------- |
+| **Agent / orchestrator** | Which tools exist, prompt content, multi-turn state, tool-choice    |
+| **Aletheia Boundary**    | Whether a `boundary_request` may touch data; minimization; receipts |
+| **DB role / network**    | Physical write prevention, network egress from the DB host          |
+| **Redteam kit**          | Generating and scoring attacks against any of the above             |
 
-Boundary **does not** read model prompts. It only sees structured MCP tool arguments. Prompt injection that never becomes a tool call is **out of boundary scope** but still in kit scope.
+Boundary **does not** read model prompts. It only sees structured MCP tool
+arguments. Prompt injection that never becomes a tool call is **out of boundary
+scope** but still in kit scope.
 
 ---
 
@@ -24,31 +34,31 @@ Boundary **does not** read model prompts. It only sees structured MCP tool argum
 
 Legend:
 
-- **Covered** — exercised by `audit/attacks.ts`, integration, or agent review  
-- **Partial** — some enforcement; known residual risk  
-- **Gap** — not enforced here; track as follow-up or host responsibility  
+- **Covered** — exercised by `audit/attacks.ts`, integration, or agent review
+- **Partial** — some enforcement; known residual risk
+- **Gap** — not enforced here; track as follow-up or host responsibility
 - **N/A** — wrong layer
 
-| Kit category (examples) | Boundary status | Notes / next check |
-|---|---|---|
-| `data_exfiltration` / `exfil` | **Covered** (structured path) | Free-form SQL blocked (F1). Re-test with kit payloads that only use `resource` + `params.columns` |
-| `tool_abuse` / `tool_use_escalation` | **Partial** | Boundary denies by policy; host must not expose a raw-SQL tool beside it |
-| `path_traversal_tool_call` | **Partial** | Table ids validated (`isSafeIdentifier`); no filesystem provider yet |
-| `function_calling_injection` | **N/A / Gap at host** | Injected tool args that still look structured may pass schema — policy must be strict |
-| `encoding` / `obfuscated` / ETA encoded tool args | **Gap** | Boundary does not decode base64 in `resource` or column names; reject non-identifiers already, but dual-encoding of *purpose* is ignored |
-| `prompt_injection` / `jailbreak` / `role_confusion` | **N/A** | Upstream of MCP; kit vs Core |
-| `policy_evasion` / `policy_shadowing` | **Partial** | Zod fail-closed on load; runtime evasion = write a bad allow rule — customer policy risk |
-| `output_truncation_exploit` | **Covered** (0.0.9) | `stats.truncated` honest via limit+1 |
-| `environment_variable_leakage` / `key_leakage` | **Partial** | Keys on disk; never returned in tool payload. Ensure host does not mount key dir into agent sandbox |
-| `sandbox_escape_attempt` / `test_harness_escape` | **N/A** | Process isolation is host/sandbox (aletheia-sandbox), not this binary |
-| `supply_chain_sandbox_egress` | **Gap** | Boundary does not control agent network; pair with egress proxy (Aegis) |
-| `resource_exhaustion` | **Partial** | Row cap + statement_timeout + process-local max concurrent (default 4) + token-bucket rate (default 10/s). Cross-process / multi-instance quotas remain host-owned |
-| `side_channel` | **Gap** | Timing/size oracles on deny vs allow not normalized; deferred under BOUNDARY-NEXT-001 pending CI/timing harness |
-| `session_campaigns` / multi-turn | **N/A** | Stateless per request; session policy is host |
-| `rag_injection` / `context_poisoning` | **N/A** | No RAG surface in boundary |
-| `auth_context_confusion` | **Partial** | MCP ignores client caller and uses host process identity; purpose remains untrusted. Separate process per identity; embedded callers need trusted host context |
-| `spec_violation` | **Covered** for MCP schema | Unknown tool / bad SQL refused; fuzz remaining JSON edge cases |
-| Repo / supply-chain (kit `--mode repo`) | **Use kit** | Run against this tree for dependency and secret hygiene |
+| Kit category (examples)                             | Boundary status               | Notes / next check                                                                                                                                                 |
+| --------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `data_exfiltration` / `exfil`                       | **Covered** (structured path) | Free-form SQL blocked (F1). Re-test with kit payloads that only use `resource` + `params.columns`                                                                  |
+| `tool_abuse` / `tool_use_escalation`                | **Partial**                   | Boundary denies by policy; host must not expose a raw-SQL tool beside it                                                                                           |
+| `path_traversal_tool_call`                          | **Partial**                   | Table ids validated (`isSafeIdentifier`); no filesystem provider yet                                                                                               |
+| `function_calling_injection`                        | **N/A / Gap at host**         | Injected tool args that still look structured may pass schema — policy must be strict                                                                              |
+| `encoding` / `obfuscated` / ETA encoded tool args   | **Gap**                       | Boundary does not decode base64 in `resource` or column names; reject non-identifiers already, but dual-encoding of _purpose_ is ignored                           |
+| `prompt_injection` / `jailbreak` / `role_confusion` | **N/A**                       | Upstream of MCP; kit vs Core                                                                                                                                       |
+| `policy_evasion` / `policy_shadowing`               | **Partial**                   | Zod fail-closed on load; runtime evasion = write a bad allow rule — customer policy risk                                                                           |
+| `output_truncation_exploit`                         | **Covered** (0.0.9)           | `stats.truncated` honest via limit+1                                                                                                                               |
+| `environment_variable_leakage` / `key_leakage`      | **Partial**                   | Keys on disk; never returned in tool payload. Ensure host does not mount key dir into agent sandbox                                                                |
+| `sandbox_escape_attempt` / `test_harness_escape`    | **N/A**                       | Process isolation is host/sandbox (aletheia-sandbox), not this binary                                                                                              |
+| `supply_chain_sandbox_egress`                       | **Gap**                       | Boundary does not control agent network; pair with egress proxy (Aegis)                                                                                            |
+| `resource_exhaustion`                               | **Partial**                   | Row cap + statement_timeout + process-local max concurrent (default 4) + token-bucket rate (default 10/s). Cross-process / multi-instance quotas remain host-owned |
+| `side_channel`                                      | **Gap**                       | Timing/size oracles on deny vs allow not normalized; deferred under BOUNDARY-NEXT-001 pending CI/timing harness                                                    |
+| `session_campaigns` / multi-turn                    | **N/A**                       | Stateless per request; session policy is host                                                                                                                      |
+| `rag_injection` / `context_poisoning`               | **N/A**                       | No RAG surface in boundary                                                                                                                                         |
+| `auth_context_confusion`                            | **Partial**                   | MCP ignores client caller and uses host process identity; purpose remains untrusted. Separate process per identity; embedded callers need trusted host context     |
+| `spec_violation`                                    | **Covered** for MCP schema    | Unknown tool / bad SQL refused; fuzz remaining JSON edge cases                                                                                                     |
+| Repo / supply-chain (kit `--mode repo`)             | **Use kit**                   | Run against this tree for dependency and secret hygiene                                                                                                            |
 
 ---
 
@@ -68,64 +78,82 @@ Look for secrets, risky patterns, lockfile issues.
 
 ### 2. Map exfil + tool-abuse catalogs to `boundary_request`
 
-Manual or scripted: take payloads under `attacks/exfil/` and `attacks/` tool categories and **rewrite** them as MCP arguments only (no free-form SQL). Any payload that still extracts PII through `boundary_request` is a **boundary** finding — add it to `audit/attacks.ts`.
+Manual or scripted: take payloads under `attacks/exfil/` and `attacks/` tool
+categories and **rewrite** them as MCP arguments only (no free-form SQL). Any
+payload that still extracts PII through `boundary_request` is a **boundary**
+finding — add it to `audit/attacks.ts`.
 
 ### 3. Hosted / Core audit (optional)
 
-When an agent uses Boundary as its only data tool, run kit `--mode api` or `--mode agentic` against that agent stack. Boundary-relevant failures are those where the **tool result** contains denied data or missing `dataSource` / receipt evidence.
+When an agent uses Boundary as its only data tool, run kit `--mode api` or
+`--mode agentic` against that agent stack. Boundary-relevant failures are those
+where the **tool result** contains denied data or missing `dataSource` / receipt
+evidence.
 
 ---
 
 ## Gaps prioritized for Boundary follow-ups
 
-1. **Normalize deny timing** (side_channel) — deferred under BOUNDARY-NEXT-001 until timing harness/CI justification.  
-2. **File / S3 provider** with path allowlists (path_traversal) — only after CI green.  
-3. **Optional decode-and-reject** of encoded identifiers in `resource` / columns.  
-4. **Wire kit corpus** → permanent rows in `audit/attacks.ts` for every boundary-owned miss.  
-5. Cross-process / multi-instance rate & concurrency quotas (host-owned; process-local limits are in place).
+1. **Normalize deny timing** (side_channel) — deferred under BOUNDARY-NEXT-001
+   until timing harness/CI justification.
+2. **File / S3 provider** with path allowlists (path_traversal) — only after CI
+   green.
+3. **Optional decode-and-reject** of encoded identifiers in `resource` /
+   columns.
+4. **Wire kit corpus** → permanent rows in `audit/attacks.ts` for every
+   boundary-owned miss.
+5. Cross-process / multi-instance rate & concurrency quotas (host-owned;
+   process-local limits are in place).
 
-Release unlocks (not code features): CI on release commit, independent review, checkpoint custody drills, host single-writer isolation proof.
+Release unlocks (not code features): CI on release commit, independent review,
+checkpoint custody drills, host single-writer isolation proof.
 
 ---
 
 ## In-repo evidence already held
 
-| Suite | Command | Claim |
-|---|---|---|
-| Attack suite | `npm run test:attacks` | A1–A7 HELD, leaks 0 |
-| Agent review | `npm run test:agent-review` | SDLC §5 C0–C9 |
-| Integration | `npm run test:integration` | Probe, policy, SQL reject, canary |
-| Concurrency limits | `npm test` (R1–R7) | Process-local max concurrent + rate limit; clamped env |
+| Suite              | Command                     | Claim                                                  |
+| ------------------ | --------------------------- | ------------------------------------------------------ |
+| Attack suite       | `npm run test:attacks`      | A1–A7 HELD, leaks 0                                    |
+| Agent review       | `npm run test:agent-review` | SDLC §5 C0–C9                                          |
+| Integration        | `npm run test:integration`  | Probe, policy, SQL reject, canary                      |
+| Concurrency limits | `npm test` (R1–R7)          | Process-local max concurrent + rate limit; clamped env |
 
-Update this map when kit categories change or when a kit finding is promoted into `audit/attacks.ts`.
+Update this map when kit categories change or when a kit finding is promoted
+into `audit/attacks.ts`.
 
 ## Hardening regression map
 
-| Boundary objective | Permanent evidence | Remaining limitation |
-|---|---|---|
-| Caller spoofing / production config | H7/H8 (MCP), exported factory guard | No per-session authentication; purpose is a claim |
-| Receipt persistence/recovery | H1–H4/H9; agent C10/G6 | Injected failures, not physical disk-full or power loss; external anchor and single writer required |
-| Restricted metadata | H5/H10, live A8 | Conservative intersection; export-only discovery omitted |
-| Sanitized errors | H6/H8, A9 | Operator policy text and startup diagnostics remain host-owned |
-| Invalid/encoded identifiers | Three live A10 cases | Full JSON fuzzing and external kit campaign not run |
-| Process-local resource limits | R1–R7 | Cross-process / multi-instance quotas are host-owned |
+| Boundary objective                  | Permanent evidence                  | Remaining limitation                                                                                |
+| ----------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Caller spoofing / production config | H7/H8 (MCP), exported factory guard | No per-session authentication; purpose is a claim                                                   |
+| Receipt persistence/recovery        | H1–H4/H9; agent C10/G6              | Injected failures, not physical disk-full or power loss; external anchor and single writer required |
+| Restricted metadata                 | H5/H10, live A8                     | Conservative intersection; export-only discovery omitted                                            |
+| Sanitized errors                    | H6/H8, A9                           | Operator policy text and startup diagnostics remain host-owned                                      |
+| Invalid/encoded identifiers         | Three live A10 cases                | Full JSON fuzzing and external kit campaign not run                                                 |
+| Process-local resource limits       | R1–R7                               | Cross-process / multi-instance quotas are host-owned                                                |
 
-External kit scan/campaign and host bypass/permission/rotation drills
-were not executed in this cycle. Do not mark those categories closed.
+External kit scan/campaign and host bypass/permission/rotation drills were not
+executed in this cycle. Do not mark those categories closed.
 
 ## Receipt process interruption follow-up
 
-[Recovery drill](RECOVERY-2026-10-30.md): six subprocess termination phases, retained-prefix oracle,
-offline signatures and fresh-process restart/continuation are tested by `src/receipt/recovery.test.ts`.
-`npm run test:recovery` needs no database. This narrows the process-interruption gap only;
-physical disk-full, power loss, cross-process writers, external checkpoints and MCP transport interruption
-remain outside the demonstrated coverage. CI was skipped at the user's direction for billing.
+[Recovery drill](RECOVERY-2026-10-30.md): six subprocess termination phases,
+retained-prefix oracle, offline signatures and fresh-process
+restart/continuation are tested by `src/receipt/recovery.test.ts`.
+`npm run test:recovery` needs no database. This narrows the process-interruption
+gap only; physical disk-full, power loss, cross-process writers, external
+checkpoints and MCP transport interruption remain outside the demonstrated
+coverage. CI was skipped at the user's direction for billing.
 
 ## Trusted checkpoint follow-up
 
-[Checkpoint handoff](CHECKPOINT-2026-10-30.md): K1-K10 cover matching/extended history,
-missing/empty/rolled-back logs, valid forks, key binding, malformed/missing checkpoints, CLI export safety,
-production startup and the explicit stale-floor limitation. Startup and CLI verify the full chain first.
-Protection applies only through an independently retained checkpoint; rolling back both histories or
-removing a newer unanchored suffix remains outside detection. External storage, freshness, custody and
-publication guarantees are host-owned and unverified. This narrows receipt rollback risk, not host compromise.
+[Checkpoint handoff](CHECKPOINT-2026-10-30.md): K1-K10 cover matching/extended
+history, missing/empty/rolled-back logs, valid forks, key binding,
+malformed/missing checkpoints, CLI export safety, production startup and the
+explicit stale-floor limitation. Startup and CLI verify the full chain first.
+Protection applies only through an independently retained checkpoint; rolling
+back both histories or removing a newer unanchored suffix remains outside
+detection. External storage, freshness, custody and publication guarantees are
+host-owned and unverified. This narrows receipt rollback risk, not host
+compromise.
