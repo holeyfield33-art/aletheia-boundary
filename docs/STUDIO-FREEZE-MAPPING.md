@@ -14,6 +14,17 @@
 
 Do not import the 003R selector, mutate the freeze, or treat Studio records as Boundary runtime authority. MOTHERSHIP / D-004 remain separate evidence domains (per freeze boundaries).
 
+### Immutable citation pin (BOUNDARY-NEXT-001)
+
+| Field | Value |
+|---|---|
+| Freeze ID | `SRS-FREEZE-2026-10-31-v1` |
+| Authoritative checkpoint | `STUDIO-KNOWLEDGE-003R` |
+| Freeze repo commit | `89fe5485e37f315eab6b5131e715bcd2115bbe31` |
+| `FROZEN_STATE.json` SHA-256 | `c46aa1beeb10185def012bef6cfd362bde7effc6e867febac0cf4154a0e61e18` |
+
+Cite these identifiers (not “latest main”). Full ledger: [BOUNDARY-NEXT-001.md](BOUNDARY-NEXT-001.md).
+
 ---
 
 ## 1. Control loop vs Boundary surface
@@ -107,12 +118,12 @@ Do **not**:
 
 ## 6. Suggested Boundary follow-ups (optional)
 
-Prioritized against current Boundary gap map, informed by this mapping—not a Studio roadmap:
+Prioritized against current Boundary gap map and [BOUNDARY-NEXT-001](BOUNDARY-NEXT-001.md)—not a Studio roadmap:
 
-1. Normalize deny timing (side_channel) — reduces oracle surface analogous to “honest reasons.”
-2. Keep process-local limits documented in operator-facing README (see concurrent docs PR if open).
-3. When citing Studio research in future ADRs, pin **freeze ID + content hash**, never “latest main.”
-4. Only after an explicit product decision: consider a *separate* research note that lists which `gate.*` / `practice.*` IDs are *aspirational* for Aletheia Core vs enforced in Boundary today.
+1. Normalize deny timing (side_channel) — deferred until timing harness/CI justification.  
+2. Process-local limits are documented in README env table; cross-process remains host-owned.  
+3. When citing Studio research, use the **immutable citation pin** above.  
+4. Only after an explicit product decision: list which `gate.*` / `practice.*` IDs are aspirational for Aletheia Core vs enforced in Boundary today.
 
 ---
 
@@ -121,9 +132,10 @@ Prioritized against current Boundary gap map, informed by this mapping—not a S
 | Resource | Location |
 |---|---|
 | Freeze repository | https://github.com/holeyfield33-art/software-research-studio-freeze-2026-10-31 |
-| Freeze state | `FROZEN_STATE.json` in that repo |
+| Freeze state | `FROZEN_STATE.json` (SHA-256 pinned above) |
 | Architecture candidate | `architecture/UNIVERSAL-ARCH-001/` |
 | Unexecuted selector fix directive | `next_unexecuted/STUDIO_KNOWLEDGE_003R2_DIRECTIVE.md` |
+| Release evidence ledger | [BOUNDARY-NEXT-001.md](BOUNDARY-NEXT-001.md) |
 | Boundary SDLC | [SDLC.md](SDLC.md) |
 | Boundary agent playbook | [agent-playbook/README.md](agent-playbook/README.md) |
 | Boundary redteam gap map | [REDTEAM-GAP-MAP.md](REDTEAM-GAP-MAP.md) |
@@ -131,4 +143,4 @@ Prioritized against current Boundary gap map, informed by this mapping—not a S
 
 ---
 
-*Document version: 2026-11-01. Production remains NO-GO. Studio selector and Studio integration remain NO-GO.*
+*Document version: 2026-11-01 (pin update). Production remains NO-GO. Studio selector and Studio integration remain NO-GO.*
