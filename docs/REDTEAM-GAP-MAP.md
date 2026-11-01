@@ -3,7 +3,7 @@
 **Boundary repo:** [aletheia-boundary](https://github.com/holeyfield33-art/aletheia-boundary)  
 **Redteam kit:** [aletheia-redteam-kit](https://github.com/holeyfield33-art/aletheia-redteam-kit)
 
-**Current evidence and production NO-GO:** [hardening checkpoint](HARDENING-2026-10-30.md). Historical coverage labels below are not release certification.
+**Current evidence and production NO-GO:** [hardening checkpoint](HARDENING-2026-10-30.md), [BOUNDARY-NEXT-001](BOUNDARY-NEXT-001.md). Historical coverage labels below are not release certification.
 
 This document maps kit attack *categories* to what the boundary is responsible for. Use it to decide which findings are in-scope product bugs vs out-of-scope (must be handled by the agent host, policy author, or Aletheia Core).
 
@@ -43,7 +43,7 @@ Legend:
 | `sandbox_escape_attempt` / `test_harness_escape` | **N/A** | Process isolation is host/sandbox (aletheia-sandbox), not this binary |
 | `supply_chain_sandbox_egress` | **Gap** | Boundary does not control agent network; pair with egress proxy (Aegis) |
 | `resource_exhaustion` | **Partial** | Row cap + statement_timeout + process-local max concurrent (default 4) + token-bucket rate (default 10/s). Cross-process / multi-instance quotas remain host-owned |
-| `side_channel` | **Gap** | Timing/size oracles on deny vs allow not normalized |
+| `side_channel` | **Gap** | Timing/size oracles on deny vs allow not normalized; deferred under BOUNDARY-NEXT-001 pending CI/timing harness |
 | `session_campaigns` / multi-turn | **N/A** | Stateless per request; session policy is host |
 | `rag_injection` / `context_poisoning` | **N/A** | No RAG surface in boundary |
 | `auth_context_confusion` | **Partial** | MCP ignores client caller and uses host process identity; purpose remains untrusted. Separate process per identity; embedded callers need trusted host context |
@@ -78,11 +78,13 @@ When an agent uses Boundary as its only data tool, run kit `--mode api` or `--mo
 
 ## Gaps prioritized for Boundary follow-ups
 
-1. **Normalize deny timing** (side_channel).  
+1. **Normalize deny timing** (side_channel) — deferred under BOUNDARY-NEXT-001 until timing harness/CI justification.  
 2. **File / S3 provider** with path allowlists (path_traversal) — only after CI green.  
 3. **Optional decode-and-reject** of encoded identifiers in `resource` / columns.  
 4. **Wire kit corpus** → permanent rows in `audit/attacks.ts` for every boundary-owned miss.  
 5. Cross-process / multi-instance rate & concurrency quotas (host-owned; process-local limits are in place).
+
+Release unlocks (not code features): CI on release commit, independent review, checkpoint custody drills, host single-writer isolation proof.
 
 ---
 
