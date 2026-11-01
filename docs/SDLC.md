@@ -1,9 +1,6 @@
 # SDLC: how aletheia-boundary is built, verified and released
 
-**Current production decision: NO-GO.** Read the
-[latest checkpoint handoff](CHECKPOINT-2026-10-30.md) first;
-[prior hardening checkpoint](HARDENING-2026-10-30.md) retains its historical
-results. Sections 2, 5 and 6 preserve historical assessments; their green labels
+**Current production decision: NO-GO.** Read [the living status](STATUS.md) first for current facts and blockers. The [2026-10-30 checkpoint](CHECKPOINT-2026-10-30.md) and [prior hardening checkpoint](HARDENING-2026-10-30.md) retain historical evidence only. Sections 2, 5 and 6 preserve historical assessments; their green labels
 do not certify current main.
 
 This is the process every change follows, whoever writes it: a person, Claude,
