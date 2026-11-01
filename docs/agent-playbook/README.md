@@ -17,6 +17,10 @@ Use [WORKFLOW.md](WORKFLOW.md) for the lifecycle and [PROMPTS.md](PROMPTS.md)
 for reusable agent directives. No runtime or deployment change is authorized by
 this package.
 
+For the separate offline threat-to-test planning utility, see
+[SCANPLAN.md](SCANPLAN.md). ScanPlan is not part of Boundary's runtime or
+release gates.
+
 ## New-agent entrypoint
 
 Start at [START-HERE.md](START-HERE.md). Structured handoffs use

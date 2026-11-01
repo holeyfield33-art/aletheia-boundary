@@ -23,6 +23,9 @@ remain unchanged.
    [EVIDENCE-SCHEMA.json](EVIDENCE-SCHEMA.json). Missing checks remain
    NOT_RUN/BLOCKED, never PASS.
 
+For the separate offline threat-to-test planner and its verified limits, see
+[SCANPLAN.md](SCANPLAN.md). It does not scan targets or execute tests.
+
 ## Verification commands (run only in suitable disposable environments)
 
 - G1 `npm ci`
