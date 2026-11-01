@@ -10,10 +10,11 @@ remain unchanged.
 1. Record `git rev-parse HEAD`, branch, working-tree status, platform, Node
    version, and target deployment. Do not substitute a historical SHA for
    current HEAD.
-2. Read root [README](../../README.md), [SDLC](../SDLC.md),
-   [checkpoint handoff](../CHECKPOINT-2026-10-30.md),
-   [gap map](../REDTEAM-GAP-MAP.md), and latest dated review. Confirm whether
-   newer documents supersede the checkpoint.
+2. Read root [AGENTS](../../AGENTS.md), [README](../../README.md), the
+   [single living STATUS](../STATUS.md), then [SDLC](../SDLC.md) and relevant
+   [gap map](../REDTEAM-GAP-MAP.md). Read [dated checkpoint history](../CHECKPOINT-2026-10-30.md)
+   or a past review only when relevant. The status page, not the most recent-looking report,
+   owns current readiness and next actions.
 3. Identify trusted caller, Postgres role, policy, receipt key/log, host-owned
    checkpoint, single-writer assumption and alternate DB/tool paths. Never print
    secrets or private keys.
