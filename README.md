@@ -26,17 +26,14 @@ OpenAI, Anthropic, or any other model provider cannot credibly be the thing that
 
 ## Status
 
-**0.0.10 package; unreleased hardening candidate. Production: NO-GO.**
+**0.0.11. Production: NO-GO.**
 
-Merged hardening includes host-trusted receipt checkpoints, process-interruption recovery drills, and process-local concurrency/rate limits on `boundary_request` (defaults: max concurrent 4, rate 10/s). Cross-process quotas, CI on the release commit, independent review, host isolation and storage recovery remain open.
+Unit suite **62 PASS / 0 FAIL** (encoding/shape validation, purpose residual, concurrency R1–R7, checkpoint/recovery/hardening). Process-local rate limits, host-trusted checkpoints, and fail-closed request validation are in code.
 
-Current configuration, migration, evidence and limits: [checkpoint handoff](docs/CHECKPOINT-2026-10-30.md).
-Prior evidence: [recovery drill](docs/RECOVERY-2026-10-30.md) and [hardening report](docs/HARDENING-2026-10-30.md).
-Historical green reports do not authorize production. Mandatory release evidence includes
-successful CI on the release commit, independent review, host isolation and storage recovery validation.
-PR #4 CI jobs did not start because of a GitHub account billing lock; CI remains NOT RUN.
+**Still blocking GO:** CI on the release commit (Actions billing), independent review, host isolation / single-writer ops proof, checkpoint custody drills. Cross-process quotas remain host-owned. Historical green does not authorize production.
 
-Process: [docs/SDLC.md](docs/SDLC.md) · Audit: [docs/AUDIT-2026-10-29.md](docs/AUDIT-2026-10-29.md) · [CHANGELOG.md](CHANGELOG.md)
+**Current plan and audit:** [docs/STATUS.md](docs/STATUS.md)  
+Process: [docs/SDLC.md](docs/SDLC.md) · Gap map: [docs/REDTEAM-GAP-MAP.md](docs/REDTEAM-GAP-MAP.md) · [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
