@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aletheia Boundary agent handoff evidence 001.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "playbook_version",
+    "task",
+    "base_sha",
+    "head_sha",
+    "commands",
+    "artifacts",
+    "findings",
+    "blockers",
+    "release_decision",
+    "next_three_actions"
+  ],
+  "properties": {
+    "playbook_version": {
+      "const": "001.1"
+    },
+    "task": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_sha": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "null only when unavailable; explain in blockers"
+    },
+    "head_sha": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "commands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "command",
+          "status",
+          "exit_code",
+          "evidence"
+        ],
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "NOT_RUN",
+              "BLOCKED"
+            ]
+          },
+          "exit_code": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "claim",
+          "status",
+          "evidence"
+        ],
+        "properties": {
+          "claim": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "CONFIRMED",
+              "FALSIFIED",
+              "UNRESOLVED",
+              "NOT_TESTED"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "release_decision": {
+      "enum": [
+        "GO",
+        "NO-GO",
+        "NOT_ASSESSED"
+      ]
+    },
+    "next_three_actions": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "string"
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
