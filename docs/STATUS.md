@@ -123,6 +123,12 @@ become Boundary’s runtime authority.
 
 ---
 
+## Repository-maintenance procedure (documentation only)
+
+[SDLC §10](SDLC.md) now specifies change-triggered tests, dependency/advisory handling, pre/post-deployment security checks and a **proposed monthly** operational health review appropriate for a high-exposure security boundary. The operator must approve the cadence. **No maintenance review, live-host test, release-commit CI, independent approval or checkpoint-custody drill was executed by this documentation change.** Production remains **NO-GO** and the open operations blockers above are unchanged.
+
+---
+
 ## Doc map (after cleanup)
 
 | Read first                                                   | Purpose                    |
