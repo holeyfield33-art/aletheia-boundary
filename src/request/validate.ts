@@ -16,12 +16,30 @@ const MAX_PURPOSE = 512;
 const MAX_COLUMNS = 32;
 const MAX_COLUMN_LEN = 64;
 
-/** True if s looks like percent-encoding, base64 blob, or hex dump — not a table name. */
+/**
+ * True if s looks like percent-encoding, base64 blob, or hex dump — not a
+ * normal table/column identifier or free-form purpose prose.
+ *
+ * Pure alphanumeric base64 (no +/=) is indistinguishable from a long id, so
+ * we only flag long undotted mixed-case tokens. Short valid identifiers such
+ * as "c3Nu" are allowed; use padding or +/ to force a clear base64 reject.
+ */
 export function looksEncoded(s: string): boolean {
   if (/%[0-9a-fA-F]{2}/.test(s)) return true;
-  // long base64-ish tokens (padding or alphabet-only length >= 16)
-  if (/^[A-Za-z0-9+/]{16,}={0,2}$/.test(s) && !/^[A-Za-z_][A-Za-z0-9_$]*$/.test(s))
+  // padded base64
+  if (/^[A-Za-z0-9+/]{8,}={1,2}$/.test(s)) return true;
+  // base64 alphabet with + or /
+  if (/[+/]/.test(s) && /^[A-Za-z0-9+/=]{12,}$/.test(s)) return true;
+  // long pure alnum, undotted, mixed case → typical opaque base64 blob
+  if (
+    s.length >= 16 &&
+    !s.includes(".") &&
+    /^[A-Za-z0-9]+$/.test(s) &&
+    /[A-Z]/.test(s) &&
+    /[a-z]/.test(s)
+  ) {
     return true;
+  }
   if (/^[0-9a-fA-F]{24,}$/.test(s)) return true;
   return false;
 }
@@ -66,6 +84,9 @@ export function assertSafeAgentRequest(
     if (partial.purpose.length > MAX_PURPOSE) throw new Error("purpose too long");
     if (/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(partial.purpose))
       throw new Error("invalid purpose");
+    if (looksEncoded(partial.purpose)) {
+      throw new Error("encoded purpose is not allowed");
+    }
   }
 
   // caller from the agent is ignored by MCP host path; still reject garbage shapes

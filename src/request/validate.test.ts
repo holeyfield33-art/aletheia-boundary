@@ -36,6 +36,7 @@ describe("request validation (encoding / shape)", () => {
   });
 
   it("rejects base64-like resource", () => {
+    assert.ok(looksEncoded("cHVibGljLnVzZXJz"));
     assert.throws(() =>
       assertSafeAgentRequest({
         action: "query",
@@ -64,11 +65,33 @@ describe("request validation (encoding / shape)", () => {
   });
 
   it("rejects encoded column name", () => {
+    assert.equal(looksEncoded("c3Nu"), false);
+    assert.ok(looksEncoded("c3NuX3Nzbg=="));
     assert.throws(() =>
       assertSafeAgentRequest({
         action: "query",
         resource: "public.orders",
-        params: { columns: ["c3Nu"] },
+        params: { columns: ["c3NuX3Nzbg=="] },
+      }),
+    );
+  });
+
+  it("accepts ordinary short column identifiers", () => {
+    assert.doesNotThrow(() =>
+      assertSafeAgentRequest({
+        action: "query",
+        resource: "public.orders",
+        params: { columns: ["id", "ssn", "user_id", "Amount"] },
+      }),
+    );
+  });
+
+  it("rejects encoded purpose", () => {
+    assert.throws(() =>
+      assertSafeAgentRequest({
+        action: "query",
+        resource: "public.orders",
+        purpose: "c3NuX3Nzbg==",
       }),
     );
   });
