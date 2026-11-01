@@ -27,8 +27,8 @@ OpenAI, Anthropic, or any other model provider cannot credibly be the thing that
 ## Status
 
 **0.0.10 package; unreleased hardening candidate. Production: NO-GO.**
-PR #5 is merged into main `5173efb`, including hardening and six-phase crash/restart tests.
-This candidate adds host-trusted receipt checkpoints and requires one for production MCP startup.
+
+Merged hardening includes host-trusted receipt checkpoints, process-interruption recovery drills, and process-local concurrency/rate limits on `boundary_request` (defaults: max concurrent 4, rate 10/s). Cross-process quotas, CI on the release commit, independent review, host isolation and storage recovery remain open.
 
 Current configuration, migration, evidence and limits: [checkpoint handoff](docs/CHECKPOINT-2026-10-30.md).
 Prior evidence: [recovery drill](docs/RECOVERY-2026-10-30.md) and [hardening report](docs/HARDENING-2026-10-30.md).
@@ -170,7 +170,9 @@ paths: column allowlists apply and redacted names/types are omitted. Denied tabl
 Export-only tables remain hidden from schema discovery. This conservative contract may hide
 columns a less restricted read path could otherwise return.
 
-Response includes `ok`, `decision`, `data`, `transforms`, `stats` (incl. **`truncated`**), `dataSource` (`postgres` \| `stub`), and a receipt summary.
+MCP applies process-local concurrency and rate limits before policy evaluation. When a limit is hit the tool returns `ok: false` with a public error and **no receipt**.
+
+Response includes `ok`, `decision`, `data`, `transforms`, `stats` (incl. **`truncated`**), `dataSource` (`postgres` \| `stub`), and a receipt summary (when a receipt was written).
 
 ---
 
@@ -188,8 +190,13 @@ Response includes `ok`, `decision`, `data`, `transforms`, `stats` (incl. **`trun
 | `BOUNDARY_CHECKPOINT_PATH` | Required in production: independently retained, trusted checkpoint JSON. Never automatically generated or updated by the server |
 | `BOUNDARY_MAX_ROWS` | Soft default row cap (clamped to hard max 2000) |
 | `BOUNDARY_STMT_TIMEOUT_MS` | Statement timeout (default 10000) |
+| `BOUNDARY_MAX_CONCURRENT` | Max in-flight `boundary_request` calls (default 4, hard max 32; 0 disables) |
+| `BOUNDARY_RATE_LIMIT` | Token-bucket rate in requests/sec (default 10, hard max 100; 0 disables) |
+| `BOUNDARY_RATE_BURST` | Token-bucket burst size (default = rate, hard max 200; 0 disables) |
 | `BOUNDARY_SKIP_READONLY_PROBE` | `1` to skip probe (tests only; never production) |
 | `BOUNDARY_DB_IDENTITY` | Label for receipts (never the connection string) |
+
+Process-local limits apply only inside a single Node process. Cross-process or multi-instance quotas are host-owned.
 
 ---
 
