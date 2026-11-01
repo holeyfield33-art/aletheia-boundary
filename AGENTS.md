@@ -17,6 +17,10 @@
 - Keep changes surgical and risk-adaptive. Bug fix: capture a failing control, isolate cause, implement minimal patch, replay relevant tests. Product request: inspect missing user requirements before changing architecture. Avoid process paperwork for routine edits.
 - No secret output. No release, tag, deployment or readiness promotion without operator approval and **executed** relevant gates. CI that fails before steps is **NOT_RUN**, not a test pass/failure. Production **NO-GO** until the explicitly listed blockers are closed.
 
+## Ongoing maintenance
+
+Use [SDLC §10](docs/SDLC.md#10-repository-maintenance-and-operational-assurance--current-engineering-policy) for each consequential change, advisory, security review and risk-proportionate operational health check. It distinguishes application code from host-owned safeguards, before-merge tests from **post-deployment** verification, and current [STATUS](docs/STATUS.md) from historical reports. The proposed monthly review cadence requires operator approval; no automatic runs, production release or certification are implied.
+
 ## Commands (only where environment is suitable)
 
 ```bash
