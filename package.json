@@ -19,7 +19,8 @@
     "test:attacks": "tsx audit/attacks.ts",
     "test:agent-review": "tsx audit/agent-review.ts --write-report",
     "verify-log": "tsx src/receipt/verify-cli.ts",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "demo": "tsx scripts/demo.ts"
   },
   "engines": {
     "node": ">=20"
