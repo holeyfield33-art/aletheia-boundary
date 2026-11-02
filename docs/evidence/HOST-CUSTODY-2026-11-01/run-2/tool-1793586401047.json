@@ -1,0 +1,11 @@
+{
+  "args": {
+    "action": "schema",
+    "resource": "*"
+  },
+  "body": {
+    "ok": false,
+    "data": null,
+    "error": "Receipt unavailable; request refused"
+  }
+}

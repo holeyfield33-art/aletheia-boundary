@@ -1,0 +1,6 @@
+{
+  "command": "docker run -d --name boundary-drill-1793586347812-db --network boundary-drill-1793586347812-net -e POSTGRES_USER=admin -e POSTGRES_PASSWORD=admin -e POSTGRES_DB=boundary -v C:\\Users\\SuperAdmin\\.vscode\\aletheia-boundary\\scripts\\init-readonly.sql:/docker-entrypoint-initdb.d/01-init.sql:ro --health-cmd pg_isready -U admin -d boundary --health-interval 1s --health-retries 30 postgres:16-alpine",
+  "exit": 0,
+  "stdout": "dc021cc17245232e54bde3d805da0035a2632d97f0a65935a6930ca3822b5c2d\n",
+  "stderr": ""
+}

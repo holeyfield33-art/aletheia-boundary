@@ -1,0 +1,6 @@
+{
+  "command": "docker inspect --format {{.State.Health.Status}} boundary-drill-1793586347812-db",
+  "exit": 0,
+  "stdout": "starting\n",
+  "stderr": ""
+}

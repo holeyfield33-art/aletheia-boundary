@@ -1,0 +1,6 @@
+{
+  "command": "docker run --rm --network none --user 0:0 -v boundary-drill-1793586347812-state:/state -v boundary-drill-1793586347812-custody:/custody --entrypoint node aletheia-custody-drill:local --input-type=module -e import fs from 'node:fs'; fs.chownSync('/state',10001,10001); fs.chmodSync('/state',0o700); fs.chmodSync('/custody',0o755);",
+  "exit": 0,
+  "stdout": "",
+  "stderr": ""
+}

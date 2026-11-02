@@ -1,0 +1,27 @@
+PASS DB has no published host ports: dedicated internal Docker network; no host port
+PASS MCP tool discovery: boundary_request
+PASS bootstrap live receipt 1: real disposable Postgres; constrained data
+PASS bootstrap live receipt 2: real disposable Postgres; constrained data
+PASS export candidate after offline verify: CLI exit 0
+PASS candidate overwrite refused: CLI exit 1
+PASS candidate unchanged after overwrite attempt: dc205fcd2edb928b5e3e6129f014785af93fc0221b5be185a5e86a3551663908
+PASS anchored production-mode MCP startup: production mode against disposable DB
+PASS supervisor duplicate container name refused: Docker name reservation; alternative container names remain operator-controlled
+PASS writer cannot replace or delete retained checkpoints: checkpoint replacement and deletion refused
+PASS caller is host controlled: receipt caller=host-drill-reader; client supplied admin
+PASS writer key/log permissions: UID 10001; state 0700, private key/log 0600 verified inside Linux volume
+PASS second differently named writer can start: expected host-control gap; container name alone is not a volume lock
+PASS second writer appends on disposable shared log: controlled sequential overlap; never use this deployment pattern
+PASS stale first writer refuses after external append: no data released after external log change; simultaneous-write race remains untested
+PASS restricted agent cannot bypass DB or read custody: No DB route, key, checkpoint mount, or Docker socket
+PASS other UID cannot read signing key: EACCES with even a read-only state mount
+PASS missing-checkpoint: exit=1; [aletheia-boundary] fatal: Error: Production requires BOUNDARY_CHECKPOINT_PATH
+PASS writable-role: exit=1; [aletheia-boundary] FATAL: Postgres provider failed (refusing to start): Error: aletheia-boundary: role has write privilege on 4 relation(s). Refusing to start — use a read-only role or a replica.
+PASS valid-prefix-rollback: exit=1; [aletheia-boundary] fatal: Error: Receipt checkpoint verification failed: Receipt history is shorter than trusted checkpoint
+PASS corrupt-anchor: exit=1; [aletheia-boundary] fatal: Error: Receipt checkpoint unavailable or invalid
+PASS wrong-key-anchor: exit=1; [aletheia-boundary] fatal: Error: Receipt checkpoint verification failed: Checkpoint signing key mismatch
+PASS advanced candidate export: verified anchored extension
+PASS stale anchor permits unanchored suffix loss: expected limitation: two-receipt anchor accepts two-receipt prefix
+PASS advanced-anchor-detects-suffix-loss: exit=1; [aletheia-boundary] fatal: Error: Receipt checkpoint verification failed: Receipt history is shorter than trusted checkpoint
+PASS DB write canary unchanged: rows=0
+Evidence: C:\Users\SuperAdmin\.vscode\aletheia-boundary\docs\evidence\HOST-CUSTODY-2026-11-01\run-2

@@ -150,3 +150,33 @@ become Boundary’s runtime authority.
 
 _Update this file when disposition, package version, or blocking open items
 change. Production remains NO-GO until ops blockers clear._
+
+## Local product verification — 2026-11-01 (America/Los_Angeles)
+
+Tested source HEAD: `e53629400042bb8309c230dbba1cfaac7063dafb`; local disposable Postgres 16 fixture. Production remains **NO-GO**. These fresh local results qualify the historical snapshot above; they are not release CI or independent review.
+
+- `npm ci`: exit 0; `npm run typecheck`: exit 0; `npm test`: exit 0, 62 passed / 0 failed.
+- `npm run test:integration`: exit 1 at `src/integration.test.ts:167`. Read-only role accepted and writable role refused before failure. SQL request was denied, but the assertion requires "free-form SQL" / "not allowed" while the public response is "Invalid request". Later integration checks did not execute.
+- `npm run test:attacks`: exit 0; zero leaks across 12 cases; write canary remained empty.
+- `node --import tsx audit/agent-review.ts`: exit 1; 10 passed / 1 failed / 0 skipped. C6 has the same rejection-wording mismatch. C0 tool discovery and C10 offline verification of nine persisted receipts passed. Used the underlying script without `--write-report` to preserve the pre-existing untracked report.
+- Separate stdio MCP client discovered `boundary_request`, successfully queried analytics with the requested projection, denied users, rejected encoded resource and `params.sql`, and retrieved filtered schema. All responses identified `dataSource: postgres`; offline verification passed for all five receipts (exit 0). Disposable keys/logs were separate from the configured host log.
+- Native Aletheia tools were not available in the running Codex chat; restart/client loading remains a separate unverified step. MCP startup reports 0.0.10 while package metadata is 0.0.11.
+
+Raw outputs: `C:/Users/SuperAdmin/Documents/Codex/2026-11-01/i-x20/outputs/aletheia-local-verification/`.
+Next: reconcile the rejection-message contract and rerun integration/agent review; restart Codex and confirm native tool loading. No application code changed. Existing production blockers remain open.
+
+## Host / custody rehearsal — 2026-11-01 (America/Los_Angeles)
+
+Tested HEAD `1634c33d74468befbbc9ce39816e68c5639cb97e`; production **NO-GO** unchanged. See [evidence and exact exits](evidence/HOST-CUSTODY-2026-11-01/REPORT.md) and [operator runbook](HOST-CUSTODY-RUNBOOK.md).
+
+Fresh build and disposable container rehearsal completed (exit 0): verified candidate export/no overwrite; production-mode matching-anchor startup; missing/corrupt/wrong-key/rolled-back anchor refusals; writer denied checkpoint modification/deletion; UID/file permissions; trusted caller binding; isolated-agent negative DB/key access; writable-role refusal; retained old/advanced-anchor freshness demonstration; empty write canary. Native Codex boundary_request is now loaded and returned real Postgres analytics data.
+
+**Host isolation is not complete:** current desktop agent retains shell/Docker/direct fixture access. Another container name can open the same log; only stale-writer refusal and same-name supervisor exclusion were demonstrated. Actual exclusive supervision/agent restrictions remain required. Read-only checkpoint custody is proven only against the writer container, not the shared Docker administrator. Human approval, freshness-policy acceptance, independent custody/publication, physical recovery drills, release CI and independent review remain open. Rehearsal anchors are not approved production anchors. Added only drill tooling/docs; no application code, configured host keys/log history or production settings were changed (native MCP connectivity check appended a normal receipt).
+
+Operator decision — 2026-11-01: checkpoint freshness cadence approved: anchor after each completed batch; pause the next batch until checkpoint approval and publication. This is a runbook policy decision, not approval of a particular checkpoint or evidence that a runtime batch interlock exists. Independent custody, actual human checkpoint publication, exclusive supervision and all remaining production blockers remain open. Production remains NO-GO.
+
+## Checklist assessment prepared for review
+
+[Annotated host/independent-review checklist](HOST-ISOLATION-CHECKLIST.md) records demonstrated disposable drill/artifact rows separately from open production-host controls. Tested application SHA is `1634c33d74468befbbc9ce39816e68c5639cb97e`, package 0.0.11. PR intent is docs/host-custody-evidence into main, not a release. The referenced RELEASE-CHECKLIST.md does not exist at this SHA; no independent-review sign-off or complete same-release-SHA gate pack is claimed.
+
+PR preparation on application SHA 1634c33: integration rerun exit 0; MCP agent review rerun exit 0 (11 pass / 0 fail / 0 skip). [Raw outputs](evidence/HOST-CUSTODY-2026-11-01/current-head-gates/) supersede the earlier wording failures for these commands on this SHA. Other local gates and CI were not rerun in this preparation; no production-host or independent-review promotion is implied.

@@ -1,0 +1,6 @@
+{
+  "command": "docker run --rm -i --name boundary-drill-1793586347812-valid-prefix-rollback --network boundary-drill-1793586347812-net --user 10001:10001 --read-only --cap-drop=ALL --security-opt=no-new-privileges:true --pids-limit=64 --memory=256m --cpus=1 -v boundary-drill-1793586347812-state:/state -v boundary-drill-1793586347812-custody:/custody:ro -e NODE_ENV=production -e DATABASE_URL=postgres://[disposable-fixture] -e BOUNDARY_POLICY=/app/policies/example.yaml -e BOUNDARY_KEY_PATH=/state/key.ed25519 -e BOUNDARY_LOG_PATH=/state/receipts.jsonl -e BOUNDARY_CHECKPOINT_PATH=/custody/test-anchor.json -e BOUNDARY_TRUSTED_CALLER=host-drill-reader -e BOUNDARY_SKIP_READONLY_PROBE=0 aletheia-custody-drill:local",
+  "exit": 1,
+  "stdout": "",
+  "stderr": "[aletheia-boundary] Postgres provider ready (read-only probe passed)\n[aletheia-boundary] Signing key: ed25519:07f689dbd78d8e8d\n[aletheia-boundary] fatal: Error: Receipt checkpoint verification failed: Receipt history is shorter than trusted checkpoint\n    at new ReceiptLog (file:///app/dist/receipt/log.js:54:27)\n    at main (file:///app/dist/mcp/server.js:68:17)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n"
+}

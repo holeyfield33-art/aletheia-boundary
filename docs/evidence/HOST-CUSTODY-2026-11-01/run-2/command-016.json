@@ -1,0 +1,6 @@
+{
+  "command": "docker run --rm --network none --user 0:0 -v boundary-drill-1793586347812-state:/state -v boundary-drill-1793586347812-custody:/custody --entrypoint node aletheia-custody-drill:local --input-type=module -e import fs from 'node:fs';import {createHash} from 'node:crypto';console.log(createHash('sha256').update(fs.readFileSync('/state/candidate-2.json')).digest('hex'));",
+  "exit": 0,
+  "stdout": "dc205fcd2edb928b5e3e6129f014785af93fc0221b5be185a5e86a3551663908\n",
+  "stderr": ""
+}

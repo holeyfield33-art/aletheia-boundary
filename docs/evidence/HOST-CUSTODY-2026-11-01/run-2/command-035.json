@@ -1,0 +1,6 @@
+{
+  "command": "docker run --rm --network none --user 10001:10001 -v boundary-drill-1793586347812-state:/state -v boundary-drill-1793586347812-custody:/custody --entrypoint node aletheia-custody-drill:local dist/receipt/verify-cli.js --log /state/receipts.jsonl --pub /state/key.pub.pem --checkpoint /custody/test-anchor.json --export-checkpoint /state/candidate-3.json",
+  "exit": 0,
+  "stdout": "Checkpoint candidate exported; independently approve and publish outside the log trust domain\nOK: 3 receipt(s) verified. lastHash=c2371efad37d450243db9e8e19b2e6f032345808ee9d5fd8989c0924036f5fa6 checkpoint=verified\n",
+  "stderr": ""
+}

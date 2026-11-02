@@ -1,0 +1,6 @@
+{
+  "command": "docker inspect --format {{(index .NetworkSettings.Networks \"boundary-drill-1793586347812-net\").IPAddress}} boundary-drill-1793586347812-db",
+  "exit": 0,
+  "stdout": "172.19.0.2\n",
+  "stderr": ""
+}

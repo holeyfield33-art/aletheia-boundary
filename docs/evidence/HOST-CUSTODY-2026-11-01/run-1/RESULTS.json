@@ -1,0 +1,70 @@
+{
+  "timestamp": "2026-11-02T02:25:31.606Z",
+  "head": "1634c33d74468befbbc9ce39816e68c5639cb97e",
+  "policySha256": "0e1ae8e06a58f6f417240dd3260bc0142de2aa03dfbc813bce20afddbec322fd",
+  "image": "sha256:e107685fa8463d72a1835228cb22b860cc6430b134d134291b6f6c80b3304de1",
+  "resources": {
+    "state": "boundary-drill-1793586295548-state",
+    "custody": "boundary-drill-1793586295548-custody",
+    "db": "boundary-drill-1793586295548-db",
+    "net": "boundary-drill-1793586295548-net"
+  },
+  "failure": "Error: Docker command failed: run --rm --network; exit 1; file:///app/[eval1]:1\nimport fs from 'node:fs';console.log(fs.readFileSync('/state/receipts.jsonl','utf8').trim().split('\n                                                                                                  ^\n\nSyntaxError: Invalid or unexpected token\n    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)\n    at ModuleLoader.createModuleWrap (node:internal/modules/esm/loader:266:12)\n    at ModuleLoader.eval (node:internal/modules/esm/loader:306:23)\n    at node:internal/process/execution:73:24\n    at asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:11)\n    at Object.runEntryPointWithESMLoader (node:internal/modules/run_main:139:19)\n    at evalModuleEntryPoint (node:internal/process/execution:72:47)\n    at node:internal/main/eval_string:38:3\n\nNode.js v22.23.4\n",
+  "results": [
+    {
+      "name": "DB has no published host ports",
+      "verdict": "PASS",
+      "evidence": "dedicated internal Docker network; no host port"
+    },
+    {
+      "name": "MCP tool discovery",
+      "verdict": "PASS",
+      "evidence": "boundary_request"
+    },
+    {
+      "name": "bootstrap live receipt 1",
+      "verdict": "PASS",
+      "evidence": "real disposable Postgres; constrained data"
+    },
+    {
+      "name": "bootstrap live receipt 2",
+      "verdict": "PASS",
+      "evidence": "real disposable Postgres; constrained data"
+    },
+    {
+      "name": "export candidate after offline verify",
+      "verdict": "PASS",
+      "evidence": "CLI exit 0"
+    },
+    {
+      "name": "candidate overwrite refused",
+      "verdict": "PASS",
+      "evidence": "CLI exit 1"
+    },
+    {
+      "name": "candidate unchanged after overwrite attempt",
+      "verdict": "PASS",
+      "evidence": "d31bb2f0d0b4ea6be5506b4fee8a2ecf0877c8a8c94dd86de8bc7dfd2ff9771e"
+    },
+    {
+      "name": "Human checkpoint approval",
+      "verdict": "PENDING",
+      "evidence": "Test anchor copied by operator harness solely for rehearsal; not an approved production anchor."
+    },
+    {
+      "name": "anchored production-mode MCP startup",
+      "verdict": "PASS",
+      "evidence": "production mode against disposable DB"
+    },
+    {
+      "name": "supervisor duplicate container name refused",
+      "verdict": "PASS",
+      "evidence": "Docker name reservation; alternative container names remain operator-controlled"
+    },
+    {
+      "name": "writer cannot replace or delete retained checkpoints",
+      "verdict": "PASS",
+      "evidence": "checkpoint replacement and deletion refused"
+    }
+  ]
+}

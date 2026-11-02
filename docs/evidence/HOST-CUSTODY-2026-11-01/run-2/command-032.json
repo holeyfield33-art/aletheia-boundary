@@ -1,0 +1,6 @@
+{
+  "command": "docker run --rm --network none --user 0:0 -v boundary-drill-1793586347812-state:/state -v boundary-drill-1793586347812-custody:/custody --entrypoint node aletheia-custody-drill:local --input-type=module -e import fs from 'node:fs';fs.copyFileSync('/state/full.jsonl','/state/receipts.jsonl');fs.writeFileSync('/custody/corrupt.json','{');const a=JSON.parse(fs.readFileSync('/custody/test-anchor.json'));a.publicKeySha256='0'.repeat(64);fs.writeFileSync('/custody/wrong-key.json',JSON.stringify(a));",
+  "exit": 0,
+  "stdout": "",
+  "stderr": ""
+}

@@ -1,0 +1,28 @@
+Receipt verification artifacts: C:\Users\SUPERA~1\AppData\Local\Temp\aletheia-agent-review-nmeUCs
+
+=== AGENT REVIEW (SDLC §5) ===
+mode: postgres
+package: aletheia-boundary agent-review
+PASS  C0  MCP exposes boundary_request
+      tools=boundary_request
+PASS  C1  Errors carry reasons
+      ok=false outcome=deny reason=PII / credential tables are denied by default
+PASS  C2  Real or fake is visible (dataSource)
+      dataSource=postgres expected=postgres live=true
+PASS  C3  Bounded output
+      ok=true rows=4 transforms=table:public.orders,limit:50,limit:50
+PASS  C4  Declared scope (rule/reason + transforms)
+      ruleId=allow-schema reason=Schema inspection is permitted transforms=schema,schema-columns-projected,schema-filtered
+PASS  C5  Honest completion (limit/truncation visible)
+      rows=2 truncated=true transforms=table:public.orders,limit:2,limit:50
+PASS  C6  Input handling (malformed/SQL clean refusal)
+      ok=false reason=Invalid request Invalid request
+PASS  C7  Repeatability
+      sameData=true outcomes=allow/allow
+PASS  C8  Evidence (receipt signature verifies)
+      sigOk=true keyId=ed25519:5fb398b6fd5b5119 hash=68a4112c395e5fed…
+PASS  C9  Unknown tool refused
+      isError=true
+PASS  C10  Offline persisted receipt chain (G6)
+      OK: 9 receipt(s) verified. lastHash=68a4112c395e5fed63491cbbf3c1e08be55e680abb934c5c74c15f3c28a13ca7 checkpoint=not supplied
+{"pass":11,"fail":0,"skip":0,"live":true}

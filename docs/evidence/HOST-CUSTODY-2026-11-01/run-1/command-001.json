@@ -1,0 +1,6 @@
+{
+  "command": "docker network create --internal boundary-drill-1793586295548-net",
+  "exit": 0,
+  "stdout": "7744fa56c9b53efb96f5f8477db8aa1fec59a9d4401a284b91d6380bbb67968b\n",
+  "stderr": ""
+}

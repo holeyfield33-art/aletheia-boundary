@@ -1,0 +1,6 @@
+{
+  "command": "docker run --rm --network none --user 0:0 -v boundary-drill-1793586295548-state:/state -v boundary-drill-1793586295548-custody:/custody --entrypoint node aletheia-custody-drill:local --input-type=module -e import fs from 'node:fs';console.log(fs.readFileSync('/custody/test-anchor.json','utf8'));",
+  "exit": 0,
+  "stdout": "{\n  \"version\": 1,\n  \"publicKeySha256\": \"7f202b08efcb154c45b335b46d9069a2a771f9dba810d494ef9a0115b1308fac\",\n  \"receiptCount\": 2,\n  \"contentHash\": \"eb19b7928ae599910d141ce8f178140d3085a6cf95dececb2159a395b32e040a\"\n}\n\n",
+  "stderr": ""
+}

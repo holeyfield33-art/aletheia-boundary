@@ -1,0 +1,6 @@
+{
+  "command": "docker run --rm --network none --user 10001:10001 -v boundary-drill-1793586347812-state:/state -v boundary-drill-1793586347812-custody:/custody --entrypoint node aletheia-custody-drill:local dist/receipt/verify-cli.js --log /state/receipts.jsonl --pub /state/key.pub.pem --checkpoint /custody/retained-2.json",
+  "exit": 0,
+  "stdout": "OK: 2 receipt(s) verified. lastHash=6d6498eb4b4d842ce9d0613d14582ffae2926f3aaa6268b019ecc16a7d247ec1 checkpoint=verified\n",
+  "stderr": ""
+}

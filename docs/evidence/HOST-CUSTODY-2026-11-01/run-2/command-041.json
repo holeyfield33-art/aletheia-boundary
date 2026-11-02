@@ -1,0 +1,6 @@
+{
+  "command": "docker rm -f boundary-drill-1793586347812-db",
+  "exit": 0,
+  "stdout": "boundary-drill-1793586347812-db\n",
+  "stderr": ""
+}

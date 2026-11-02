@@ -1,0 +1,6 @@
+{
+  "command": "docker exec boundary-drill-1793586347812-db psql -U admin -d boundary -tAc SELECT count(*) FROM public.write_canary",
+  "exit": 0,
+  "stdout": "0\n",
+  "stderr": ""
+}

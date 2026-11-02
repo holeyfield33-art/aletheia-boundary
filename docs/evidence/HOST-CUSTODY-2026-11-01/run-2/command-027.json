@@ -1,0 +1,6 @@
+{
+  "command": "docker run --rm --network none --user 10002:10002 -v boundary-drill-1793586347812-state:/state:ro --entrypoint node aletheia-custody-drill:local -e const fs=require('fs');try{fs.readFileSync('/state/key.ed25519');process.exit(2)}catch(e){if(e.code!=='EACCES')throw e;console.log('EACCES')}",
+  "exit": 0,
+  "stdout": "EACCES\n",
+  "stderr": ""
+}

@@ -1,0 +1,6 @@
+{
+  "command": "docker run --rm --network none --user 10002:10002 --read-only --cap-drop=ALL --security-opt=no-new-privileges:true --entrypoint node aletheia-custody-drill:local --input-type=module -e import fs from 'node:fs';import net from 'node:net';for(const p of ['/state/key.ed25519','/custody/test-anchor.json','/var/run/docker.sock'])if(fs.existsSync(p))process.exit(2);await new Promise((resolve,reject)=>{const s=net.connect({host:'172.19.0.2',port:5432});s.setTimeout(1500);s.on('connect',()=>{s.destroy();reject(Error('bypass connected'))});s.on('error',()=>resolve());s.on('timeout',()=>{s.destroy();resolve()})});console.log('No DB route, key, checkpoint mount, or Docker socket');",
+  "exit": 0,
+  "stdout": "No DB route, key, checkpoint mount, or Docker socket\n",
+  "stderr": ""
+}

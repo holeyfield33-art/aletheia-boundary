@@ -1,0 +1,6 @@
+{
+  "command": "docker run --rm --network none --user 0:0 -v boundary-drill-1793586347812-state:/state -v boundary-drill-1793586347812-custody:/custody --entrypoint node aletheia-custody-drill:local --input-type=module -e import fs from 'node:fs';console.log(fs.readFileSync('/state/receipts.jsonl','utf8').trim().split(String.fromCharCode(10)).at(-1));",
+  "exit": 0,
+  "stdout": "{\"id\":\"8b7a5b69-7a2f-485b-941c-6d7f1e5a259c\",\"prevHash\":\"6d6498eb4b4d842ce9d0613d14582ffae2926f3aaa6268b019ecc16a7d247ec1\",\"request\":{\"id\":\"fc428cf6-f684-41cf-9d01-079dd1f6f489\",\"action\":\"schema\",\"resource\":\"*\",\"caller\":\"host-drill-reader\",\"receivedAt\":\"2026-11-02T02:26:19.744Z\"},\"decision\":{\"outcome\":\"allow\",\"reason\":\"Schema inspection is permitted\",\"ruleId\":\"allow-schema\",\"decidedAt\":\"2026-11-02T02:26:19.744Z\"},\"payloadSummary\":{\"transforms\":[\"schema\",\"schema-columns-projected\",\"schema-filtered\"],\"stats\":{\"rows\":3,\"bytes\":715}},\"createdAt\":\"2026-11-02T02:26:19.758Z\",\"keyId\":\"ed25519:07f689dbd78d8e8d\",\"contentHash\":\"4e590db083d0dc58797a7401f3736912b97d592538965f038324043bff61fccb\",\"signature\":\"s-uke2cd_T3CuVXLIjzB-uhEezDPN34tbil2WhIq-qfGO1mFLXdI0A3rj8sFnwpA-JDmaOt2KI9umLdCs2j1BA\"}\n",
+  "stderr": ""
+}

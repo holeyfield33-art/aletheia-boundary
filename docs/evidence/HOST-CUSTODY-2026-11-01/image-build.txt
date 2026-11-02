@@ -1,0 +1,48 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 257B 0.0s done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/node:22-bookworm-slim
+#2 DONE 0.1s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B 0.0s done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 transferring context: 157.39kB 0.2s done
+#4 DONE 0.2s
+
+#5 [1/6] FROM docker.io/library/node:22-bookworm-slim@sha256:4b150b48b4116e2a22f2c39cc27025fbf4f153e2078fd3b14d159fdb5c7279da
+#5 resolve docker.io/library/node:22-bookworm-slim@sha256:4b150b48b4116e2a22f2c39cc27025fbf4f153e2078fd3b14d159fdb5c7279da 0.1s done
+#5 DONE 0.2s
+
+#6 [2/6] WORKDIR /app
+#6 CACHED
+
+#7 [3/6] COPY package.json package-lock.json ./
+#7 CACHED
+
+#8 [5/6] COPY dist ./dist
+#8 CACHED
+
+#9 [4/6] RUN npm ci --omit=dev --ignore-scripts
+#9 CACHED
+
+#10 [6/6] COPY policies ./policies
+#10 CACHED
+
+#11 exporting to image
+#11 exporting layers done
+#11 exporting manifest sha256:1b3d187d591bc73e28d7a7e3570027384df05008e0dc84dfc19e388f52afb652 done
+#11 exporting config sha256:26c983c2ddebfedc8751eed8dc3de0e805a2bb452b8ee4a1b2e9e8940099cb0e done
+#11 exporting attestation manifest sha256:0eebd2eddf1cff3a3eccc492b3874a974c8ff0f0ffcb74930f37542bf9717114 0.1s done
+#11 exporting manifest list sha256:e107685fa8463d72a1835228cb22b860cc6430b134d134291b6f6c80b3304de1
+#11 exporting manifest list sha256:e107685fa8463d72a1835228cb22b860cc6430b134d134291b6f6c80b3304de1 0.0s done
+#11 naming to docker.io/library/aletheia-custody-drill:local done
+#11 unpacking to docker.io/library/aletheia-custody-drill:local 0.0s done
+#11 DONE 0.3s
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/14xjruqo1jt8nwrha11f5lsgr

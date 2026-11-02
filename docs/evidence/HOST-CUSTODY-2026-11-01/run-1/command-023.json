@@ -1,0 +1,6 @@
+{
+  "command": "docker run --rm --network none --user 0:0 -v boundary-drill-1793586295548-state:/state -v boundary-drill-1793586295548-custody:/custody --entrypoint node aletheia-custody-drill:local --input-type=module -e import fs from 'node:fs';console.log(fs.readFileSync('/state/receipts.jsonl','utf8').trim().split('\n').at(-1));",
+  "exit": 1,
+  "stdout": "",
+  "stderr": "file:///app/[eval1]:1\nimport fs from 'node:fs';console.log(fs.readFileSync('/state/receipts.jsonl','utf8').trim().split('\n                                                                                                  ^\n\nSyntaxError: Invalid or unexpected token\n    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)\n    at ModuleLoader.createModuleWrap (node:internal/modules/esm/loader:266:12)\n    at ModuleLoader.eval (node:internal/modules/esm/loader:306:23)\n    at node:internal/process/execution:73:24\n    at asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:11)\n    at Object.runEntryPointWithESMLoader (node:internal/modules/run_main:139:19)\n    at evalModuleEntryPoint (node:internal/process/execution:72:47)\n    at node:internal/main/eval_string:38:3\n\nNode.js v22.23.4\n"
+}

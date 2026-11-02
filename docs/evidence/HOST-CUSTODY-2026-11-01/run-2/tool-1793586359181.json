@@ -1,0 +1,82 @@
+{
+  "args": {
+    "action": "query",
+    "resource": "public.analytics_daily",
+    "params": {
+      "columns": [
+        "date",
+        "metric",
+        "value"
+      ],
+      "limit": 1
+    },
+    "caller": "admin",
+    "purpose": "custody rehearsal"
+  },
+  "body": {
+    "ok": true,
+    "decision": {
+      "outcome": "allow_with_constraints",
+      "reason": "Analytics queries allowed with fixed column set and limit",
+      "constraints": [
+        {
+          "type": "columns",
+          "value": [
+            "date",
+            "metric",
+            "value",
+            "segment"
+          ]
+        },
+        {
+          "type": "limit",
+          "value": 500
+        }
+      ],
+      "ruleId": "allow-analytics-query",
+      "decidedAt": "2026-11-02T02:25:59.150Z"
+    },
+    "data": {
+      "rows": [
+        {
+          "date": "2026-10-01T00:00:00.000Z",
+          "metric": "revenue",
+          "value": "1200.50"
+        }
+      ],
+      "fields": [
+        {
+          "name": "date"
+        },
+        {
+          "name": "metric"
+        },
+        {
+          "name": "value"
+        }
+      ],
+      "truncated": true,
+      "rowCount": 1
+    },
+    "transforms": [
+      "table:public.analytics_daily",
+      "select-columns:date,metric,value",
+      "limit:1",
+      "columns:date,metric,value,segment",
+      "limit:500"
+    ],
+    "stats": {
+      "rows": 1,
+      "truncated": true
+    },
+    "dataSource": "postgres",
+    "receipt": {
+      "id": "33a0b716-7aef-43d0-a35e-3e6ddc6e0f8c",
+      "contentHash": "41c7037486fee0571eb8f5403b5439dcb9c1106070f4780a98e44c718986ddfc",
+      "signature": "Pgk56b84UyKzkFK4Lm2x4EXZLYIorDqD5xmH5fopxjeDFNR0ZeTJSbTJsEX8bMAilxezXc3w3k4H8YI2l7qaAw",
+      "prevHash": null,
+      "keyId": "ed25519:07f689dbd78d8e8d",
+      "createdAt": "2026-11-02T02:25:59.164Z"
+    }
+  }
+}

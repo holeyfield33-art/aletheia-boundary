@@ -1,0 +1,6 @@
+{
+  "command": "docker network rm boundary-drill-1793586347812-net",
+  "exit": 0,
+  "stdout": "boundary-drill-1793586347812-net\n",
+  "stderr": ""
+}
