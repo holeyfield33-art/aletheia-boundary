@@ -39,16 +39,18 @@ has to be local and independent of them.
 
 **0.0.11. Production: NO-GO.**
 
-Unit suite **62 PASS / 0 FAIL** (encoding/shape validation, purpose residual,
-concurrency R1–R7, checkpoint/recovery/hardening). Process-local rate limits,
-host-trusted checkpoints, and fail-closed request validation are in code.
+**Local gates (2026-11-02):** G1–G5 + agent-review **PASS** (62 unit; integration all ok; attacks `leaks: 0`; agent-review **11 PASS / 0 FAIL**). Demo and MCP live path exercised. See [docs/STATUS.md](docs/STATUS.md) and [docs/RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md).
+
+Process-local rate limits, host-trusted checkpoints, and fail-closed request validation are in code.
 
 **Still blocking GO:** CI on the release commit (Actions billing), independent
 review, host isolation / single-writer ops proof, checkpoint custody drills.
 Cross-process quotas remain host-owned. Historical green does not authorize
 production.
 
+**Release checklist:** [docs/RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md)  
 **Current plan and audit:** [docs/STATUS.md](docs/STATUS.md)  
+**Local demo + real testing:** [docs/DEMO.md](docs/DEMO.md) · `npm run demo`  
 **For coding agents:** [AGENTS.md](AGENTS.md) (single entrypoint; current status and SDLC remain authoritative)  
 Process: [docs/SDLC.md](docs/SDLC.md) · Gap map:
 [docs/REDTEAM-GAP-MAP.md](docs/REDTEAM-GAP-MAP.md) ·
@@ -230,69 +232,7 @@ multi-instance quotas are host-owned.
 
 ## Receipt operations and recovery
 
-MCP always uses a disk log. The library's no-path `ReceiptLog` is in-memory and
-has no durability guarantee. For disk logs, a complete JSONL append and file
-sync must succeed before an allow response is returned. On any write/sync/change
-failure the writer stays unavailable: MCP returns `ok:false`, `data:null`, a
-generic error and **no receipt**. Library calls reject. No fallback deny receipt
-is invented. Provider/policy exceptions use fixed public errors; raw exception
-text is excluded from signed decisions. Operator-authored policy reasons and
-rule/constraint details remain visible; keep secrets out of policy text.
-
-Use **one process/writer per log path**, on a trusted local filesystem with
-stable key custody. Concurrent calls in that process serialize receipt writes.
-External writer changes are checked before append; this is not a cross-process
-lock. Protect the log/key directory with host ACLs and restrict alternative DB
-tools.
-
-Restart verifies every loaded receipt and refuses malformed, tampered or
-unterminated tails. After failure: stop the process, preserve log and key,
-verify a copy offline, compare with an independently retained checkpoint, and
-restore only independently verified evidence. Never automatically trim a partial
-tail or delete the log to make startup pass. An appended receipt may survive a
-failed sync or an interrupted response without proving data was received.
-
-A local chain alone cannot detect deletion or rollback to a valid prefix across
-restarts. The server now checks a host-supplied minimum-history checkpoint
-(public-key SHA-256, receipt count, and content hash at that position). Missing
-logs are never recreated in checkpoint mode. Shorter histories, wrong keys and
-valid forks that omit the checkpoint refuse startup. Verified extensions are
-allowed. Checkpoint checks never skip full signature/chain verification.
-
-Stop writers and independently reconcile the log with retained
-receipts/checkpoints before exporting a new candidate; a valid local chain alone
-cannot establish that a rollback has not already happened:
-
-```powershell
-npm run verify-log -- --log logs/receipts.jsonl --pub keys/boundary.pub.pem --checkpoint C:/BoundaryTrust/checkpoint.json --export-checkpoint C:/BoundaryTrust/candidate-next.json
-```
-
-For first-time provisioning only, omit `--checkpoint` after an independent
-baseline review. The source must contain at least one valid receipt; an empty
-log cannot produce a checkpoint. For a new installation, create a synthetic deny
-receipt in an isolated nonproduction bootstrap session with the stable operator
-signing key, then independently approve that initial history. Do not bootstrap
-by resetting existing history. Export uses exclusive creation and refuses to
-overwrite any existing file. A candidate is not automatically trusted: the host
-must approve its advancement, durably publish it outside the log writer's
-change/rollback domain, and configure `BOUNDARY_CHECKPOINT_PATH` to the approved
-checkpoint before production startup. Keep prior checkpoints and receipts; never
-replace an anchor from a damaged/unreconciled log.
-
-This is a **minimum-history floor**. A stale checkpoint cannot detect loss of a
-newer, unanchored suffix; rolling back both log and checkpoint remains
-undetectable. No remote witness, automatic checkpoint updates, atomic external
-publication or freshness guarantee is implemented. Host ACLs, retention, update
-frequency and the resulting maximum unanchored-loss window require operations
-review. Direct library callers must explicitly pass `{ checkpoint }` to
-`ReceiptLog`; optional development/in-memory modes do not enforce it. File sync
-is not proof against faulty disks or power loss. New-file directory sync is
-attempted on POSIX; Node does not provide it here on Windows. A
-forced-process-termination drill now exercises six write/response phases and
-fresh-process recovery. This is a Boundary-library drill, not an MCP
-transport-disconnect test. Multiwriter, Windows power-loss durability, physical
-disk-full behavior and key rotation remain unverified. See
-[remaining blockers](docs/CHECKPOINT-2026-10-30.md).
+See [docs/CHECKPOINT-2026-10-30.md](docs/CHECKPOINT-2026-10-30.md) and [docs/STATUS.md](docs/STATUS.md) for current custody requirements. Production remains **NO-GO** until CI, independent review, and host ops clear.
 
 ## Adversarial coverage (redteam-kit)
 
@@ -303,27 +243,9 @@ Broader agent/prompt/tool abuse classes live in:
 
 **[https://github.com/holeyfield33-art/aletheia-redteam-kit](https://github.com/holeyfield33-art/aletheia-redteam-kit)**
 
-Use that kit to find **gaps this boundary does not claim to cover** (prompt
-injection upstream of the tool, multi-turn coercion, encoding, etc.). Map
-categories → boundary responsibility in:
+Map categories → boundary responsibility in:
 
 **[docs/REDTEAM-GAP-MAP.md](docs/REDTEAM-GAP-MAP.md)**
-
-Install kit (Python 3.11+):
-
-```bash
-git clone https://github.com/holeyfield33-art/aletheia-redteam-kit.git
-cd aletheia-redteam-kit
-python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\Activate.ps1
-pip install -e ".[verify]"
-python -m kit.runner --help
-```
-
-Repo audit of this boundary tree (offline, no API key):
-
-```bash
-python -m kit.runner --mode repo --repo-path /path/to/aletheia-boundary --output boundary_repo_summary.json
-```
 
 ---
 
