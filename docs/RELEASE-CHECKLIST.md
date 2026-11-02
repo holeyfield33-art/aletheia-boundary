@@ -80,7 +80,7 @@ Beta does not change the production NO-GO. Entry criteria are owned by
 | B2 | §1 gates + agent review PASS locally on the beta commit, exit codes recorded | **NOT RUN** | |
 | B3 | CI executed on the beta commit, or recorded NOT_RUN | **NOT RUN** | Billing 2026-11-04 |
 | B4 | README states beta scope, known limitations and stop-ship | **OPEN** | |
-| B5 | Tester instructions: disposable DB, read-only role, one writer per log | **OPEN** | Reuse [DEMO](DEMO.md) + [runbook](HOST-CUSTODY-RUNBOOK.md) |
+| B5 | Tester instructions: disposable DB, read-only role, one writer per log | **Drafted** | [TEAM-SETUP](TEAM-SETUP.md); operator's Claude Desktop + Codex run open |
 
 ---
 
