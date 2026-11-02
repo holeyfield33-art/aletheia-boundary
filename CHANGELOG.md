@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased - local gates green + checklist (2026-11-02)
+
+- Local live verification on main (post PR #17): G1–G5 **PASS**, agent-review **11 PASS / 0 FAIL**, demo and MCP path exercised.
+- Integration + C6 harness accept public reason `Invalid request` for free-form SQL shape rejection (merged PR #17).
+- [docs/STATUS.md](docs/STATUS.md) E2E snapshot updated; [docs/RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md) §1 local gates checked off.
+- **Production remains NO-GO** — CI, independent review, and host ops still open.
+
 ## Unreleased - process-local request limits (2026-10-31)
 
 - Added process-local concurrency and rate limiting for `boundary_request`
