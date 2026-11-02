@@ -2,7 +2,8 @@
 
 **Production remains NO-GO.** This guide is for disposable local use and demos only.
 
-Current disposition: [STATUS.md](STATUS.md).
+Current disposition: [STATUS.md](STATUS.md).  
+Release gates: [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md) (local §1 checked 2026-11-02; CI / review / host ops still open).
 
 ---
 
@@ -50,9 +51,9 @@ npm run test:agent-review
 | `npm test` | Unit: policy fail-closed, receipts, concurrency, encoding, recovery |
 | `test:integration` | Live read-only probe, structured queries, write refusal |
 | `test:attacks` | Adversarial payloads against live boundary |
-| `test:agent-review` | MCP client drives `boundary_request`; grades C0–C9 |
+| `test:agent-review` | MCP client drives `boundary_request`; grades C0–C10 |
 
-Record exit codes and keep stdout if you need evidence for a later release commit.
+**2026-11-02 local result:** all of the above **PASS** (agent-review 11/0). Record exit codes and keep stdout if you need evidence for a later release commit.
 
 ---
 
@@ -95,8 +96,6 @@ Offline verify after a session:
 ```powershell
 npx tsx src/receipt/verify-cli.ts --log .\logs\receipts.jsonl --pub .\keys\boundary.pub.pem
 ```
-
-(Public key path depends on how keys were written; demo uses `keys/demo.ed25519` and derives verify from the same keypair in-process.)
 
 ### Claude Desktop / Cursor sketch
 
@@ -142,4 +141,4 @@ Use a disposable DB and keys. Never point production credentials at a demo host.
 - Claiming CI PASS when Actions did not run  
 - Treating stub data as real customer data  
 
-Production GO still requires CI on the release SHA, independent review, and host custody drills — see [STATUS.md](STATUS.md).
+Production GO still requires CI on the release SHA, independent review, and host custody drills — see [STATUS.md](STATUS.md) and [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md).
