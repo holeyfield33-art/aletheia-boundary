@@ -122,7 +122,7 @@ One item at a time, top of the STATUS queue first:
 | Release | Data allowed | Required evidence | Decision owner |
 |---|---|---|---|
 | Dev | Synthetic / stub | G1–G3 | Implementer |
-| Beta | Disposable or non-sensitive only | Beta entry criteria in [STATUS.md](STATUS.md): Must items closed with failing-then-passing tests; G1–G6 + agent review pass locally on the beta commit; CI executed if available, else NOT_RUN; README lists beta scope and known limitations | Operator |
+| Beta | Synthetic, disposable, or explicitly approved non-production | Beta entry criteria in [STATUS.md](STATUS.md): Must items closed with failing-then-passing tests; G1–G6 + agent review pass locally on the beta commit; CI executed if available, else NOT_RUN; README lists beta scope and known limitations | Operator |
 | Production 1.0 | Customer data | All gates green in CI on the exact tagged SHA; independent review; host isolation and single-writer supervision proven; checkpoint custody outside the writer's domain; storage/power-loss and key-rotation drills; [RELEASE-CHECKLIST](RELEASE-CHECKLIST.md) complete | Operator + independent reviewer |
 
 **Stop-ship (every release level):** any policy-denied row in a tool result,

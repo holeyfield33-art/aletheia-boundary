@@ -40,7 +40,7 @@ NOT_RUN, never PASS).
 | 1 · Audit remediation (0.0.4–0.0.9) | 2026-10-29 audit F1–F11: structured reads only, fail-closed policy, recursive receipt hashing, verify-on-load, honest truncation, schema filtering | **Done**, with residuals reopened as N1, N2, N9 below |
 | 2 · Hardening (0.0.10–0.0.11) | Receipt durability (H1–H10), trusted checkpoints (K1–K10), crash recovery drill, process-local rate/concurrency limits (R1–R7), request shape/encoding validation (NEXT-002/003), sanitized errors, host-trusted caller | **Done in code** |
 | 3 · Hardening + local isolation | Security bugs from the 2026-11-02 re-audit; local host-isolation rehearsal | **Current** — queue below |
-| 4 · Beta | Outside testers on disposable / non-sensitive data | **Next** — entry criteria below |
+| 4 · Beta + design-partner validation | Outside testers and 2–3 paid design partners on synthetic or approved non-production data; prove (or disprove) that buyers pay for what Boundary adds over native Postgres controls | **Next** — entry criteria and Phase 4 work below; commercial track in [VALIDATION-PLAN](VALIDATION-PLAN.md) |
 | 5 · Production 1.0 | Independent review, production host custody, physical recovery drills, CI on the tagged SHA | **Not started** (blocked on items outside the code) |
 
 ---
@@ -62,6 +62,18 @@ Findings N1–N9 come from the [2026-11-02 re-audit](evidence/REAUDIT-2026-11-02
 | 9 | **N8** Loader accepts allow rules gated only on agent-claimed `purpose` without a warning. | Footgun · Low | After | Open |
 | — | NEXT-001 deny-timing side channel | Security · Low | After | Deferred |
 
+### Phase 4 work (after the Must items above)
+
+| ID | Item | When | State |
+|---|---|---|---|
+| E2 | Receipt wording: README, STATUS and pitches state exactly what receipts guarantee and what they do not (not that every request was recorded, that the decision was correct, or that the host was uncompromised). Claims table: [VALIDATION-PLAN §3](VALIDATION-PLAN.md#3-what-we-claim-exactly) | Before the demo video | **Todo** |
+| E3 | Beta tag: pin the exact commit given to testers and design partners | Beta day | Todo |
+| E5 | Comparison harness (= validation V0): same seeded DB and 10 requests through native Postgres (role + view + logging), DBHub read-only, Boundary, and no live connection; results to `docs/evidence/` | Week of 2026-11-09 | Approved |
+
+**Parked until a paying buyer needs it:** HTTP / remote transport (Grok, hosted
+agents), more databases, SSO, multi-tenancy, hosted dashboard, compliance
+framework.
+
 ### Ops items for Phase 3 / beta (not code)
 
 | Item | Owner | State |
@@ -75,8 +87,9 @@ Findings N1–N9 come from the [2026-11-02 re-audit](evidence/REAUDIT-2026-11-02
 
 ## Beta entry criteria (target Friday)
 
-Beta means outside testers on **disposable or non-sensitive data** only. It is
-not a production release and does not change the production NO-GO.
+Beta means outside testers and design partners on **synthetic, disposable or
+explicitly approved non-production data** only. It is not a production release
+and does not change the production NO-GO.
 
 1. Queue items 1–4 closed, each with a permanent failing-then-passing attack or test.
 2. G1–G6 and the agent review pass locally on the beta commit, recorded with exit codes.
@@ -129,6 +142,7 @@ storage/power-loss and key-rotation drills. Checklist:
 | Release and beta tick-list | [RELEASE-CHECKLIST](RELEASE-CHECKLIST.md) |
 | Local demo and real testing | [DEMO](DEMO.md) |
 | Setting up a team (Claude Desktop, Codex) | [TEAM-SETUP](TEAM-SETUP.md) |
+| Commercial validation: offer, who to talk to, gates, logs | [VALIDATION-PLAN](VALIDATION-PLAN.md) |
 | Host isolation and checkpoint custody | [HOST-CUSTODY-RUNBOOK](HOST-CUSTODY-RUNBOOK.md) · [HOST-ISOLATION-CHECKLIST](HOST-ISOLATION-CHECKLIST.md) |
 | Red-team responsibility split | [REDTEAM-GAP-MAP](REDTEAM-GAP-MAP.md) |
 | Reusable agent prompts P01–P14 | [agent-playbook/PROMPTS](agent-playbook/PROMPTS.md) |

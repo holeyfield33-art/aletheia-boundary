@@ -67,6 +67,7 @@ Cross-process quotas remain host-owned.
 **Release / beta checklist:** [docs/RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md) ·
 **Local demo:** [docs/DEMO.md](docs/DEMO.md) · `npm run demo` ·
 **Team setup (Claude Desktop, Codex):** [docs/TEAM-SETUP.md](docs/TEAM-SETUP.md) ·
+**Validation plan (design partners, open to reuse):** [docs/VALIDATION-PLAN.md](docs/VALIDATION-PLAN.md) ·
 **For coding agents:** [AGENTS.md](AGENTS.md) ·
 Process: [docs/SDLC.md](docs/SDLC.md) · Gap map:
 [docs/REDTEAM-GAP-MAP.md](docs/REDTEAM-GAP-MAP.md) ·
