@@ -1,0 +1,436 @@
+
+> aletheia-boundary@0.0.11 test
+> tsx --test src/receipt/checkpoint.test.ts src/receipt/recovery.test.ts src/hardening.test.ts src/boundary.test.ts src/policy/failclosed.test.ts src/policy/bounds.test.ts src/receipt/receipt.test.ts src/data/concurrency.test.ts src/request/validate.test.ts
+
+TAP version 13
+# Subtest: Boundary smoke
+    # Subtest: allows schema and produces a verifiable receipt
+    ok 1 - allows schema and produces a verifiable receipt
+      ---
+      duration_ms: 10.650633
+      type: 'test'
+      ...
+    # Subtest: denies PII resource and still signs the receipt
+    ok 2 - denies PII resource and still signs the receipt
+      ---
+      duration_ms: 1.22877
+      type: 'test'
+      ...
+    # Subtest: applies default deny for unmatched requests
+    ok 3 - applies default deny for unmatched requests
+      ---
+      duration_ms: 0.887328
+      type: 'test'
+      ...
+    # Subtest: maintains a hash chain across receipts
+    ok 4 - maintains a hash chain across receipts
+      ---
+      duration_ms: 1.67783
+      type: 'test'
+      ...
+    # Subtest: exposes a stable ed25519 key id
+    ok 5 - exposes a stable ed25519 key id
+      ---
+      duration_ms: 3.64296
+      type: 'test'
+      ...
+    1..5
+ok 1 - Boundary smoke
+  ---
+  duration_ms: 19.124191
+  type: 'suite'
+  ...
+# Subtest: R1 resolveConcurrencyLimits applies defaults and clamps
+ok 2 - R1 resolveConcurrencyLimits applies defaults and clamps
+  ---
+  duration_ms: 0.95895
+  type: 'test'
+  ...
+# Subtest: R2 concurrency limit refuses excess in-flight requests
+ok 3 - R2 concurrency limit refuses excess in-flight requests
+  ---
+  duration_ms: 0.63529
+  type: 'test'
+  ...
+# Subtest: R3 rate limit refuses when tokens exhausted
+ok 4 - R3 rate limit refuses when tokens exhausted
+  ---
+  duration_ms: 0.206658
+  type: 'test'
+  ...
+# Subtest: R4 rate tokens refill over time
+ok 5 - R4 rate tokens refill over time
+  ---
+  duration_ms: 25.80329
+  type: 'test'
+  ...
+# Subtest: R5 run() always releases even on throw
+ok 6 - R5 run() always releases even on throw
+  ---
+  duration_ms: 0.815774
+  type: 'test'
+  ...
+# Subtest: R6 concurrent run() respects maxConcurrent
+ok 7 - R6 concurrent run() respects maxConcurrent
+  ---
+  duration_ms: 30.759872
+  type: 'test'
+  ...
+# Subtest: R7 disabled limits are no-ops
+ok 8 - R7 disabled limits are no-ops
+  ---
+  duration_ms: 0.293958
+  type: 'test'
+  ...
+# Subtest: H1 append and fsync failures release no data, leave memory unchanged, poison writer
+ok 9 - H1 append and fsync failures release no data, leave memory unchanged, poison writer
+  ---
+  duration_ms: 227.871073
+  type: 'test'
+  ...
+# Subtest: H2 restart verifies; partial, tampered and wrong-key logs refuse recovery
+ok 10 - H2 restart verifies; partial, tampered and wrong-key logs refuse recovery
+  ---
+  duration_ms: 5.500688
+  type: 'test'
+  ...
+# Subtest: H3 deletion, truncation and same-size edits while serving refuse append
+ok 11 - H3 deletion, truncation and same-size edits while serving refuse append
+  ---
+  duration_ms: 7.434947
+  type: 'test'
+  ...
+# Subtest: H4 concurrent handles serialize a verifiable persisted chain; callers cannot mutate it
+ok 12 - H4 concurrent handles serialize a verifiable persisted chain; callers cannot mutate it
+  ---
+  duration_ms: 21.180857
+  type: 'test'
+  ...
+# Subtest: H5 schema projects intersection of read and schema constraints and hides redacted names
+ok 13 - H5 schema projects intersection of read and schema constraints and hides redacted names
+  ---
+  duration_ms: 2.609414
+  type: 'test'
+  ...
+# Subtest: H6 provider and policy exceptions omit secrets from result and signed receipt
+ok 14 - H6 provider and policy exceptions omit secrets from result and signed receipt
+  ---
+  duration_ms: 1.642744
+  type: 'test'
+  ...
+# Subtest: H7 production refuses missing DB and probe bypass before connecting
+ok 15 - H7 production refuses missing DB and probe bypass before connecting
+  ---
+  duration_ms: 1246.432028
+  type: 'test'
+  ...
+# Subtest: H8 MCP caller spoofing fails; host identity wins; receipt failure is sanitized
+ok 16 - H8 MCP caller spoofing fails; host identity wins; receipt failure is sanitized
+  ---
+  duration_ms: 1140.334575
+  type: 'test'
+  ...
+# Subtest: H9 offline verifier rejects incomplete tail and validates full log
+ok 17 - H9 offline verifier rejects incomplete tail and validates full log
+  ---
+  duration_ms: 542.709333
+  type: 'test'
+  ...
+# Subtest: H10 schema enumeration honors initial constraints as well as table rules
+ok 18 - H10 schema enumeration honors initial constraints as well as table rules
+  ---
+  duration_ms: 1.182434
+  type: 'test'
+  ...
+# Subtest: output limits (F9)
+    # Subtest: defaults to DEFAULT_MAX_ROWS
+    ok 1 - defaults to DEFAULT_MAX_ROWS
+      ---
+      duration_ms: 1.345903
+      type: 'test'
+      ...
+    # Subtest: clamps above HARD_MAX_ROWS
+    ok 2 - clamps above HARD_MAX_ROWS
+      ---
+      duration_ms: 0.214509
+      type: 'test'
+      ...
+    # Subtest: rejects non-positive
+    ok 3 - rejects non-positive
+      ---
+      duration_ms: 0.277646
+      type: 'test'
+      ...
+    1..3
+ok 19 - output limits (F9)
+  ---
+  duration_ms: 3.18893
+  type: 'suite'
+  ...
+# Subtest: schema filtering (F10)
+    # Subtest: omits tables the policy would deny
+    ok 1 - omits tables the policy would deny
+      ---
+      duration_ms: 11.909362
+      type: 'test'
+      ...
+    # Subtest: *users* matches public.users
+    ok 2 - *users* matches public.users
+      ---
+      duration_ms: 3.525306
+      type: 'test'
+      ...
+    1..2
+ok 20 - schema filtering (F10)
+  ---
+  duration_ms: 15.846465
+  type: 'suite'
+  ...
+# Subtest: policy load fail-closed
+    # Subtest: rejects misspelled effect (F4)
+    ok 1 - rejects misspelled effect (F4)
+      ---
+      duration_ms: 4.742525
+      type: 'test'
+      ...
+    # Subtest: rejects unimplemented constraint type aggregate (F5)
+    ok 2 - rejects unimplemented constraint type aggregate (F5)
+      ---
+      duration_ms: 0.744033
+      type: 'test'
+      ...
+    # Subtest: rejects unimplemented constraint type rows
+    ok 3 - rejects unimplemented constraint type rows
+      ---
+      duration_ms: 0.435986
+      type: 'test'
+      ...
+    # Subtest: rejects allow_with_constraints without constraints
+    ok 4 - rejects allow_with_constraints without constraints
+      ---
+      duration_ms: 0.529205
+      type: 'test'
+      ...
+    # Subtest: accepts a valid policy
+    ok 5 - accepts a valid policy
+      ---
+      duration_ms: 0.381862
+      type: 'test'
+      ...
+    1..5
+ok 21 - policy load fail-closed
+  ---
+  duration_ms: 7.960879
+  type: 'suite'
+  ...
+# Subtest: K1 anchored history accepts exact match and verified extensions
+ok 22 - K1 anchored history accepts exact match and verified extensions
+  ---
+  duration_ms: 298.117394
+  type: 'test'
+  ...
+# Subtest: K2 deletion, empty replacement and valid-prefix rollback refuse without rewriting evidence
+ok 23 - K2 deletion, empty replacement and valid-prefix rollback refuse without rewriting evidence
+  ---
+  duration_ms: 12.197709
+  type: 'test'
+  ...
+# Subtest: K3 same-key valid fork, wrong-key anchor and corrupt extensions fail closed
+ok 24 - K3 same-key valid fork, wrong-key anchor and corrupt extensions fail closed
+  ---
+  duration_ms: 15.258492
+  type: 'test'
+  ...
+# Subtest: K4 strict checkpoint parsing rejects malformed, oversized or unavailable anchors
+ok 25 - K4 strict checkpoint parsing rejects malformed, oversized or unavailable anchors
+  ---
+  duration_ms: 11.920797
+  type: 'test'
+  ...
+# Subtest: K5 export verifies before producing a candidate and never overwrites files
+ok 26 - K5 export verifies before producing a candidate and never overwrites files
+  ---
+  duration_ms: 1121.096425
+  type: 'test'
+  ...
+# Subtest: K6 offline anchored verification rejects empty, rolled-back and missing history
+ok 27 - K6 offline anchored verification rejects empty, rolled-back and missing history
+  ---
+  duration_ms: 716.094178
+  type: 'test'
+  ...
+# Subtest: K7 production requires explicit checkpoint configuration before opening a DB
+ok 28 - K7 production requires explicit checkpoint configuration before opening a DB
+  ---
+  duration_ms: 521.796752
+  type: 'test'
+  ...
+# Subtest: K8 MCP anchored startup succeeds; deleted/rolled-back history and missing anchor refuse
+ok 29 - K8 MCP anchored startup succeeds; deleted/rolled-back history and missing anchor refuse
+  ---
+  duration_ms: 2429.465299
+  type: 'test'
+  ...
+# MCP anchored startup/refusal mode=development-stub
+# Subtest: K9 freshness limit: old floor permits suffix removal; advanced checkpoint detects it
+ok 30 - K9 freshness limit: old floor permits suffix removal; advanced checkpoint detects it
+  ---
+  duration_ms: 8.030221
+  type: 'test'
+  ...
+# Rollback is detected only through the independently retained checkpoint; unanchored suffix loss remains a documented limit
+# Subtest: K10 CLI rejects missing/unknown checkpoint arguments rather than disabling checks
+ok 31 - K10 CLI rejects missing/unknown checkpoint arguments rather than disabling checks
+  ---
+  duration_ms: 817.41321
+  type: 'test'
+  ...
+# Subtest: receipt integrity (F2)
+    # Subtest: canonicalJson includes nested keys
+    ok 1 - canonicalJson includes nested keys
+      ---
+      duration_ms: 1.440117
+      type: 'test'
+      ...
+    # Subtest: old broken replacer would drop nested fields (documents the bug)
+    ok 2 - old broken replacer would drop nested fields (documents the bug)
+      ---
+      duration_ms: 0.396715
+      type: 'test'
+      ...
+    # Subtest: forging decision deny->allow invalidates contentHash (A6)
+    ok 3 - forging decision deny->allow invalidates contentHash (A6)
+      ---
+      duration_ms: 8.669173
+      type: 'test'
+      ...
+    # Subtest: untampered receipt verifies
+    ok 4 - untampered receipt verifies
+      ---
+      duration_ms: 6.57387
+      type: 'test'
+      ...
+    1..4
+ok 32 - receipt integrity (F2)
+  ---
+  duration_ms: 18.728594
+  type: 'suite'
+  ...
+# Subtest: R-before-append: forced termination preserves evidence and enforces restart contract
+ok 33 - R-before-append: forced termination preserves evidence and enforces restart contract
+  ---
+  duration_ms: 1094.29084
+  type: 'test'
+  ...
+# phase=before-append response=false offlineExit=0 restartExit=0 prefixPreserved=true
+# Subtest: R-partial-append: forced termination preserves evidence and enforces restart contract
+ok 34 - R-partial-append: forced termination preserves evidence and enforces restart contract
+  ---
+  duration_ms: 864.862587
+  type: 'test'
+  ...
+# phase=partial-append response=false offlineExit=1 restartExit=2 prefixPreserved=true
+# Subtest: R-after-append-before-sync: forced termination preserves evidence and enforces restart contract
+ok 35 - R-after-append-before-sync: forced termination preserves evidence and enforces restart contract
+  ---
+  duration_ms: 897.113436
+  type: 'test'
+  ...
+# phase=after-append-before-sync response=false offlineExit=0 restartExit=0 prefixPreserved=true
+# Subtest: R-after-sync: forced termination preserves evidence and enforces restart contract
+ok 36 - R-after-sync: forced termination preserves evidence and enforces restart contract
+  ---
+  duration_ms: 976.431942
+  type: 'test'
+  ...
+# phase=after-sync response=false offlineExit=0 restartExit=0 prefixPreserved=true
+# Subtest: R-before-response: forced termination preserves evidence and enforces restart contract
+ok 37 - R-before-response: forced termination preserves evidence and enforces restart contract
+  ---
+  duration_ms: 996.130071
+  type: 'test'
+  ...
+# phase=before-response response=false offlineExit=0 restartExit=0 prefixPreserved=true
+# Subtest: R-after-response: forced termination preserves evidence and enforces restart contract
+ok 38 - R-after-response: forced termination preserves evidence and enforces restart contract
+  ---
+  duration_ms: 849.63454
+  type: 'test'
+  ...
+# phase=after-response response=true offlineExit=0 restartExit=0 prefixPreserved=true
+# Subtest: request validation (encoding / shape)
+    # Subtest: accepts normal structured query
+    ok 1 - accepts normal structured query
+      ---
+      duration_ms: 1.624116
+      type: 'test'
+      ...
+    # Subtest: allows schema *
+    ok 2 - allows schema *
+      ---
+      duration_ms: 0.343825
+      type: 'test'
+      ...
+    # Subtest: rejects * on query
+    ok 3 - rejects * on query
+      ---
+      duration_ms: 0.287708
+      type: 'test'
+      ...
+    # Subtest: rejects percent-encoded resource
+    ok 4 - rejects percent-encoded resource
+      ---
+      duration_ms: 0.298044
+      type: 'test'
+      ...
+    # Subtest: rejects base64-like resource
+    ok 5 - rejects base64-like resource
+      ---
+      duration_ms: 0.470506
+      type: 'test'
+      ...
+    # Subtest: rejects path traversal resource
+    ok 6 - rejects path traversal resource
+      ---
+      duration_ms: 0.157715
+      type: 'test'
+      ...
+    # Subtest: rejects unknown params keys including sql
+    ok 7 - rejects unknown params keys including sql
+      ---
+      duration_ms: 0.258092
+      type: 'test'
+      ...
+    # Subtest: rejects encoded column name
+    ok 8 - rejects encoded column name
+      ---
+      duration_ms: 0.414662
+      type: 'test'
+      ...
+    # Subtest: accepts ordinary short column identifiers
+    ok 9 - accepts ordinary short column identifiers
+      ---
+      duration_ms: 0.383968
+      type: 'test'
+      ...
+    # Subtest: rejects encoded purpose
+    ok 10 - rejects encoded purpose
+      ---
+      duration_ms: 0.55362
+      type: 'test'
+      ...
+    1..10
+ok 39 - request validation (encoding / shape)
+  ---
+  duration_ms: 6.132666
+  type: 'suite'
+  ...
+1..39
+# tests 62
+# suites 6
+# pass 62
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 18511.011271

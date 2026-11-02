@@ -1,6 +1,6 @@
 # Boundary Agent SDLC and Prompt Package 001
 
-Supplement to [the authoritative SDLC](../SDLC.md), not a replacement. Product
+Supplement to [the authoritative SDLC](../../SDLC.md), not a replacement. Product
 is production NO-GO until the release gates and independent review are
 satisfied.
 
@@ -14,7 +14,7 @@ receipts, operator-owned checkpoints. Not an agent sandbox, identity provider,
 network firewall or prompt-injection filter. Approved projections may reach
 cloud model tool context.
 
-Use [WORKFLOW.md](WORKFLOW.md) for the lifecycle and [PROMPTS.md](PROMPTS.md)
+Use [WORKFLOW.md](WORKFLOW.md) for the lifecycle and [PROMPTS.md](../../agent-playbook/PROMPTS.md)
 for reusable agent directives. No runtime or deployment change is authorized by
 this package.
 
@@ -25,5 +25,5 @@ release gates.
 ## New-agent entrypoint
 
 Start at [START-HERE.md](START-HERE.md). Structured handoffs use
-[EVIDENCE-SCHEMA.json](EVIDENCE-SCHEMA.json); prompts P01–P14 are in
-[PROMPTS.md](PROMPTS.md).
+[EVIDENCE-SCHEMA.json](../../agent-playbook/EVIDENCE-SCHEMA.json); prompts P01–P14 are in
+[PROMPTS.md](../../agent-playbook/PROMPTS.md).

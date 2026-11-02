@@ -6,10 +6,11 @@
 **Redteam kit:**
 [aletheia-redteam-kit](https://github.com/holeyfield33-art/aletheia-redteam-kit)
 
-**Current evidence and production NO-GO:**
-[hardening checkpoint](HARDENING-2026-10-30.md),
-[BOUNDARY-NEXT-001](BOUNDARY-NEXT-001.md). Historical coverage labels below are
-not release certification.
+**Current status, open findings and production NO-GO:** [STATUS](STATUS.md).
+History: [hardening checkpoint](archive/HARDENING-2026-10-30.md),
+[BOUNDARY-NEXT-001](archive/BOUNDARY-NEXT-001.md). Coverage labels below are
+not release certification; the 2026-11-02 re-audit findings N1–N9 are not yet
+reflected row by row.
 
 This document maps kit attack _categories_ to what the boundary is responsible
 for. Use it to decide which findings are in-scope product bugs vs out-of-scope
@@ -138,7 +139,7 @@ executed in this cycle. Do not mark those categories closed.
 
 ## Receipt process interruption follow-up
 
-[Recovery drill](RECOVERY-2026-10-30.md): six subprocess termination phases,
+[Recovery drill](archive/RECOVERY-2026-10-30.md): six subprocess termination phases,
 retained-prefix oracle, offline signatures and fresh-process
 restart/continuation are tested by `src/receipt/recovery.test.ts`.
 `npm run test:recovery` needs no database. This narrows the process-interruption
@@ -148,7 +149,7 @@ coverage. CI was skipped at the user's direction for billing.
 
 ## Trusted checkpoint follow-up
 
-[Checkpoint handoff](CHECKPOINT-2026-10-30.md): K1-K10 cover matching/extended
+[Checkpoint handoff](archive/CHECKPOINT-2026-10-30.md): K1-K10 cover matching/extended
 history, missing/empty/rolled-back logs, valid forks, key binding,
 malformed/missing checkpoints, CLI export safety, production startup and the
 explicit stale-floor limitation. Startup and CLI verify the full chain first.

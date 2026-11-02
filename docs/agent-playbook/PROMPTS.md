@@ -5,7 +5,7 @@ existing product boundaries.
 
 ## P01 — Baseline reconnaissance
 
-Read README.md, docs/SDLC.md, docs/CHECKPOINT-2026-10-30.md,
+Read README.md, docs/STATUS.md, docs/SDLC.md,
 docs/REDTEAM-GAP-MAP.md and relevant source. Pin SHA and summarize architecture,
 threat boundaries, tests and release blockers. Cite paths. Do not edit.
 

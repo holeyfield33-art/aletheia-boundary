@@ -5,9 +5,9 @@
 ## Read order (one current authority)
 
 1. [README.md](README.md) — customer-facing product, supported operations and installation.
-2. [docs/STATUS.md](docs/STATUS.md) — **only living current status**: package, production decision, verified vs historical results, blockers and next priorities. Check HEAD before trusting any historical SHA.
-3. [docs/SDLC.md](docs/SDLC.md) — stable invariants, architectural responsibilities and G1–G6 verification contracts.
-4. On demand: [security gap map](docs/REDTEAM-GAP-MAP.md), [agent prompts P01–P14](docs/agent-playbook/PROMPTS.md), [task-specific playbook](docs/agent-playbook/START-HERE.md) and relevant source/tests. Dated CHECKPOINT/NEXT/HARDENING/RECOVERY/AGENT-REVIEW reports are **history**, not a second current plan.
+2. [docs/STATUS.md](docs/STATUS.md) — **only living current status**: phases, the one-item work queue, beta entry criteria, last verified results and blockers. Check HEAD before trusting any SHA.
+3. [docs/SDLC.md](docs/SDLC.md) — stable rules: invariants I1–I6 and their tests, G1–G6, the working loop, the release matrix.
+4. On demand: [security gap map](docs/REDTEAM-GAP-MAP.md), [agent prompts P01–P14](docs/agent-playbook/PROMPTS.md) and relevant source/tests. Everything in [docs/archive/](docs/archive/README.md) is **history**, not a second current plan; [docs/evidence/](docs/evidence/) is immutable raw results.
 
 ## Engineering constraints
 
@@ -19,7 +19,7 @@
 
 ## Ongoing maintenance
 
-Use [SDLC §10](docs/SDLC.md#10-repository-maintenance-and-operational-assurance--current-engineering-policy) for each consequential change, advisory, security review and risk-proportionate operational health check. It distinguishes application code from host-owned safeguards, before-merge tests from **post-deployment** verification, and current [STATUS](docs/STATUS.md) from historical reports. The proposed monthly review cadence requires operator approval; no automatic runs, production release or certification are implied.
+Work one STATUS queue item at a time using the [working loop](docs/SDLC.md#6-the-working-loop): failing test first, smallest fix, local gates, merge after the operator's check, update STATUS. Code work is limited to security fixes and bugs until STATUS says otherwise. Use [SDLC §8](docs/SDLC.md#8-repository-maintenance-and-operational-assurance) for each consequential change, advisory, security review and risk-proportionate operational health check. It distinguishes application code from host-owned safeguards, before-merge tests from **post-deployment** verification, and current [STATUS](docs/STATUS.md) from historical reports. The proposed monthly review cadence requires operator approval; no automatic runs, production release or certification are implied.
 
 ## Commands (only where environment is suitable)
 

@@ -1,163 +1,138 @@
 # Aletheia Boundary — current status
 
-**Date:** 2026-11-02  
-**Package:** `0.0.11`  
-**Production disposition:** **NO-GO** (unchanged — local gates are not production GO)
+**Updated:** 2026-11-02 · **Code at:** `main` `0f59c4c` · **Package:** `0.0.11`
+**Production:** **NO-GO** · **Beta target:** Friday 2026-11-06, if the beta entry criteria below are met
 
-This is the **single current plan/status document**. Dated ledgers under `docs/` are historical evidence; they do not override this page.
-
-**Operator tick-list:** [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md)
+This is the **only** living status and plan. Everything dated under
+[`archive/`](archive/README.md) is history; [`evidence/`](evidence/) holds immutable raw
+results. When this page and an older document disagree, this page wins. Update
+it in place; never append dated session logs.
 
 ---
 
 ## What Boundary is
 
-Local, customer-owned MCP data-boundary enforcer:
-
-1. **Decide** — policy allow / deny / allow-with-constraints (fail-closed).
-2. **Minimize** — structured Postgres reads only; columns / limit / redact / sample; no free-form SQL.
-3. **Prove** — hash-chained Ed25519 receipts the customer owns and can verify offline.
-
-It is **not** an agent sandbox, prompt-injection filter, network firewall, identity provider, or Studio product.
-
----
-
-## E2E audit snapshot (2026-11-02, local live)
-
-Pinned context: main after merge of PR #17 (`1634c33` lineage). Live Postgres via `docker compose`; `DATABASE_URL` + `DATABASE_URL_WRITABLE` set.
-
-| Gate | Result | Notes |
-|---|---|---|
-| G1 `npm ci` | **PASS** | User machine; lockfile resolves |
-| G2 `npm run typecheck` | **PASS** | `tsc --noEmit` |
-| G3 `npm test` | **PASS** 62/62 | Checkpoint, recovery, hardening, concurrency R1–R7, validate |
-| G4 integration | **PASS** | All `[ok]` incl. free-form SQL → `Invalid request` |
-| G5 attacks | **PASS** | `leaks: 0` / 12 |
-| Agent review | **PASS** 11/0 | Report: `docs/AGENT-REVIEW-2026-11-02.md`; C6 accepts shape-layer reason |
-| Demo (`npm run demo`) | **PASS** | Live allow/deny/encoding/SQL reject; `chainOk: true` |
-| MCP product path (`npm run dev` probes) | **PASS** | Schema/query/deny/SQL reject/receipts |
-| G6 offline verify-log | **PASS** in agent-review C10 | Host checkpoint custody still open |
-| CI on release commit | **NOT RUN** | Actions billing |
-| Independent review | **NOT RUN** | Mandatory for production GO |
-| Host isolation / single-writer ops | **NOT RUN** | Code is process-local only |
-| Storage / key recovery drills | Partial (injected FS) | Physical power-loss / ENOSPC not certified |
-
-**Local gates G1–G5 + agent review are green.** That does **not** authorize production.
-
-Harness note: after NEXT-002, free-form `sql` is rejected before policy with public reason **`Invalid request`**. Integration and agent-review C6 matchers were updated (PR #17) so live gates score correctly.
+A local, customer-owned MCP data-boundary enforcer between AI agents and
+Postgres. It **decides** (policy allow / deny / allow-with-constraints, fail
+closed), **minimizes** (structured reads only; columns, limit, redact, sample;
+no free-form SQL) and **proves** (hash-chained Ed25519 receipts the customer
+verifies offline). It is not an agent sandbox, identity provider, network
+firewall or prompt-injection filter. Contract: [README](../README.md) ·
+rules and gates: [SDLC](SDLC.md).
 
 ---
 
-## Closed in code (Boundary-owned)
+## Working rule
 
-| ID | Item | Evidence |
-|---|---|---|
-| F1–F11 | Structured path, fail-closed policy, honest truncation, schema filter, receipts | SDLC / hardening |
-| R1–R7 | Process-local concurrency + rate limits | `src/data/concurrency.ts` |
-| H* / K* / recovery | Receipt poison, restart contract, checkpoint floor | permanent suites |
-| NEXT-002 | Agent request shape + encoding reject before policy | `src/request/validate.ts` |
-| NEXT-003 | Purpose `looksEncoded` residual + detector harden | same + tests |
-| Test harness | Integration + C6 accept `Invalid request` for SQL shape reject | PR #17 |
+**One item → failing test → fix → local gates → merge → update this page → repeat.**
+Code work is limited to security fixes and bugs. Every security fix lands with
+a permanent attack in `audit/attacks.ts` that fails before the fix. Merges
+follow a local G1–G6 run while GitHub Actions is billing-locked (CI recorded as
+NOT_RUN, never PASS).
 
 ---
 
-## Still open
+## Phases
 
-### Code (optional / deferred)
-
-| Item | Status | Owner |
+| Phase | Scope | State |
 |---|---|---|
-| Deny timing side-channel | Deferred (NEXT-001) | Boundary — after CI or non-flaky harness |
-| Cross-process rate / concurrency | Out of scope | **Host** |
-| Filesystem provider path traversal | N/A until provider exists | Boundary later |
-| Kit re-run against structured-only payloads | Recommended | Redteam kit + Boundary |
+| 0 · Foundation (0.0.1–0.0.3) | Core decide/minimize/receipt path, Postgres provider, MCP tool | **Done** |
+| 1 · Audit remediation (0.0.4–0.0.9) | 2026-10-29 audit F1–F11: structured reads only, fail-closed policy, recursive receipt hashing, verify-on-load, honest truncation, schema filtering | **Done**, with residuals reopened as N1, N2, N9 below |
+| 2 · Hardening (0.0.10–0.0.11) | Receipt durability (H1–H10), trusted checkpoints (K1–K10), crash recovery drill, process-local rate/concurrency limits (R1–R7), request shape/encoding validation (NEXT-002/003), sanitized errors, host-trusted caller | **Done in code** |
+| 3 · Hardening + local isolation | Security bugs from the 2026-11-02 re-audit; local host-isolation rehearsal | **Current** — queue below |
+| 4 · Beta | Outside testers on disposable / non-sensitive data | **Next** — entry criteria below |
+| 5 · Production 1.0 | Independent review, production host custody, physical recovery drills, CI on the tagged SHA | **Not started** (blocked on items outside the code) |
 
-### Ops / release (blocking GO)
+---
 
-| Item | Status |
+## Current queue (Phase 3) — work top to bottom, one item at a time
+
+Findings N1–N9 come from the [2026-11-02 re-audit](evidence/REAUDIT-2026-11-02/REPORT.md).
+
+| # | Item | Type · severity | Needed for beta | State |
+|---|---|---|---|---|
+| 1 | **N1** Policy matches the exact resource string; the provider reads `public.<name>`. A deny on `public.users` misses `users` (and the reverse). Resolve to canonical `schema.table` before policy and schema filtering; match case consistently. | Security · High | **Must** | Open |
+| 2 | **N2** Constraint `value` is untyped (`z.unknown()`): `columns: "id"`, `redact: "ssn"`, `limit: "1"` load and are silently not enforced. Type every constraint value in the schema. | Security · High | **Must** | Open |
+| 3 | **N3** Attack A7 cannot detect a read-write escape (its SQL is refused before Postgres). Replace with a test that reaches Postgres or asserts the probe + `READ ONLY` transaction directly. | Test gap · Medium | **Must** | Open |
+| 4 | **N9** MCP server reports `0.0.10` while the package is `0.0.11`; read the version from `package.json`. Rate-limit refusals write no receipt. | Bug · Low | **Must** (version) | Open |
+| 5 | **N5** Validator rejects ordinary names (`CustomerOrders2024`, purpose `QuarterlyBusinessReview`) as "encoded", and every validation failure returns the same `Invalid request`. | Bug · Medium | Should | Open |
+| 6 | **N6** Output is capped by rows only; 2,000 wide rows have no byte cap. | Security · Medium | Should | Open |
+| 7 | **N7** Equal-priority rules resolve by document order, so an allow listed first beats a deny. Deny should win ties. | Security · Low | Should | Open |
+| 8 | **N4** Each receipt append re-reads the whole log; startup re-verifies every receipt (92 ms/request and 3.0 s startup at 20,000 receipts). | Performance · Medium | After (document the limit for beta) | Open |
+| 9 | **N8** Loader accepts allow rules gated only on agent-claimed `purpose` without a warning. | Footgun · Low | After | Open |
+| — | NEXT-001 deny-timing side channel | Security · Low | After | Deferred |
+
+### Ops items for Phase 3 / beta (not code)
+
+| Item | Owner | State |
+|---|---|---|
+| GitHub Actions billing | Operator | Payment Wednesday 2026-11-04; until then CI is **NOT_RUN** |
+| Local host-isolation rehearsal | Operator | Done 2026-11-01 for a disposable host ([report](evidence/HOST-CUSTODY-2026-11-01/REPORT.md)); exclusive single-writer supervision and a restricted agent host are not proven |
+| Beta tester instructions (disposable DB, read-only role, one writer per log) | Operator | Open — reuse [DEMO](DEMO.md) and the [runbook](HOST-CUSTODY-RUNBOOK.md) |
+
+---
+
+## Beta entry criteria (target Friday)
+
+Beta means outside testers on **disposable or non-sensitive data** only. It is
+not a production release and does not change the production NO-GO.
+
+1. Queue items 1–4 closed, each with a permanent failing-then-passing attack or test.
+2. G1–G6 and the agent review pass locally on the beta commit, recorded with exit codes.
+3. CI executed on the beta commit **if** billing is restored; otherwise recorded as NOT_RUN.
+4. README states the beta scope, known limitations (open queue rows) and the stop conditions below.
+5. Independent review: **not required for beta**, required for production.
+
+**Stop-ship for beta:** any policy-denied row in a tool result, any write
+reaching the database, a receipt that fails offline verification, or stub data
+returned without `dataSource: "stub"`.
+
+---
+
+## Last verified
+
+| Check | Result | Source |
+|---|---|---|
+| G1 `npm ci` · G2 typecheck | PASS | Fresh clone of `0f59c4c`, 2026-11-02 (re-audit) |
+| G3 `npm test` | PASS, 62/62 | same |
+| G4 integration (PostgreSQL 16.15) | PASS | same |
+| G5 `npm run test:attacks` | PASS, 12/12 held | same — does not yet cover N1–N3 |
+| Agent review C0–C10 incl. G6 offline receipt verification | PASS, 11/11 | same |
+| CI | **NOT_RUN** | Actions billing lock |
+| Independent review | NOT_RUN | required for production only |
+
+The operator's own local runs on 2026-11-01/02 are recorded in
+[archive/STATUS-2026-11-02-pre-reorg.md](archive/STATUS-2026-11-02-pre-reorg.md)
+and [evidence/HOST-CUSTODY-2026-11-01/](evidence/HOST-CUSTODY-2026-11-01/REPORT.md).
+
+---
+
+## Production blockers (Phase 5)
+
+Independent security review · CI green on the exact tagged SHA · exclusive
+single-writer supervision and a restricted agent host · checkpoint custody
+outside the writer's administrator domain with human approval · physical
+storage/power-loss and key-rotation drills. Checklist:
+[RELEASE-CHECKLIST](RELEASE-CHECKLIST.md) · detailed rows:
+[HOST-ISOLATION-CHECKLIST](HOST-ISOLATION-CHECKLIST.md).
+
+---
+
+## Document map
+
+| Need | Read |
 |---|---|
-| CI green on exact release SHA | **NOT RUN** (billing) |
-| Independent review | **NOT RUN** |
-| Host isolation + single-writer proof | **NOT RUN** |
-| Checkpoint custody / publication / freshness | Host-owned; code only provides floor |
-| Physical storage / key rotation drills | **NOT RUN** |
+| Product, install, tool contract | [README](../README.md) |
+| Agent entry and constraints | [AGENTS](../AGENTS.md) |
+| Invariants, gates, release rules | [SDLC](SDLC.md) |
+| Release and beta tick-list | [RELEASE-CHECKLIST](RELEASE-CHECKLIST.md) |
+| Local demo and real testing | [DEMO](DEMO.md) |
+| Host isolation and checkpoint custody | [HOST-CUSTODY-RUNBOOK](HOST-CUSTODY-RUNBOOK.md) · [HOST-ISOLATION-CHECKLIST](HOST-ISOLATION-CHECKLIST.md) |
+| Red-team responsibility split | [REDTEAM-GAP-MAP](REDTEAM-GAP-MAP.md) |
+| Reusable agent prompts P01–P14 | [agent-playbook/PROMPTS](agent-playbook/PROMPTS.md) |
+| History (audits, checkpoints, old plans) | [archive/](archive/README.md) |
+| Immutable raw results | [evidence/](evidence/) |
 
----
-
-## Plan order (next)
-
-1. **Ops unlock:** restore Actions billing → CI on **exact** release SHA → record run.  
-2. **Independent review** of threat model + receipt/custody story.  
-3. **Host drills:** single-writer log path, no raw-SQL tool beside Boundary, checkpoint custody outside writer domain.  
-4. **Optional code:** side-channel timing only with non-flaky tests; or kit-driven structured exfil into `audit/attacks.ts`.  
-5. **Do not** claim GO from local unit/integration/agent-review alone.
-
-Tick progress in [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md).
-
----
-
-## Relationship to Software Research Studio
-
-Studio repo: https://github.com/holeyfield33-art/software-research-studio  
-
-| Studio claim | Status | Boundary implication |
-|---|---|---|
-| 003/003R archive integrity | GO (scoped) | Cite freeze pins only; do not mutate |
-| 003R novel-input selector | **NO-GO** | Do not import selector into Boundary |
-| UNIVERSAL-ARCH-001 | Design candidate | Advisory mapping only → [STUDIO-FREEZE-MAPPING.md](STUDIO-FREEZE-MAPPING.md) |
-| Studio product integration | **NO-GO** | Boundary is independent; no product link |
-
-**Immutable freeze pin:** `SRS-FREEZE-2026-10-31-v1` / commit `89fe5485e37f315eab6b5131e715bcd2115bbe31`.
-
-Boundary may be assessed **by** Studio as an external project; Studio must not become Boundary’s runtime authority.
-
----
-
-## Doc map
-
-| Read first | Purpose |
-|---|---|
-| [STATUS.md](STATUS.md) (this file) | Current plan + disposition |
-| [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md) | SDLC-aligned release gates |
-| [DEMO.md](DEMO.md) | Local real testing + demo |
-| [../README.md](../README.md) | Install, run, contract |
-| [SDLC.md](SDLC.md) | Gates and process |
-| [REDTEAM-GAP-MAP.md](REDTEAM-GAP-MAP.md) | Kit category ownership |
-| [AGENT-REVIEW-2026-11-02.md](AGENT-REVIEW-2026-11-02.md) | Latest agent-review report (11 PASS) |
-
----
-
-_Update this file when disposition, package version, or blocking open items
-change. Production remains NO-GO until ops blockers clear._
-
-## Local product verification — 2026-11-01 (America/Los_Angeles)
-
-Tested source HEAD: `e53629400042bb8309c230dbba1cfaac7063dafb`; local disposable Postgres 16 fixture. Production remains **NO-GO**. These fresh local results qualify the historical snapshot above; they are not release CI or independent review.
-
-- `npm ci`: exit 0; `npm run typecheck`: exit 0; `npm test`: exit 0, 62 passed / 0 failed.
-- `npm run test:integration`: exit 1 at `src/integration.test.ts:167`. Read-only role accepted and writable role refused before failure. SQL request was denied, but the assertion requires "free-form SQL" / "not allowed" while the public response is "Invalid request". Later integration checks did not execute.
-- `npm run test:attacks`: exit 0; zero leaks across 12 cases; write canary remained empty.
-- `node --import tsx audit/agent-review.ts`: exit 1; 10 passed / 1 failed / 0 skipped. C6 has the same rejection-wording mismatch. C0 tool discovery and C10 offline verification of nine persisted receipts passed. Used the underlying script without `--write-report` to preserve the pre-existing untracked report.
-- Separate stdio MCP client discovered `boundary_request`, successfully queried analytics with the requested projection, denied users, rejected encoded resource and `params.sql`, and retrieved filtered schema. All responses identified `dataSource: postgres`; offline verification passed for all five receipts (exit 0). Disposable keys/logs were separate from the configured host log.
-- Native Aletheia tools were not available in the running Codex chat; restart/client loading remains a separate unverified step. MCP startup reports 0.0.10 while package metadata is 0.0.11.
-
-Raw outputs: `C:/Users/SuperAdmin/Documents/Codex/2026-11-01/i-x20/outputs/aletheia-local-verification/`.
-Next: reconcile the rejection-message contract and rerun integration/agent review; restart Codex and confirm native tool loading. No application code changed. Existing production blockers remain open.
-
-## Host / custody rehearsal — 2026-11-01 (America/Los_Angeles)
-
-Tested HEAD `1634c33d74468befbbc9ce39816e68c5639cb97e`; production **NO-GO** unchanged. See [evidence and exact exits](evidence/HOST-CUSTODY-2026-11-01/REPORT.md) and [operator runbook](HOST-CUSTODY-RUNBOOK.md).
-
-Fresh build and disposable container rehearsal completed (exit 0): verified candidate export/no overwrite; production-mode matching-anchor startup; missing/corrupt/wrong-key/rolled-back anchor refusals; writer denied checkpoint modification/deletion; UID/file permissions; trusted caller binding; isolated-agent negative DB/key access; writable-role refusal; retained old/advanced-anchor freshness demonstration; empty write canary. Native Codex boundary_request is now loaded and returned real Postgres analytics data.
-
-**Host isolation is not complete:** current desktop agent retains shell/Docker/direct fixture access. Another container name can open the same log; only stale-writer refusal and same-name supervisor exclusion were demonstrated. Actual exclusive supervision/agent restrictions remain required. Read-only checkpoint custody is proven only against the writer container, not the shared Docker administrator. Human approval, freshness-policy acceptance, independent custody/publication, physical recovery drills, release CI and independent review remain open. Rehearsal anchors are not approved production anchors. Added only drill tooling/docs; no application code, configured host keys/log history or production settings were changed (native MCP connectivity check appended a normal receipt).
-
-Operator decision — 2026-11-01: checkpoint freshness cadence approved: anchor after each completed batch; pause the next batch until checkpoint approval and publication. This is a runbook policy decision, not approval of a particular checkpoint or evidence that a runtime batch interlock exists. Independent custody, actual human checkpoint publication, exclusive supervision and all remaining production blockers remain open. Production remains NO-GO.
-
-## Checklist assessment prepared for review
-
-[Annotated host/independent-review checklist](HOST-ISOLATION-CHECKLIST.md) records demonstrated disposable drill/artifact rows separately from open production-host controls. Tested application SHA is `1634c33d74468befbbc9ce39816e68c5639cb97e`, package 0.0.11. PR intent is docs/host-custody-evidence into main, not a release. The referenced RELEASE-CHECKLIST.md does not exist at this SHA; no independent-review sign-off or complete same-release-SHA gate pack is claimed.
-
-PR preparation on application SHA 1634c33: integration rerun exit 0; MCP agent review rerun exit 0 (11 pass / 0 fail / 0 skip). [Raw outputs](evidence/HOST-CUSTODY-2026-11-01/current-head-gates/) supersede the earlier wording failures for these commands on this SHA. Other local gates and CI were not rerun in this preparation; no production-host or independent-review promotion is implied.
-
-PR #19 artifact-integrity correction: review found that JSON re-serialization removed the checkpoint export trailing newline. Fixed the harness to preserve bytes and fingerprint the saved artifact; protected candidate paths from Git line-ending conversion. Retained the original evidence and added an exact export recovered from the read-only custody volume plus byte/hash verification. Targeted regression test and recovery check exited 0; no full gate rerun, checkpoint approval or production promotion. See the existing host/custody report's integrity-correction section.
+Software Research Studio's repository-knowledge method was used to organize
+these documents. Studio is not a runtime dependency or linked product; the old
+advisory mapping is in the archive.

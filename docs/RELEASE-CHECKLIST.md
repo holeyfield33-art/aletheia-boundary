@@ -1,6 +1,6 @@
 # Release checklist — Aletheia Boundary
 
-**Authority:** [SDLC.md](SDLC.md) §3–§5 and release matrix.  
+**Authority:** [SDLC.md](SDLC.md) §3–§5 (invariants, gates, review) and §7 (release matrix).  
 **Current disposition:** [STATUS.md](STATUS.md) — **Production NO-GO** until every **blocking** production row is PASS on the **exact release commit SHA**.
 
 Historical unit green or a prior SHA do **not** satisfy a new tag.
@@ -18,7 +18,7 @@ Historical unit green or a prior SHA do **not** satisfy a new tag.
 
 ---
 
-## 1. Verify gates (SDLC §3) — local 2026-11-02
+## 1. Verify gates (SDLC §4) — local 2026-11-02
 
 | ID | Gate | Result | Notes |
 |---|---|---|---|
@@ -27,7 +27,7 @@ Historical unit green or a prior SHA do **not** satisfy a new tag.
 | G3 | `npm test` | **PASS** 62/62 | |
 | G4 | `npm run test:integration` | **PASS** | Free-form SQL reason = `Invalid request` |
 | G5 | `npm run test:attacks` | **PASS** | `leaks: 0` / 12 |
-| Agent | `npm run test:agent-review` | **PASS** 11/0 | `docs/AGENT-REVIEW-2026-11-02.md` |
+| Agent | `npm run test:agent-review` | **PASS** 11/0 | Generated `docs/AGENT-REVIEW-2026-11-02.md` was not committed; re-audit copy in [evidence/REAUDIT-2026-11-02](evidence/REAUDIT-2026-11-02/README.md) |
 | Demo | `npm run demo` | **PASS** | Live; `chainOk: true` |
 | G6 | Offline verify-log | **PASS** (C10) | Checkpoint custody still host-owned |
 
@@ -45,12 +45,12 @@ Local §1 is **cleared for this SHA**. Re-run on any later release candidate.
 
 ---
 
-## 3. Review (SDLC §4) (blocking for 1.0)
+## 3. Review (SDLC §5) (blocking for 1.0)
 
 | ID | Check | Result | Notes |
 |---|---|---|---|
-| R1 | Agent-review report for this SHA retained | **PASS** (local) | `AGENT-REVIEW-2026-11-02.md` |
-| R2 | Adversarial disposition updated | **PASS** (local attacks) | Re-check after next kit run |
+| R1 | Agent-review report for this SHA retained | **Partial** | Local run passed but the generated report was not committed; the re-audit's agent-review output is retained in [evidence/REAUDIT-2026-11-02](evidence/REAUDIT-2026-11-02/README.md) |
+| R2 | Adversarial disposition updated | **OPEN** | 12/12 suite attacks hold, but the 2026-11-02 re-audit released denied rows (N1, N2); see [STATUS](STATUS.md) queue |
 | R3 | **Independent** threat-model / security review | **NOT RUN** | Not self-cert |
 
 ---
@@ -69,26 +69,42 @@ Local §1 is **cleared for this SHA**. Re-run on any later release candidate.
 
 ---
 
-## 5. Release matrix (SDLC)
+## 5. Beta (outside testers, disposable / non-sensitive data only)
+
+Beta does not change the production NO-GO. Entry criteria are owned by
+[STATUS](STATUS.md#beta-entry-criteria-target-friday); tick them here on the beta commit.
+
+| ID | Check | Result | Notes |
+|---|---|---|---|
+| B1 | Queue Must items (N1, N2, N3, N9 version) closed, each with a failing-then-passing test | **OPEN** | |
+| B2 | §1 gates + agent review PASS locally on the beta commit, exit codes recorded | **NOT RUN** | |
+| B3 | CI executed on the beta commit, or recorded NOT_RUN | **NOT RUN** | Billing 2026-11-04 |
+| B4 | README states beta scope, known limitations and stop-ship | **OPEN** | |
+| B5 | Tester instructions: disposable DB, read-only role, one writer per log | **OPEN** | Reuse [DEMO](DEMO.md) + [runbook](HOST-CUSTODY-RUNBOOK.md) |
+
+---
+
+## 6. Release matrix (SDLC §7)
 
 | Target | Minimum evidence | Decision |
 |---|---|---|
-| **0.0.x hardening candidate** | Local G1–G5 + agent PASS; blockers listed | Eligible as **pre-production** only |
+| **Beta** | §5 B1–B5 | Operator; disposable data only |
 | **Production / 1.0** | §1–§4 PASS on tagged SHA + R3 + H1–H5 | **Not authorized** |
 
 ---
 
-## 6. Stop-ship (any one → NO-GO)
+## 7. Stop-ship (any one → NO-GO)
 
 - Unauthorized data release or fail-open production path  
 - Writable production DB URL or probe bypass in production  
 - Unverifiable mandatory receipts / broken chain  
 - CI claimed PASS when jobs did not run  
 - Independent review skipped for a production tag  
+- Stub data returned without `dataSource: "stub"`  
 
 ---
 
-## 7. Sign-off
+## 8. Sign-off
 
 | Role | Name | Date | Verdict |
 |---|---|---|---|
