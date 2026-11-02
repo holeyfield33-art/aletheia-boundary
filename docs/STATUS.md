@@ -1,11 +1,12 @@
 # Aletheia Boundary — current status
 
-**Date:** 2026-11-01  
+**Date:** 2026-11-02  
 **Package:** `0.0.11`  
-**Production disposition:** **NO-GO** (unchanged)
+**Production disposition:** **NO-GO** (unchanged — local gates are not production GO)
 
-This is the **single current plan/status document**. Dated ledgers under `docs/`
-are historical evidence; they do not override this page.
+This is the **single current plan/status document**. Dated ledgers under `docs/` are historical evidence; they do not override this page.
+
+**Operator tick-list:** [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md)
 
 ---
 
@@ -14,45 +15,49 @@ are historical evidence; they do not override this page.
 Local, customer-owned MCP data-boundary enforcer:
 
 1. **Decide** — policy allow / deny / allow-with-constraints (fail-closed).
-2. **Minimize** — structured Postgres reads only; columns / limit / redact /
-   sample; no free-form SQL.
-3. **Prove** — hash-chained Ed25519 receipts the customer owns and can verify
-   offline.
+2. **Minimize** — structured Postgres reads only; columns / limit / redact / sample; no free-form SQL.
+3. **Prove** — hash-chained Ed25519 receipts the customer owns and can verify offline.
 
-It is **not** an agent sandbox, prompt-injection filter, network firewall,
-identity provider, or Studio product.
+It is **not** an agent sandbox, prompt-injection filter, network firewall, identity provider, or Studio product.
 
 ---
 
-## E2E audit snapshot (2026-11-01)
+## E2E audit snapshot (2026-11-02, local live)
 
-| Gate                               | Result                               | Notes                                                                                      |
-| ---------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------ |
-| G1 `npm ci`                        | PASS (user machine)                  | Lockfile resolves; zod ^4.6.7                                                              |
-| G2 `npm run typecheck`             | Assumed with build                   | `prepare` runs `tsc`                                                                       |
-| G3 `npm test`                      | **62 PASS / 0 FAIL**                 | Includes checkpoint, recovery, hardening, concurrency R1–R7, validate (encoding + purpose) |
-| G4 integration                     | Historical PASS; re-run for release  | Needs Docker Postgres fixture                                                              |
-| G5 attacks                         | Historical PASS; re-run for release  | `npm run test:attacks`                                                                     |
-| Agent review                       | Historical 10/10; re-run for release | `npm run test:agent-review`                                                                |
-| G6 offline verify-log              | Covered in unit/recovery             | Host checkpoint custody still open                                                         |
-| CI on release commit               | **NOT RUN**                          | GitHub Actions billing lock                                                                |
-| Independent review                 | **NOT RUN**                          | Mandatory for GO                                                                           |
-| Host isolation / single-writer ops | **NOT RUN**                          | Code is process-local only                                                                 |
-| Storage / key recovery drills      | Partial (injected FS)                | Physical power-loss / ENOSPC not certified                                                 |
+Pinned context: main after merge of PR #17 (`1634c33` lineage). Live Postgres via `docker compose`; `DATABASE_URL` + `DATABASE_URL_WRITABLE` set.
 
-Unit green does **not** equal production GO.
+| Gate | Result | Notes |
+|---|---|---|
+| G1 `npm ci` | **PASS** | User machine; lockfile resolves |
+| G2 `npm run typecheck` | **PASS** | `tsc --noEmit` |
+| G3 `npm test` | **PASS** 62/62 | Checkpoint, recovery, hardening, concurrency R1–R7, validate |
+| G4 integration | **PASS** | All `[ok]` incl. free-form SQL → `Invalid request` |
+| G5 attacks | **PASS** | `leaks: 0` / 12 |
+| Agent review | **PASS** 11/0 | Report: `docs/AGENT-REVIEW-2026-11-02.md`; C6 accepts shape-layer reason |
+| Demo (`npm run demo`) | **PASS** | Live allow/deny/encoding/SQL reject; `chainOk: true` |
+| MCP product path (`npm run dev` probes) | **PASS** | Schema/query/deny/SQL reject/receipts |
+| G6 offline verify-log | **PASS** in agent-review C10 | Host checkpoint custody still open |
+| CI on release commit | **NOT RUN** | Actions billing |
+| Independent review | **NOT RUN** | Mandatory for production GO |
+| Host isolation / single-writer ops | **NOT RUN** | Code is process-local only |
+| Storage / key recovery drills | Partial (injected FS) | Physical power-loss / ENOSPC not certified |
+
+**Local gates G1–G5 + agent review are green.** That does **not** authorize production.
+
+Harness note: after NEXT-002, free-form `sql` is rejected before policy with public reason **`Invalid request`**. Integration and agent-review C6 matchers were updated (PR #17) so live gates score correctly.
 
 ---
 
 ## Closed in code (Boundary-owned)
 
-| ID                | Item                                                                            | Evidence                  |
-| ----------------- | ------------------------------------------------------------------------------- | ------------------------- |
-| F1–F11            | Structured path, fail-closed policy, honest truncation, schema filter, receipts | SDLC / hardening          |
-| R1–R7             | Process-local concurrency + rate limits                                         | `src/data/concurrency.ts` |
-| H*/ K* / recovery | Receipt poison, restart contract, checkpoint floor                              | permanent suites          |
-| NEXT-002          | Agent request shape + encoding reject before policy                             | `src/request/validate.ts` |
-| NEXT-003          | Purpose `looksEncoded` residual + detector harden                               | same + tests              |
+| ID | Item | Evidence |
+|---|---|---|
+| F1–F11 | Structured path, fail-closed policy, honest truncation, schema filter, receipts | SDLC / hardening |
+| R1–R7 | Process-local concurrency + rate limits | `src/data/concurrency.ts` |
+| H* / K* / recovery | Receipt poison, restart contract, checkpoint floor | permanent suites |
+| NEXT-002 | Agent request shape + encoding reject before policy | `src/request/validate.ts` |
+| NEXT-003 | Purpose `looksEncoded` residual + detector harden | same + tests |
+| Test harness | Integration + C6 accept `Invalid request` for SQL shape reject | PR #17 |
 
 ---
 
@@ -60,93 +65,66 @@ Unit green does **not** equal production GO.
 
 ### Code (optional / deferred)
 
-| Item                                        | Status                    | Owner                                    |
-| ------------------------------------------- | ------------------------- | ---------------------------------------- |
-| Deny timing side-channel                    | Deferred (NEXT-001)       | Boundary — after CI or non-flaky harness |
-| Cross-process rate / concurrency            | Out of scope              | **Host**                                 |
-| Filesystem provider path traversal          | N/A until provider exists | Boundary later                           |
-| Kit re-run against structured-only payloads | Recommended               | Redteam kit + Boundary                   |
+| Item | Status | Owner |
+|---|---|---|
+| Deny timing side-channel | Deferred (NEXT-001) | Boundary — after CI or non-flaky harness |
+| Cross-process rate / concurrency | Out of scope | **Host** |
+| Filesystem provider path traversal | N/A until provider exists | Boundary later |
+| Kit re-run against structured-only payloads | Recommended | Redteam kit + Boundary |
 
 ### Ops / release (blocking GO)
 
-| Item                                         | Status                               |
-| -------------------------------------------- | ------------------------------------ |
-| CI green on exact release SHA                | NOT RUN (billing)                    |
-| Independent review                           | NOT RUN                              |
-| Host isolation + single-writer proof         | NOT RUN                              |
+| Item | Status |
+|---|---|
+| CI green on exact release SHA | **NOT RUN** (billing) |
+| Independent review | **NOT RUN** |
+| Host isolation + single-writer proof | **NOT RUN** |
 | Checkpoint custody / publication / freshness | Host-owned; code only provides floor |
-| Physical storage / key rotation drills       | NOT RUN                              |
+| Physical storage / key rotation drills | **NOT RUN** |
 
 ---
 
-## Plan order (what the docs say to do next)
+## Plan order (next)
 
-From SDLC + NEXT-001 + gap map, in priority:
+1. **Ops unlock:** restore Actions billing → CI on **exact** release SHA → record run.  
+2. **Independent review** of threat model + receipt/custody story.  
+3. **Host drills:** single-writer log path, no raw-SQL tool beside Boundary, checkpoint custody outside writer domain.  
+4. **Optional code:** side-channel timing only with non-flaky tests; or kit-driven structured exfil into `audit/attacks.ts`.  
+5. **Do not** claim GO from local unit/integration/agent-review alone.
 
-1. **Ops unlock:** restore Actions billing → CI on main → record exact SHA.
-2. **Independent review** of threat model + receipt/custody story.
-3. **Host drills:** single-writer log path, no raw-SQL tool beside Boundary,
-   checkpoint custody outside writer domain.
-4. **Optional code:** side-channel timing normalization _only_ with non-flaky
-   tests; or kit-driven structured exfil cases into `audit/attacks.ts`.
-5. **Do not** claim GO from unit green alone.
+Tick progress in [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md).
 
 ---
 
 ## Relationship to Software Research Studio
 
-Studio repo: <https://github.com/holeyfield33-art/software-research-studio>
+Studio repo: https://github.com/holeyfield33-art/software-research-studio  
 
-| Studio claim               | Status           | Boundary implication                                                         |
-| -------------------------- | ---------------- | ---------------------------------------------------------------------------- |
-| 003/003R archive integrity | GO (scoped)      | Cite freeze pins only; do not mutate                                         |
-| 003R novel-input selector  | **NO-GO**        | Do not import selector into Boundary                                         |
-| UNIVERSAL-ARCH-001         | Design candidate | Advisory mapping only → [STUDIO-FREEZE-MAPPING.md](STUDIO-FREEZE-MAPPING.md) |
-| Studio product integration | **NO-GO**        | Boundary is independent; no product link                                     |
-| Studio kernel / pilots     | Partial / HOLD   | Separate evidence domain                                                     |
+| Studio claim | Status | Boundary implication |
+|---|---|---|
+| 003/003R archive integrity | GO (scoped) | Cite freeze pins only; do not mutate |
+| 003R novel-input selector | **NO-GO** | Do not import selector into Boundary |
+| UNIVERSAL-ARCH-001 | Design candidate | Advisory mapping only → [STUDIO-FREEZE-MAPPING.md](STUDIO-FREEZE-MAPPING.md) |
+| Studio product integration | **NO-GO** | Boundary is independent; no product link |
 
-**Immutable freeze pin** (do not replace with “latest main”):
+**Immutable freeze pin:** `SRS-FREEZE-2026-10-31-v1` / commit `89fe5485e37f315eab6b5131e715bcd2115bbe31`.
 
-| Field                       | Value                                                              |
-| --------------------------- | ------------------------------------------------------------------ |
-| Freeze ID                   | `SRS-FREEZE-2026-10-31-v1`                                         |
-| Checkpoint                  | `STUDIO-KNOWLEDGE-003R`                                            |
-| Freeze commit               | `89fe5485e37f315eab6b5131e715bcd2115bbe31`                         |
-| `FROZEN_STATE.json` SHA-256 | `c46aa1beeb10185def012bef6cfd362bde7effc6e867febac0cf4154a0e61e18` |
-
-Studio’s own next milestones (2026-11-01): pause engine expansion; consolidate
-agent-facing context; preserve demonstrated lessons — **not** more gate-count or
-Stage 004.
-
-Boundary may be assessed **by** Studio as an external project; Studio must not
-become Boundary’s runtime authority.
+Boundary may be assessed **by** Studio as an external project; Studio must not become Boundary’s runtime authority.
 
 ---
 
-## Repository-maintenance procedure (documentation only)
+## Doc map
 
-[SDLC §10](SDLC.md) now specifies change-triggered tests, dependency/advisory handling, pre/post-deployment security checks and a **proposed monthly** operational health review appropriate for a high-exposure security boundary. The operator must approve the cadence. **No maintenance review, live-host test, release-commit CI, independent approval or checkpoint-custody drill was executed by this documentation change.** Production remains **NO-GO** and the open operations blockers above are unchanged.
-
----
-
-## Doc map (after cleanup)
-
-| Read first                                                   | Purpose                    |
-| ------------------------------------------------------------ | -------------------------- |
-| [STATUS.md](STATUS.md) (this file)                           | Current plan + disposition |
-| [../README.md](../README.md)                                 | Install, run, contract     |
-| [SDLC.md](SDLC.md)                                           | Gates and process          |
-| [REDTEAM-GAP-MAP.md](REDTEAM-GAP-MAP.md)                     | Kit category ownership     |
-| [STUDIO-FREEZE-MAPPING.md](STUDIO-FREEZE-MAPPING.md)         | Advisory Studio alignment  |
-| [agent-playbook/START-HERE.md](agent-playbook/START-HERE.md) | Agent entry                |
-
-| Historical evidence (do not treat as current GO)                         |
-| ------------------------------------------------------------------------ |
-| CHECKPOINT / HARDENING / RECOVERY / AUDIT / AGENT-REVIEW dated 2026-10-* |
-| BOUNDARY-NEXT-001 … 003 (increment ledgers)                              |
-| `docs/evidence/**` raw gate outputs                                      |
+| Read first | Purpose |
+|---|---|
+| [STATUS.md](STATUS.md) (this file) | Current plan + disposition |
+| [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md) | SDLC-aligned release gates |
+| [DEMO.md](DEMO.md) | Local real testing + demo |
+| [../README.md](../README.md) | Install, run, contract |
+| [SDLC.md](SDLC.md) | Gates and process |
+| [REDTEAM-GAP-MAP.md](REDTEAM-GAP-MAP.md) | Kit category ownership |
+| [AGENT-REVIEW-2026-11-02.md](AGENT-REVIEW-2026-11-02.md) | Latest agent-review report (11 PASS) |
 
 ---
 
-_Update this file when disposition, package version, or blocking open items
-change. Production remains NO-GO until ops blockers clear._
+*Update this file when disposition, package version, or blocking open items change. Production remains NO-GO until ops blockers clear.*
