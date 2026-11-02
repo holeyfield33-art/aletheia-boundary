@@ -237,9 +237,14 @@ async function main() {
       params: { sql: "SELECT 1; DROP TABLE public.users" },
     });
     const reason = `${body.error ?? ""} ${body.decision?.reason ?? ""}`;
+    // Fail-closed shape validation rejects sql before policy; public reason is
+    // "Invalid request". Accept that plus legacy free-form / not-allowed strings.
     const pass =
       body.ok === false &&
-      (reason.includes("free-form SQL") || reason.includes("not allowed"));
+      (reason.includes("Invalid request") ||
+        reason.includes("free-form SQL") ||
+        reason.includes("not allowed") ||
+        reason.includes("unknown param"));
     grade(
       "C6",
       "Input handling (malformed/SQL clean refusal)",

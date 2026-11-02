@@ -164,12 +164,17 @@ async function main() {
       params: { sql: "SELECT * FROM public.users" },
     });
     assert(!r.ok, "agent SQL must be rejected");
+    // Shape validation runs before policy and returns public "Invalid request"
+    // (or legacy free-form / not-allowed wording if that path is hit).
+    const sqlReason = `${r.error ?? ""} ${r.decision.reason ?? ""}`;
     assert(
-      (r.error ?? r.decision.reason).includes("free-form SQL") ||
-        (r.error ?? r.decision.reason).includes("not allowed"),
-      "reason mentions free-form SQL",
+      sqlReason.includes("Invalid request") ||
+        sqlReason.includes("free-form SQL") ||
+        sqlReason.includes("not allowed") ||
+        sqlReason.includes("unknown param"),
+      "reason indicates SQL/shape rejection",
     );
-    console.log("[ok] free-form SQL rejected:", (r.error ?? "").slice(0, 80));
+    console.log("[ok] free-form SQL rejected:", sqlReason.slice(0, 80));
   }
 
   // 4. sample orders + constraints
