@@ -1,0 +1,4 @@
+
+# Checkpoint approval fingerprints cover exact export bytes, including final LF.
+docs/evidence/**/candidate-for-human-review.json -text
+docs/evidence/**/candidate-export-bytes.json -text

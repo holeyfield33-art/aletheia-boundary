@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { preserveCandidate } from './candidate-artifact.mjs';
 
 const repo = process.cwd();
 const id = `boundary-drill-${Date.now()}`;
@@ -92,8 +93,9 @@ try {
   const after = operator(`import fs from 'node:fs';import {createHash} from 'node:crypto';console.log(createHash('sha256').update(fs.readFileSync('/state/candidate-2.json')).digest('hex'));`).stdout.trim();
   check('candidate unchanged after overwrite attempt',before===after,before);
   operator(`import fs from 'node:fs';fs.copyFileSync('/state/candidate-2.json','/custody/test-anchor.json');fs.copyFileSync('/state/candidate-2.json','/custody/retained-2.json');fs.chmodSync('/custody/test-anchor.json',0o444);fs.chmodSync('/custody/retained-2.json',0o444);console.log(fs.readFileSync('/custody/test-anchor.json','utf8'));`);
-  const anchor=JSON.parse(operator(`import fs from 'node:fs';console.log(fs.readFileSync('/custody/test-anchor.json','utf8'));`).stdout);
-  writeFileSync(resolve(out,'candidate-for-human-review.json'),JSON.stringify(anchor,null,2));
+  const exportedBytes=Buffer.from(operator(`import fs from 'node:fs';console.log(fs.readFileSync('/custody/test-anchor.json').toString('base64'));`).stdout.trim(),'base64');
+  const artifactSha256=preserveCandidate(resolve(out,'candidate-for-human-review.json'),exportedBytes,before);
+  check('review artifact preserves exported bytes',artifactSha256===before,`artifact SHA-256=${artifactSha256}`);
   rows.push({name:'Human checkpoint approval',verdict:'PENDING',evidence:'Test anchor copied by operator harness solely for rehearsal; not an approved production anchor.'});
   const liveName=`${id}-writer`;
   const live=await connect(liveName,{});
