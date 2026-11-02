@@ -1,0 +1,6 @@
+{
+  "command": "docker exec boundary-drill-1793586295548-writer node --input-type=module -e import fs from 'node:fs';const paths=['/custody/test-anchor.json','/custody/retained-2.json'];for(const p of paths){let denied=false;try{fs.writeFileSync(p,'tamper')}catch(e){denied=['EROFS','EACCES'].includes(e.code)}if(!denied)process.exit(2)}let denied=false;try{fs.unlinkSync('/custody/test-anchor.json')}catch(e){denied=['EROFS','EACCES'].includes(e.code)}if(!denied)process.exit(3);console.log('checkpoint replacement and deletion refused');",
+  "exit": 0,
+  "stdout": "checkpoint replacement and deletion refused\n",
+  "stderr": ""
+}

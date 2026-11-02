@@ -1,0 +1,109 @@
+{
+  "args": {
+    "action": "schema",
+    "resource": "*",
+    "caller": "admin"
+  },
+  "body": {
+    "ok": true,
+    "decision": {
+      "outcome": "allow",
+      "reason": "Schema inspection is permitted",
+      "ruleId": "allow-schema",
+      "decidedAt": "2026-11-02T02:25:24.456Z"
+    },
+    "data": [
+      {
+        "schema": "public",
+        "name": "analytics_daily",
+        "columns": [
+          {
+            "name": "date",
+            "type": "date",
+            "nullable": false
+          },
+          {
+            "name": "metric",
+            "type": "text",
+            "nullable": false
+          },
+          {
+            "name": "value",
+            "type": "numeric",
+            "nullable": false
+          },
+          {
+            "name": "segment",
+            "type": "text",
+            "nullable": true
+          }
+        ]
+      },
+      {
+        "schema": "public",
+        "name": "orders",
+        "columns": [
+          {
+            "name": "id",
+            "type": "integer",
+            "nullable": false
+          },
+          {
+            "name": "user_id",
+            "type": "integer",
+            "nullable": true
+          },
+          {
+            "name": "status",
+            "type": "text",
+            "nullable": false
+          },
+          {
+            "name": "amount",
+            "type": "numeric",
+            "nullable": false
+          }
+        ]
+      },
+      {
+        "schema": "public",
+        "name": "write_canary",
+        "columns": [
+          {
+            "name": "id",
+            "type": "integer",
+            "nullable": false
+          },
+          {
+            "name": "note",
+            "type": "text",
+            "nullable": true
+          },
+          {
+            "name": "at",
+            "type": "timestamp with time zone",
+            "nullable": true
+          }
+        ]
+      }
+    ],
+    "transforms": [
+      "schema",
+      "schema-columns-projected",
+      "schema-filtered"
+    ],
+    "stats": {
+      "rows": 3,
+      "bytes": 715
+    },
+    "dataSource": "postgres",
+    "receipt": {
+      "id": "e5566bca-74c5-4c99-b649-79f82b8bf028",
+      "contentHash": "02f0d4ba036d935077ad5d8fb1ad10f97c408be58003aab56dcd5cb0711708bd",
+      "signature": "MuVhmS2MovS09V-C4OFsOte8lemW55LA5rvL-77qFmp5qvV_HB_81vJIbiwczjLDJtQDavxKMXp1rr-Qdy4RAw",
+      "prevHash": "eb19b7928ae599910d141ce8f178140d3085a6cf95dececb2159a395b32e040a",
+      "keyId": "ed25519:7f202b08efcb154c",
+      "createdAt": "2026-11-02T02:25:24.459Z"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "scope": "Actual disposable container rehearsal configuration, not a production deployment",
+  "applicationSha": "1634c33d74468befbbc9ce39816e68c5639cb97e",
+  "packageVersion": "0.0.11",
+  "transport": "stdio MCP via operator-side Docker client",
+  "command": ["docker", "run", "--rm", "-i", "--name", "<one-writer-service-name>", "--network", "<internal-disposable-network>", "--user", "10001:10001", "--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges:true", "--pids-limit=64", "--memory=256m", "--cpus=1", "-v", "<writer-state-volume>:/state", "-v", "<operator-custody-volume>:/custody:ro", "<environment flags omitted here; listed below>", "aletheia-custody-drill:local"],
+  "environment": {
+    "NODE_ENV": "production",
+    "DATABASE_URL": "postgres://readonly:[REDACTED]@<unpublished-fixture-db>:5432/boundary",
+    "BOUNDARY_POLICY": "/app/policies/example.yaml",
+    "BOUNDARY_KEY_PATH": "/state/key.ed25519",
+    "BOUNDARY_LOG_PATH": "/state/receipts.jsonl",
+    "BOUNDARY_CHECKPOINT_PATH": "/custody/test-anchor.json",
+    "BOUNDARY_TRUSTED_CALLER": "host-drill-reader",
+    "BOUNDARY_SKIP_READONLY_PROBE": "0"
+  },
+  "exposedMcpTools": ["boundary_request"],
+  "hostCaveat": "Current desktop also has shell/Docker; this tool list does not establish exclusive data access. Different Docker names can share a volume."
+}

@@ -1,0 +1,6 @@
+{
+  "command": "docker run --rm -i --name boundary-drill-1793586295548-writer --network boundary-drill-1793586295548-net --user 10001:10001 --read-only --cap-drop=ALL --security-opt=no-new-privileges:true --pids-limit=64 --memory=256m --cpus=1 -v boundary-drill-1793586295548-state:/state -v boundary-drill-1793586295548-custody:/custody:ro -e NODE_ENV=production -e DATABASE_URL=postgres://[disposable-fixture] -e BOUNDARY_POLICY=/app/policies/example.yaml -e BOUNDARY_KEY_PATH=/state/key.ed25519 -e BOUNDARY_LOG_PATH=/state/receipts.jsonl -e BOUNDARY_CHECKPOINT_PATH=/custody/test-anchor.json -e BOUNDARY_TRUSTED_CALLER=host-drill-reader -e BOUNDARY_SKIP_READONLY_PROBE=0 aletheia-custody-drill:local",
+  "exit": 125,
+  "stdout": "",
+  "stderr": "docker: Error response from daemon: Conflict. The container name \"/boundary-drill-1793586295548-writer\" is already in use by container \"4cd1ae3691efd791d247b4551f10dc3c77c6c2680fabef25bfe4e3918a7fe9fc\". You have to remove (or rename) that container to be able to reuse that name.\n\nRun 'docker run --help' for more information\n"
+}

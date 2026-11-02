@@ -1,0 +1,6 @@
+{
+  "command": "docker run --rm -i --name boundary-drill-1793586347812-missing-checkpoint --network boundary-drill-1793586347812-net --user 10001:10001 --read-only --cap-drop=ALL --security-opt=no-new-privileges:true --pids-limit=64 --memory=256m --cpus=1 -v boundary-drill-1793586347812-state:/state -v boundary-drill-1793586347812-custody:/custody:ro -e NODE_ENV=production -e DATABASE_URL=postgres://[disposable-fixture] -e BOUNDARY_POLICY=/app/policies/example.yaml -e BOUNDARY_KEY_PATH=/state/key.ed25519 -e BOUNDARY_LOG_PATH=/state/receipts.jsonl -e BOUNDARY_CHECKPOINT_PATH= -e BOUNDARY_TRUSTED_CALLER=host-drill-reader -e BOUNDARY_SKIP_READONLY_PROBE=0 aletheia-custody-drill:local",
+  "exit": 1,
+  "stdout": "",
+  "stderr": "[aletheia-boundary] fatal: Error: Production requires BOUNDARY_CHECKPOINT_PATH\n    at createProvider (file:///app/dist/mcp/server.js:40:15)\n    at main (file:///app/dist/mcp/server.js:59:40)\n    at file:///app/dist/mcp/server.js:201:1\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n"
+}

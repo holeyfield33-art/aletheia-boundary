@@ -1,0 +1,6 @@
+{
+  "command": "docker run --rm --network none --user 10001:10001 -v boundary-drill-1793586295548-state:/state -v boundary-drill-1793586295548-custody:/custody --entrypoint node aletheia-custody-drill:local dist/receipt/verify-cli.js --log /state/receipts.jsonl --pub /state/key.pub.pem --export-checkpoint /state/candidate-2.json",
+  "exit": 1,
+  "stdout": "",
+  "stderr": "VERIFY FAILED: log, key, checkpoint or export unavailable/invalid\n"
+}

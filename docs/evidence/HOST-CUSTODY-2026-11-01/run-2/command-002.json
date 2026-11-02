@@ -1,0 +1,6 @@
+{
+  "command": "docker volume create boundary-drill-1793586347812-state",
+  "exit": 0,
+  "stdout": "boundary-drill-1793586347812-state\n",
+  "stderr": ""
+}

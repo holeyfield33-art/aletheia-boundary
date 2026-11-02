@@ -1,0 +1,164 @@
+{
+  "timestamp": "2026-11-02T02:27:58.808Z",
+  "head": "1634c33d74468befbbc9ce39816e68c5639cb97e",
+  "policySha256": "0e1ae8e06a58f6f417240dd3260bc0142de2aa03dfbc813bce20afddbec322fd",
+  "image": "sha256:e107685fa8463d72a1835228cb22b860cc6430b134d134291b6f6c80b3304de1",
+  "resources": {
+    "state": "boundary-drill-1793586347812-state",
+    "custody": "boundary-drill-1793586347812-custody",
+    "db": "boundary-drill-1793586347812-db",
+    "net": "boundary-drill-1793586347812-net"
+  },
+  "results": [
+    {
+      "name": "DB has no published host ports",
+      "verdict": "PASS",
+      "evidence": "dedicated internal Docker network; no host port"
+    },
+    {
+      "name": "MCP tool discovery",
+      "verdict": "PASS",
+      "evidence": "boundary_request"
+    },
+    {
+      "name": "bootstrap live receipt 1",
+      "verdict": "PASS",
+      "evidence": "real disposable Postgres; constrained data"
+    },
+    {
+      "name": "bootstrap live receipt 2",
+      "verdict": "PASS",
+      "evidence": "real disposable Postgres; constrained data"
+    },
+    {
+      "name": "export candidate after offline verify",
+      "verdict": "PASS",
+      "evidence": "CLI exit 0"
+    },
+    {
+      "name": "candidate overwrite refused",
+      "verdict": "PASS",
+      "evidence": "CLI exit 1"
+    },
+    {
+      "name": "candidate unchanged after overwrite attempt",
+      "verdict": "PASS",
+      "evidence": "dc205fcd2edb928b5e3e6129f014785af93fc0221b5be185a5e86a3551663908"
+    },
+    {
+      "name": "Human checkpoint approval",
+      "verdict": "PENDING",
+      "evidence": "Test anchor copied by operator harness solely for rehearsal; not an approved production anchor."
+    },
+    {
+      "name": "anchored production-mode MCP startup",
+      "verdict": "PASS",
+      "evidence": "production mode against disposable DB"
+    },
+    {
+      "name": "supervisor duplicate container name refused",
+      "verdict": "PASS",
+      "evidence": "Docker name reservation; alternative container names remain operator-controlled"
+    },
+    {
+      "name": "writer cannot replace or delete retained checkpoints",
+      "verdict": "PASS",
+      "evidence": "checkpoint replacement and deletion refused"
+    },
+    {
+      "name": "caller is host controlled",
+      "verdict": "PASS",
+      "evidence": "receipt caller=host-drill-reader; client supplied admin"
+    },
+    {
+      "name": "writer key/log permissions",
+      "verdict": "PASS",
+      "evidence": "UID 10001; state 0700, private key/log 0600 verified inside Linux volume"
+    },
+    {
+      "name": "second differently named writer can start",
+      "verdict": "PASS",
+      "evidence": "expected host-control gap; container name alone is not a volume lock"
+    },
+    {
+      "name": "second writer appends on disposable shared log",
+      "verdict": "PASS",
+      "evidence": "controlled sequential overlap; never use this deployment pattern"
+    },
+    {
+      "name": "stale first writer refuses after external append",
+      "verdict": "PASS",
+      "evidence": "no data released after external log change; simultaneous-write race remains untested"
+    },
+    {
+      "name": "Global single-writer enforcement",
+      "verdict": "NOT ENFORCED",
+      "evidence": "Different container name can mount same log. Operator must control Docker/volume access or add an external exclusive supervisor lock."
+    },
+    {
+      "name": "restricted agent cannot bypass DB or read custody",
+      "verdict": "PASS",
+      "evidence": "No DB route, key, checkpoint mount, or Docker socket"
+    },
+    {
+      "name": "other UID cannot read signing key",
+      "verdict": "PASS",
+      "evidence": "EACCES with even a read-only state mount"
+    },
+    {
+      "name": "missing-checkpoint",
+      "verdict": "PASS",
+      "evidence": "exit=1; [aletheia-boundary] fatal: Error: Production requires BOUNDARY_CHECKPOINT_PATH"
+    },
+    {
+      "name": "writable-role",
+      "verdict": "PASS",
+      "evidence": "exit=1; [aletheia-boundary] FATAL: Postgres provider failed (refusing to start): Error: aletheia-boundary: role has write privilege on 4 relation(s). Refusing to start — use a read-only role or a replica."
+    },
+    {
+      "name": "valid-prefix-rollback",
+      "verdict": "PASS",
+      "evidence": "exit=1; [aletheia-boundary] fatal: Error: Receipt checkpoint verification failed: Receipt history is shorter than trusted checkpoint"
+    },
+    {
+      "name": "corrupt-anchor",
+      "verdict": "PASS",
+      "evidence": "exit=1; [aletheia-boundary] fatal: Error: Receipt checkpoint unavailable or invalid"
+    },
+    {
+      "name": "wrong-key-anchor",
+      "verdict": "PASS",
+      "evidence": "exit=1; [aletheia-boundary] fatal: Error: Receipt checkpoint verification failed: Checkpoint signing key mismatch"
+    },
+    {
+      "name": "advanced candidate export",
+      "verdict": "PASS",
+      "evidence": "verified anchored extension"
+    },
+    {
+      "name": "stale anchor permits unanchored suffix loss",
+      "verdict": "PASS",
+      "evidence": "expected limitation: two-receipt anchor accepts two-receipt prefix"
+    },
+    {
+      "name": "advanced-anchor-detects-suffix-loss",
+      "verdict": "PASS",
+      "evidence": "exit=1; [aletheia-boundary] fatal: Error: Receipt checkpoint verification failed: Receipt history is shorter than trusted checkpoint"
+    },
+    {
+      "name": "DB write canary unchanged",
+      "verdict": "PASS",
+      "evidence": "rows=0"
+    },
+    {
+      "name": "Current desktop host isolation",
+      "verdict": "NOT ISOLATED",
+      "evidence": "Current agent can run shell/Docker and reach the original published DB. Container rehearsal does not restrict this chat."
+    },
+    {
+      "name": "Cross-host custody / human freshness policy / physical storage recovery / release CI / independent review",
+      "verdict": "NOT RUN",
+      "evidence": "Same Docker administrator controls both volumes; requires separate custody authority and operator decisions."
+    }
+  ]
+}

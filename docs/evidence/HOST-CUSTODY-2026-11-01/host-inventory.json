@@ -1,0 +1,81 @@
+{
+  "capturedUtc": "2026-11-02T02:26:29.3530403Z",
+  "computer": "DESKTOP-6OQUAST",
+  "identity": "DESKTOP-6OQUAST\\SuperAdmin",
+  "node": "v24.20.0",
+  "head": "1634c33d74468befbbc9ce39816e68c5639cb97e",
+  "configuredMcpNames": [
+    "[mcp_servers.node_repl]",
+    "[mcp_servers.mneme-local]",
+    "[mcp_servers.code-atlas]",
+    "[mcp_servers.code-atlas-gdk]",
+    "[mcp_servers.aletheia-boundary]"
+  ],
+  "acls": [
+    {
+      "owner": "DESKTOP-6OQUAST\\SuperAdmin",
+      "rules": [
+        {
+          "type": "Allow",
+          "rights": "ReadAndExecute, Synchronize",
+          "inherited": true,
+          "identity": "DESKTOP-6OQUAST\\CodexSandboxUsers"
+        },
+        {
+          "type": "Allow",
+          "rights": "FullControl",
+          "inherited": true,
+          "identity": "NT AUTHORITY\\SYSTEM"
+        },
+        {
+          "type": "Allow",
+          "rights": "FullControl",
+          "inherited": true,
+          "identity": "BUILTIN\\Administrators"
+        },
+        {
+          "type": "Allow",
+          "rights": "FullControl",
+          "inherited": true,
+          "identity": "DESKTOP-6OQUAST\\SuperAdmin"
+        }
+      ],
+      "path": "Microsoft.PowerShell.Core\\FileSystem::C:\\Users\\SuperAdmin\\.vscode\\aletheia-boundary\\keys"
+    },
+    {
+      "owner": "DESKTOP-6OQUAST\\SuperAdmin",
+      "rules": [
+        {
+          "type": "Allow",
+          "rights": "ReadAndExecute, Synchronize",
+          "inherited": true,
+          "identity": "DESKTOP-6OQUAST\\CodexSandboxUsers"
+        },
+        {
+          "type": "Allow",
+          "rights": "FullControl",
+          "inherited": true,
+          "identity": "NT AUTHORITY\\SYSTEM"
+        },
+        {
+          "type": "Allow",
+          "rights": "FullControl",
+          "inherited": true,
+          "identity": "BUILTIN\\Administrators"
+        },
+        {
+          "type": "Allow",
+          "rights": "FullControl",
+          "inherited": true,
+          "identity": "DESKTOP-6OQUAST\\SuperAdmin"
+        }
+      ],
+      "path": "Microsoft.PowerShell.Core\\FileSystem::C:\\Users\\SuperAdmin\\.vscode\\aletheia-boundary\\logs"
+    }
+  ],
+  "currentDbPorts": [
+    "5432/tcp -> 0.0.0.0:5434",
+    "5432/tcp -> [::]:5434"
+  ],
+  "currentHostVerdict": "NOT ISOLATED: current agent has shell and Docker authority; original fixture has a host-published port. MCP name inventory alone cannot prove absence of bypass."
+}

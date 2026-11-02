@@ -1,0 +1,6 @@
+[aletheia-boundary] Postgres provider ready (read-only probe passed)
+[aletheia-boundary] Signing key: ed25519:7f202b08efcb154c
+[aletheia-boundary] Trusted receipt checkpoint: verified
+[aletheia-boundary] Receipt log: /state/receipts.jsonl (2 existing)
+[aletheia-boundary] Request limits: concurrent=4 rate=10/s burst=10
+[aletheia-boundary] MCP server 0.0.10 running on stdio

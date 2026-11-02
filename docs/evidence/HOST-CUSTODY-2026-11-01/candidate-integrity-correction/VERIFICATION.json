@@ -1,0 +1,31 @@
+{
+  "baseHead": "0a1c78acfda56541ec590d89ce08aebf6c45af2f",
+  "command": [
+    "docker",
+    "run",
+    "--rm",
+    "--network",
+    "none",
+    "--user",
+    "0:0",
+    "-v",
+    "boundary-drill-1793586347812-custody:/custody:ro",
+    "--entrypoint",
+    "node",
+    "aletheia-custody-drill:local",
+    "-e",
+    "process.stdout.write(require('fs').readFileSync('/custody/retained-2.json').toString('base64'))"
+  ],
+  "exit": 0,
+  "sourceVolume": "boundary-drill-1793586347812-custody",
+  "sourcePath": "/custody/retained-2.json",
+  "sourceBytes": 214,
+  "artifactBytes": 214,
+  "artifactSha256": "dc205fcd2edb928b5e3e6129f014785af93fc0221b5be185a5e86a3551663908",
+  "originalReserializedArtifactSha256": "faa59f7b1a2ae1c18002be1f7d85a5cdc856bbb01f560688dde1fc0d271ddb57",
+  "originalPreserved": true,
+  "byteEquality": true,
+  "endsWithLF": true,
+  "regressionTest": "node --test scripts/host-drill/candidate-artifact.test.mjs (exit 0; 1 pass)",
+  "humanApproval": "PENDING"
+}

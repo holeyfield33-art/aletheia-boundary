@@ -1,0 +1,6 @@
+{
+  "command": "docker image inspect --format {{.Id}} aletheia-custody-drill:local",
+  "exit": 0,
+  "stdout": "sha256:e107685fa8463d72a1835228cb22b860cc6430b134d134291b6f6c80b3304de1\n",
+  "stderr": ""
+}
