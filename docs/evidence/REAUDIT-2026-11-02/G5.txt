@@ -1,0 +1,25 @@
+HELD  A1 label/SQL mismatch + column alias (shipped policy)
+      ok=false rule=undefined err=Invalid request
+HELD  A2 row_to_json into allowed column
+      ok=false err=Invalid request
+HELD  A3 integration-test policy: orders label, users SQL
+      ok=false rule=undefined err=Invalid request
+HELD  A4 'aggregate' constraint rejected at load
+      policy load threw (held)
+HELD  A5 misspelled effect 'denny' rejected at load
+      policy load threw (held)
+HELD  A6 edit decision deny->allow, receipt still verifies
+      hashUnchanged=false verifyOk=false reason=contentHash mismatch (stored=6ab8b15b8df0… recomputed=ecf2540952f5…)
+HELD  A7 set_config read-write escape
+      ok=false reason=Invalid request canaryRows=0
+HELD  A8 restricted schema metadata
+      [{"schema":"public","name":"users","columns":[{"name":"id","type":"integer","nullable":false}]}]
+HELD  A9 secret-bearing provider error
+      ok=false error=Data request failed; input not allowed or provider unavailable
+HELD  A10 malformed/encoded identifier public.orders;SELECT
+      ok=false
+HELD  A10 malformed/encoded identifier ../private
+      ok=false
+HELD  A10 malformed/encoded identifier cHVibGljLnVzZXJz
+      ok=false
+{"leaks":0,"total":12}

@@ -128,8 +128,8 @@ as Boundary enforcement.
 | Freeze repository | <https://github.com/holeyfield33-art/software-research-studio-freeze-2026-10-31> |
 | NEXT-001          | [BOUNDARY-NEXT-001.md](BOUNDARY-NEXT-001.md)                                     |
 | NEXT-002          | [BOUNDARY-NEXT-002.md](BOUNDARY-NEXT-002.md)                                     |
-| SDLC              | [SDLC.md](SDLC.md)                                                               |
-| Gap map           | [REDTEAM-GAP-MAP.md](REDTEAM-GAP-MAP.md)                                         |
+| SDLC              | [SDLC.md](../SDLC.md)                                                               |
+| Gap map           | [REDTEAM-GAP-MAP.md](../REDTEAM-GAP-MAP.md)                                         |
 
 ---
 

@@ -1,6 +1,6 @@
 # START HERE — Aletheia Boundary agent entrypoint (playbook 001.1)
 
-**Authoritative policy:** [docs/SDLC.md](../SDLC.md). This playbook is
+**Authoritative policy:** [docs/SDLC.md](../../SDLC.md). This playbook is
 supplemental. **Production NO-GO** at package authoring time; verify current
 status at the exact SHA before making claims. Do not assume these blockers
 remain unchanged.
@@ -10,18 +10,18 @@ remain unchanged.
 1. Record `git rev-parse HEAD`, branch, working-tree status, platform, Node
    version, and target deployment. Do not substitute a historical SHA for
    current HEAD.
-2. Read root [AGENTS](../../AGENTS.md), [README](../../README.md), the
-   [single living STATUS](../STATUS.md), then [SDLC](../SDLC.md) and relevant
-   [gap map](../REDTEAM-GAP-MAP.md). Read [dated checkpoint history](../CHECKPOINT-2026-10-30.md)
+2. Read root [AGENTS](../../../AGENTS.md), [README](../../../README.md), the
+   [single living STATUS](../../STATUS.md), then [SDLC](../../SDLC.md) and relevant
+   [gap map](../../REDTEAM-GAP-MAP.md). Read [dated checkpoint history](../CHECKPOINT-2026-10-30.md)
    or a past review only when relevant. The status page, not the most recent-looking report,
    owns current readiness and next actions.
 3. Identify trusted caller, Postgres role, policy, receipt key/log, host-owned
    checkpoint, single-writer assumption and alternate DB/tool paths. Never print
    secrets or private keys.
-4. Select one [prompt P01–P14](PROMPTS.md). Agree scope and acceptance criteria
+4. Select one [prompt P01–P14](../../agent-playbook/PROMPTS.md). Agree scope and acceptance criteria
    before editing.
 5. At handoff, produce an evidence JSON record matching
-   [EVIDENCE-SCHEMA.json](EVIDENCE-SCHEMA.json). Missing checks remain
+   [EVIDENCE-SCHEMA.json](../../agent-playbook/EVIDENCE-SCHEMA.json). Missing checks remain
    NOT_RUN/BLOCKED, never PASS.
 
 For the separate offline threat-to-test planner and its verified limits, see

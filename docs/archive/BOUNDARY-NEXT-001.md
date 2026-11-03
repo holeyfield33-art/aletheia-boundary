@@ -13,7 +13,7 @@ does **not** authorize production, CI success, or readiness status change.
 ## 1. Release blockers vs implementation
 
 Sources: [CHECKPOINT-2026-10-30.md](CHECKPOINT-2026-10-30.md),
-[REDTEAM-GAP-MAP.md](REDTEAM-GAP-MAP.md), [README.md](../README.md), merged
+[REDTEAM-GAP-MAP.md](../REDTEAM-GAP-MAP.md), [README.md](../../README.md), merged
 pull requests 9–11.
 
 | Blocker (release / ops)                                        | Implementation status                                                             | Evidence                         | Still open?                   |

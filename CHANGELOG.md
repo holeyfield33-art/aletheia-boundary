@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased - documentation reorganized (2026-11-02)
+
+- Docs only; no code or behavior change.
+- [docs/STATUS.md](docs/STATUS.md) rewritten as the single living plan: phases
+  (done / current / next), the one-item queue N1–N9 from the 2026-11-02 re-audit,
+  beta entry criteria and last verified results.
+- [docs/SDLC.md](docs/SDLC.md) reduced to stable rules: invariants mapped to their
+  tests, gates, working loop, dev / beta / production release matrix.
+- Superseded dated reports and playbook 001 moved to
+  [docs/archive/](docs/archive/README.md) with link targets re-pointed only.
+- Re-audit evidence added under `docs/evidence/REAUDIT-2026-11-02/`.
+- README states beta scope and known limitations; RELEASE-CHECKLIST gains a beta section.
+
 ## Unreleased - local gates green + checklist (2026-11-02)
 
 - Local live verification on main (post PR #17): G1–G5 **PASS**, agent-review **11 PASS / 0 FAIL**, demo and MCP path exercised.
@@ -38,7 +51,7 @@
 - Verified extensions are permitted; losses after the retained checkpoint remain
   undetectable until it advances. No external-store/freshness service is
   claimed.
-- [Checkpoint migration, evidence and remaining blockers](docs/CHECKPOINT-2026-10-30.md).
+- [Checkpoint migration, evidence and remaining blockers](docs/archive/CHECKPOINT-2026-10-30.md).
   CI remains deferred for billing; production NO-GO.
 
 ## Unreleased - process interruption recovery drill (2026-10-30)
@@ -51,7 +64,7 @@
   returned data receipts and persisted evidence.
 - Test-only filesystem wrappers live in an audit fixture; production request
   handling is unchanged.
-- [Recovery evidence and limits](docs/RECOVERY-2026-10-30.md). Power loss,
+- [Recovery evidence and limits](docs/archive/RECOVERY-2026-10-30.md). Power loss,
   physical disk-full, cross-process writers, external checkpoints and
   independent review remain open. CI skipped for billing per user instruction;
   production remains NO-GO.
@@ -65,7 +78,7 @@
 - Sanitized provider/policy/storage errors in results and signed receipts.
 - Production refuses missing DATABASE_URL and read-only probe bypass; MCP
   ignores client caller identity.
-- [Hardening evidence](docs/HARDENING-2026-10-30.md).
+- [Hardening evidence](docs/archive/HARDENING-2026-10-30.md).
 
 ## 0.0.10
 

@@ -14,7 +14,7 @@ Shows allow / deny / encoding reject / free-form SQL reject / schema / offline r
 ### With live Postgres (recommended)
 
 ```powershell
-cd C:\Users\SuperAdmin\.vscode\aletheia-boundary
+cd <path-to>\aletheia-boundary   # your clone
 docker compose up -d
 # wait until healthy
 $env:DATABASE_URL = "postgres://readonly:readonly@localhost:5434/boundary"
@@ -105,7 +105,7 @@ npx tsx src/receipt/verify-cli.ts --log .\logs\receipts.jsonl --pub .\keys\bound
     "aletheia-boundary": {
       "command": "npx",
       "args": ["tsx", "src/mcp/server.ts"],
-      "cwd": "C:/Users/SuperAdmin/.vscode/aletheia-boundary",
+      "cwd": "/absolute/path/to/aletheia-boundary",
       "env": {
         "DATABASE_URL": "postgres://readonly:readonly@localhost:5434/boundary",
         "BOUNDARY_POLICY": "policies/example.yaml",

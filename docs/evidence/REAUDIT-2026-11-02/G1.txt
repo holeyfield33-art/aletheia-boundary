@@ -1,0 +1,10 @@
+
+> aletheia-boundary@0.0.11 prepare
+> npm run build
+
+
+> aletheia-boundary@0.0.11 build
+> tsc
+
+
+added 118 packages in 12s

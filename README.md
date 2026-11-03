@@ -37,21 +37,36 @@ has to be local and independent of them.
 
 ## Status
 
-**0.0.11. Production: NO-GO.**
+**0.0.11. Production: NO-GO. Beta (disposable data only): targeted for
+2026-11-06 once the entry criteria in [docs/STATUS.md](docs/STATUS.md) are met.**
 
-**Local gates (2026-11-02):** G1–G5 + agent-review **PASS** (62 unit; integration all ok; attacks `leaks: 0`; agent-review **11 PASS / 0 FAIL**). Demo and MCP live path exercised. See [docs/STATUS.md](docs/STATUS.md) and [docs/RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md).
+Local gates on `0f59c4c` (2026-11-02): G1–G5 and the agent review **PASS**
+(62 unit; integration ok; attacks 12/12 held; agent review 11/11). CI is
+**NOT_RUN** (Actions billing).
 
-Process-local rate limits, host-trusted checkpoints, and fail-closed request validation are in code.
+**Known limitations (open in the STATUS queue):**
 
-**Still blocking GO:** CI on the release commit (Actions billing), independent
-review, host isolation / single-writer ops proof, checkpoint custody drills.
-Cross-process quotas remain host-owned. Historical green does not authorize
-production.
+- **N1:** policy matches the resource string exactly, while reads resolve a
+  bare name to `public.<name>`. Until fixed, write deny rules that cover both
+  spellings (`users` and `public.users`) or use globs such as `*users*`.
+- **N2:** constraint values are not type-checked; `columns`/`redact` must be
+  lists and `limit` a number, or the constraint is silently ignored. Check
+  your policy against [policies/example.yaml](policies/example.yaml).
+- Output is capped by rows, not bytes; equal-priority rules resolve by document
+  order (write denies at a higher priority); rate-limit refusals write no receipt.
 
-**Release checklist:** [docs/RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md)  
-**Current plan and audit:** [docs/STATUS.md](docs/STATUS.md)  
-**Local demo + real testing:** [docs/DEMO.md](docs/DEMO.md) · `npm run demo`  
-**For coding agents:** [AGENTS.md](AGENTS.md) (single entrypoint; current status and SDLC remain authoritative)  
+**Beta stop-ship:** a policy-denied row in a tool result, a write reaching the
+database, a receipt that fails offline verification, or stub data without
+`dataSource: "stub"`. Report any of these immediately.
+
+**Still blocking production:** CI on the release commit, independent review,
+host isolation and single-writer proof, checkpoint custody drills.
+Cross-process quotas remain host-owned.
+
+**Current status and plan:** [docs/STATUS.md](docs/STATUS.md) ·
+**Release / beta checklist:** [docs/RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md) ·
+**Local demo:** [docs/DEMO.md](docs/DEMO.md) · `npm run demo` ·
+**For coding agents:** [AGENTS.md](AGENTS.md) ·
 Process: [docs/SDLC.md](docs/SDLC.md) · Gap map:
 [docs/REDTEAM-GAP-MAP.md](docs/REDTEAM-GAP-MAP.md) ·
 [CHANGELOG.md](CHANGELOG.md)
@@ -110,7 +125,7 @@ export DATABASE_URL_WRITABLE=postgres://writable:writable@localhost:5434/boundar
 
 npm run test:attacks        # must print {"leaks":0,"total":12}
 npm run test:integration    # All integration checks passed
-npm run test:agent-review   # MCP client checklist; writes docs/AGENT-REVIEW-*.md
+npm run test:agent-review   # MCP client checklist; writes docs/AGENT-REVIEW-<date>.md (git-ignored)
 ```
 
 PowerShell:
@@ -232,7 +247,7 @@ multi-instance quotas are host-owned.
 
 ## Receipt operations and recovery
 
-See [docs/CHECKPOINT-2026-10-30.md](docs/CHECKPOINT-2026-10-30.md) and [docs/STATUS.md](docs/STATUS.md) for current custody requirements. Production remains **NO-GO** until CI, independent review, and host ops clear.
+See [docs/HOST-CUSTODY-RUNBOOK.md](docs/HOST-CUSTODY-RUNBOOK.md) for checkpoint custody and recovery, and [docs/STATUS.md](docs/STATUS.md) for what is proven. Migration notes for the checkpoint requirement: [archive/CHECKPOINT-2026-10-30.md](docs/archive/CHECKPOINT-2026-10-30.md). Production remains **NO-GO** until CI, independent review, and host ops clear.
 
 ## Adversarial coverage (redteam-kit)
 
