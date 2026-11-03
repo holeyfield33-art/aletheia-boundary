@@ -68,7 +68,7 @@ Findings N1–N9 come from the [2026-11-02 re-audit](evidence/REAUDIT-2026-11-02
 |---|---|---|
 | GitHub Actions billing | Operator | Payment Wednesday 2026-11-04; until then CI is **NOT_RUN** |
 | Local host-isolation rehearsal | Operator | Done 2026-11-01 for a disposable host ([report](evidence/HOST-CUSTODY-2026-11-01/REPORT.md)); exclusive single-writer supervision and a restricted agent host are not proven |
-| Beta tester instructions (disposable DB, read-only role, one writer per log) | Operator | Open — reuse [DEMO](DEMO.md) and the [runbook](HOST-CUSTODY-RUNBOOK.md) |
+| Beta tester / customer setup (read-only role, policy, per-person Claude Desktop and Codex config, first-run checks incl. Codex bypass check) | Operator | Drafted: [TEAM-SETUP](TEAM-SETUP.md); config verified end to end in a cloud run (per-person `caller` rule, spoofed caller ignored, receipts verify). Operator's Claude Desktop + Codex run open |
 | Volume test data (~1,000 users, 5,000 orders, 2,500 analytics) so agents hit limits and truncation | Operator | Seed drafted ([DEMO §2b](DEMO.md#2b-volume-data-for-agent-testing-optional)); gates pass on it in a cloud run; operator's local run and Codex MCP pass open |
 
 ---
@@ -128,6 +128,7 @@ storage/power-loss and key-rotation drills. Checklist:
 | Invariants, gates, release rules | [SDLC](SDLC.md) |
 | Release and beta tick-list | [RELEASE-CHECKLIST](RELEASE-CHECKLIST.md) |
 | Local demo and real testing | [DEMO](DEMO.md) |
+| Setting up a team (Claude Desktop, Codex) | [TEAM-SETUP](TEAM-SETUP.md) |
 | Host isolation and checkpoint custody | [HOST-CUSTODY-RUNBOOK](HOST-CUSTODY-RUNBOOK.md) · [HOST-ISOLATION-CHECKLIST](HOST-ISOLATION-CHECKLIST.md) |
 | Red-team responsibility split | [REDTEAM-GAP-MAP](REDTEAM-GAP-MAP.md) |
 | Reusable agent prompts P01–P14 | [agent-playbook/PROMPTS](agent-playbook/PROMPTS.md) |
