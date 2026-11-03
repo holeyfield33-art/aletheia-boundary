@@ -69,6 +69,7 @@ Findings N1–N9 come from the [2026-11-02 re-audit](evidence/REAUDIT-2026-11-02
 | GitHub Actions billing | Operator | Payment Wednesday 2026-11-04; until then CI is **NOT_RUN** |
 | Local host-isolation rehearsal | Operator | Done 2026-11-01 for a disposable host ([report](evidence/HOST-CUSTODY-2026-11-01/REPORT.md)); exclusive single-writer supervision and a restricted agent host are not proven |
 | Beta tester instructions (disposable DB, read-only role, one writer per log) | Operator | Open — reuse [DEMO](DEMO.md) and the [runbook](HOST-CUSTODY-RUNBOOK.md) |
+| Volume test data (~1,000 users, 5,000 orders, 2,500 analytics) so agents hit limits and truncation | Operator | Seed drafted ([DEMO §2b](DEMO.md#2b-volume-data-for-agent-testing-optional)); gates pass on it in a cloud run; operator's local run and Codex MCP pass open |
 
 ---
 
