@@ -195,3 +195,18 @@ test("H12 date and timestamp-without-zone values keep their database text (N10)"
   // timestamptz is an instant and keeps the driver's default parser.
   assert.ok(RESULT_TYPES.getTypeParser(1184, "text")("2026-10-01 00:00:00+00") instanceof Date);
 });
+
+test("H13 MCP server warns at startup about purpose-only allow rules (N8)", async t => {
+  const { dir, path } = fixture(t);
+  const pp = join(dir, "policy.json");
+  fs.writeFileSync(pp, JSON.stringify({ version: "1", defaultEffect: "deny", rules: [{ id: "by-purpose", match: { purpose: "weekly report" }, effect: "allow" }] }));
+  const transport = new StdioClientTransport({ command: process.execPath, args: ["--import", "tsx", "src/mcp/server.ts"], env: { ...process.env as Record<string,string>, NODE_ENV: "test", DATABASE_URL: "", BOUNDARY_CHECKPOINT_PATH: "", BOUNDARY_POLICY: pp, BOUNDARY_KEY_PATH: join(dir, "key.ed25519"), BOUNDARY_LOG_PATH: path }, stderr: "pipe" });
+  let stderr = "";
+  transport.stderr?.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+  const c = new Client({ name: "hardening", version: "1" });
+  try {
+    await c.connect(transport);
+    await c.listTools();
+    assert.match(stderr, /WARNING.*by-purpose.*purpose/);
+  } finally { await c.close(); }
+});

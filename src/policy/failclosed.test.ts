@@ -5,7 +5,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { loadPolicyFromObject } from "./engine.js";
+import { loadPolicyFromObject, policyWarnings } from "./engine.js";
 
 describe("policy load fail-closed", () => {
   it("rejects misspelled effect (F4)", () => {
@@ -152,5 +152,45 @@ describe("N2 constraint values are typed at load", () => {
     ] as [string, unknown][]) {
       assert.doesNotThrow(() => loadPolicyFromObject(withConstraint(type, value)));
     }
+  });
+});
+
+describe("N8 warn on allow rules gated only on agent-claimed purpose", () => {
+  const doc = (rules: unknown[]) => loadPolicyFromObject({ version: "0.1", defaultEffect: "deny", rules });
+
+  it("warns for an allow that uses purpose without caller, naming the rule", () => {
+    const w = policyWarnings(doc([
+      { id: "report-by-purpose", match: { resource: "public.orders", purpose: "weekly report" }, effect: "allow" },
+      { id: "limited-by-purpose", match: { purpose: "audit*" }, effect: "allow_with_constraints", constraints: [{ type: "limit", value: 5 }] },
+    ]));
+    assert.equal(w.length, 2);
+    assert.match(w[0], /report-by-purpose/);
+    assert.match(w[0], /purpose/);
+    assert.match(w[1], /limited-by-purpose/);
+  });
+
+  it("warns when the caller matcher also matches an absent caller (*, empty)", () => {
+    const w = policyWarnings(doc([
+      { id: "star", match: { caller: "*", purpose: "weekly report" }, effect: "allow" },
+      { id: "empty", match: { caller: [""], purpose: "weekly report" }, effect: "allow" },
+      { id: "starstar", match: { caller: ["**"], purpose: "x" }, effect: "allow" },
+      { id: "real", match: { caller: ["finance-*"], purpose: "x" }, effect: "allow" },
+    ]));
+    assert.deepEqual(w.map((m) => m.match(/rule "([^"]+)"/)?.[1]), ["star", "empty", "starstar"]);
+  });
+
+  it("does not warn when caller also gates the rule, for deny rules, or without purpose", () => {
+    const w = policyWarnings(doc([
+      { id: "a", match: { caller: "alice", purpose: "weekly report" }, effect: "allow" },
+      { id: "d", match: { purpose: "anything" }, effect: "deny" },
+      { id: "plain", match: { resource: "public.orders" }, effect: "allow" },
+    ]));
+    assert.deepEqual(w, []);
+  });
+
+  it("the shipped example policy has no warnings", async () => {
+    const { readFileSync } = await import("node:fs");
+    const YAML = (await import("yaml")).default;
+    assert.deepEqual(policyWarnings(loadPolicyFromObject(YAML.parse(readFileSync("policies/example.yaml", "utf8")))), []);
   });
 });

@@ -96,18 +96,23 @@ export class PolicyEngine {
    *   exact       → equality
    */
   private valueMatches(matcher: string | string[], actual: string): boolean {
-    const candidates = Array.isArray(matcher) ? matcher : [matcher];
-    return candidates.some((c) => {
-      if (c === "*") return true;
-      if (c.includes("*")) {
-        const escaped = c
-          .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
-          .replace(/\*/g, ".*");
-        return new RegExp(`^${escaped}$`, "i").test(actual);
-      }
-      return c === actual;
-    });
+    return valueMatches(matcher, actual);
   }
+}
+
+/** Glob-ish matcher shared by the engine and policyWarnings (see above). */
+function valueMatches(matcher: string | string[], actual: string): boolean {
+  const candidates = Array.isArray(matcher) ? matcher : [matcher];
+  return candidates.some((c) => {
+    if (c === "*") return true;
+    if (c.includes("*")) {
+      const escaped = c
+        .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+        .replace(/\*/g, ".*");
+      return new RegExp(`^${escaped}$`, "i").test(actual);
+    }
+    return c === actual;
+  });
 }
 
 /**
@@ -124,4 +129,25 @@ export function loadPolicyFromObject(obj: unknown): PolicyDocument {
     throw new Error(`Invalid policy document: ${details}`);
   }
   return parsed.data as PolicyDocument;
+}
+
+/**
+ * N8: load-time warnings for rules that are valid but weak. `purpose` is an
+ * agent claim, so an allow rule that matches on purpose without a
+ * host-configured `caller` is unlocked by any agent that says the words.
+ */
+export function policyWarnings(doc: PolicyDocument): string[] {
+  return doc.rules
+    .filter(
+      (r) =>
+        r.effect !== "deny" &&
+        r.match.purpose &&
+        // A caller matcher that also matches an absent caller ("*", "") is
+        // no gate: the server passes no caller without BOUNDARY_TRUSTED_CALLER.
+        (!r.match.caller || valueMatches(r.match.caller, "")),
+    )
+    .map(
+      (r) =>
+        `rule "${r.id}" allows access based on purpose without a restricting caller; purpose is an agent claim, so any agent can unlock it. Add a match.caller that names specific callers (set by BOUNDARY_TRUSTED_CALLER) or remove purpose.`,
+    );
 }
