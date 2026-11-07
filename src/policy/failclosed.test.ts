@@ -169,6 +169,16 @@ describe("N8 warn on allow rules gated only on agent-claimed purpose", () => {
     assert.match(w[1], /limited-by-purpose/);
   });
 
+  it("warns when the caller matcher also matches an absent caller (*, empty)", () => {
+    const w = policyWarnings(doc([
+      { id: "star", match: { caller: "*", purpose: "weekly report" }, effect: "allow" },
+      { id: "empty", match: { caller: [""], purpose: "weekly report" }, effect: "allow" },
+      { id: "starstar", match: { caller: ["**"], purpose: "x" }, effect: "allow" },
+      { id: "real", match: { caller: ["finance-*"], purpose: "x" }, effect: "allow" },
+    ]));
+    assert.deepEqual(w.map((m) => m.match(/rule "([^"]+)"/)?.[1]), ["star", "empty", "starstar"]);
+  });
+
   it("does not warn when caller also gates the rule, for deny rules, or without purpose", () => {
     const w = policyWarnings(doc([
       { id: "a", match: { caller: "alice", purpose: "weekly report" }, effect: "allow" },

@@ -96,18 +96,23 @@ export class PolicyEngine {
    *   exact       → equality
    */
   private valueMatches(matcher: string | string[], actual: string): boolean {
-    const candidates = Array.isArray(matcher) ? matcher : [matcher];
-    return candidates.some((c) => {
-      if (c === "*") return true;
-      if (c.includes("*")) {
-        const escaped = c
-          .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
-          .replace(/\*/g, ".*");
-        return new RegExp(`^${escaped}$`, "i").test(actual);
-      }
-      return c === actual;
-    });
+    return valueMatches(matcher, actual);
   }
+}
+
+/** Glob-ish matcher shared by the engine and policyWarnings (see above). */
+function valueMatches(matcher: string | string[], actual: string): boolean {
+  const candidates = Array.isArray(matcher) ? matcher : [matcher];
+  return candidates.some((c) => {
+    if (c === "*") return true;
+    if (c.includes("*")) {
+      const escaped = c
+        .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+        .replace(/\*/g, ".*");
+      return new RegExp(`^${escaped}$`, "i").test(actual);
+    }
+    return c === actual;
+  });
 }
 
 /**
@@ -133,9 +138,16 @@ export function loadPolicyFromObject(obj: unknown): PolicyDocument {
  */
 export function policyWarnings(doc: PolicyDocument): string[] {
   return doc.rules
-    .filter((r) => r.effect !== "deny" && r.match.purpose && !r.match.caller)
+    .filter(
+      (r) =>
+        r.effect !== "deny" &&
+        r.match.purpose &&
+        // A caller matcher that also matches an absent caller ("*", "") is
+        // no gate: the server passes no caller without BOUNDARY_TRUSTED_CALLER.
+        (!r.match.caller || valueMatches(r.match.caller, "")),
+    )
     .map(
       (r) =>
-        `rule "${r.id}" allows access based on purpose without caller; purpose is an agent claim, so any agent can unlock it. Add match.caller (set by BOUNDARY_TRUSTED_CALLER) or remove purpose.`,
+        `rule "${r.id}" allows access based on purpose without a restricting caller; purpose is an agent claim, so any agent can unlock it. Add a match.caller that names specific callers (set by BOUNDARY_TRUSTED_CALLER) or remove purpose.`,
     );
 }

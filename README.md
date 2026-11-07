@@ -218,7 +218,7 @@ With `DATABASE_URL` set, a failed probe **exits 1** (never silent stub).
 
 `purpose` is an agent claim, not authentication. Do not use it as the sole basis
 for privileged access. At startup the server prints a `WARNING` to stderr for
-every allow rule that matches on `purpose` without a `caller`. Embedded library users must supply their own trusted
+every allow rule that matches on `purpose` without a restricting `caller` (no caller, or a caller matcher such as `*` that also matches an absent caller). Embedded library users must supply their own trusted
 caller context. Schema metadata uses the intersection of schema constraints and
 all allowed sample/query paths: column allowlists apply and redacted names/types
 are omitted. Denied tables are omitted. Export-only tables remain hidden from

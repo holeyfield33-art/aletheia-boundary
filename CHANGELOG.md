@@ -4,9 +4,10 @@
 
 - **Footgun (N8):** the loader accepted allow rules gated on agent-claimed
   `purpose` without a host-configured `caller`, silently. New
-  `policyWarnings(doc)` lists them, and the MCP server prints each as
+  `policyWarnings(doc)` lists allow rules whose `caller` is missing or also
+  matches an absent caller (`*`, `""`), and the MCP server prints each as
   `[aletheia-boundary] WARNING: rule "<id>" allows access based on purpose
-  without caller ...` on stderr at startup. Warn, not refuse: the policy
+  without a restricting caller ...` on stderr at startup. Warn, not refuse: the policy
   still loads. `policies/example.yaml` produces no warnings.
 - Tests: N8 cases in `src/policy/failclosed.test.ts`; H13 (server stderr).
 
