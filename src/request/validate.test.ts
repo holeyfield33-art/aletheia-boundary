@@ -95,4 +95,20 @@ describe("request validation (encoding / shape)", () => {
       }),
     );
   });
+
+  it("N5: accepts ordinary CamelCase names and purposes", () => {
+    for (const resource of ["CustomerOrders2024", "MonthlyRevenueByRegion", "public.CustomerOrders2024"]) {
+      assert.equal(looksEncoded(resource), false, resource);
+      assert.doesNotThrow(() => assertSafeAgentRequest({ action: "query", resource }), resource);
+    }
+    assert.doesNotThrow(() =>
+      assertSafeAgentRequest({ action: "query", resource: "public.orders", purpose: "QuarterlyBusinessReview" }),
+    );
+  });
+
+  it("N5: still rejects base64 that is not CamelCase-shaped", () => {
+    for (const blob of ["cHVibGljLnVzZXJz", "dXNlcnMuc3NuX2xpc3Q", "QUJDREVGR0hJSktMTU5PUA"]) {
+      assert.ok(looksEncoded(blob), blob);
+    }
+  });
 });

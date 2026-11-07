@@ -77,7 +77,7 @@ Beta does not change the production NO-GO. Entry criteria are owned by
 | ID | Check | Result | Notes |
 |---|---|---|---|
 | B1 | Queue Must items (N1, N2, N3, N9 version) closed, each with a failing-then-passing test | **PASS** | PRs #25, #27, #28, #29; see STATUS queue |
-| B2 | §1 gates + agent review PASS locally on the beta commit, exit codes recorded | **Re-run needed** | Passed on code `d90797e` (operator + cloud, `d682414`). N10 changes code, so the gates must pass again on the commit that is tagged |
+| B2 | §1 gates + agent review PASS locally on the beta commit, exit codes recorded | **Re-run needed** | Passed on code `3be09f9` (operator + cloud, `d7c8c0d`). N5 changes code again, so the gates must pass on the commit that is tagged |
 | B3 | CI executed on the beta commit, or recorded NOT_RUN | **NOT_RUN** (recorded) | Actions billing lock: jobs get no runner. Allowed for beta |
 | B4 | README states beta scope, known limitations and stop-ship | **PASS** | README "Status" section, 2026-11-07 |
 | B5 | Tester instructions: disposable DB, read-only role, one writer per log | **Drafted** | [TEAM-SETUP](TEAM-SETUP.md); operator's Claude Desktop + Codex run open |

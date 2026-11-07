@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased - N5 ordinary names accepted, refusals say why (2026-11-07)
+
+- **Bug (N5):** the encoding check refused any undotted mixed-case name of 16+
+  characters, so `CustomerOrders2024`, `MonthlyRevenueByRegion` and purpose
+  `QuarterlyBusinessReview` were rejected as "encoded". Names shaped like
+  CamelCase words (each capital followed by lowercase letters, or digit runs)
+  are now accepted; opaque base64 such as `cHVibGljLnVzZXJz` is still refused.
+- **Agent-visible change:** shape refusals now read `Invalid request: <what to
+  fix>` (for example `free-form SQL is not allowed; use params.columns and
+  params.limit`) instead of a bare `Invalid request`. Messages are fixed text,
+  never agent input, and are produced before any database access, so they do
+  not reveal which tables exist.
+- Tests: N5 cases in `src/request/validate.test.ts` and `src/boundary.test.ts`.
+- `docs/DEMO.md`: seed command that works in Windows PowerShell.
+
 ## Unreleased - N10 dates returned as stored (2026-11-07)
 
 - **Bug (N10, honest results):** `date` and `timestamp without time zone`

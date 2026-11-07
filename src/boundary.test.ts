@@ -173,3 +173,38 @@ describe("N1 resource spelling binds policy to the table that is read", () => {
     assert.equal(p.evaluate(req("query", "secret.orders")).outcome, "deny");
   });
 });
+
+describe("N5 refusal reasons tell the agent what to fix", () => {
+  const allowAll = () =>
+    new Boundary(
+      new PolicyEngine(loadPolicyFromObject({ version: "0.1", defaultEffect: "allow", rules: [] })),
+      new StubProvider(),
+      new ReceiptLog(generateKeyPair()),
+    );
+
+  it("names the problem for each shape error, keeping the Invalid request prefix", async () => {
+    const cases: [Record<string, unknown>, RegExp][] = [
+      [{ action: "query", resource: "public.orders", params: { sql: "SELECT 1" } }, /^Invalid request: .*(SQL|param)/i],
+      [{ action: "delete", resource: "public.orders" }, /^Invalid request: action must be one of/],
+      [{ action: "query", resource: "public.orders;DROP" }, /^Invalid request: resource must be a table/],
+      [{ action: "query", resource: "*" }, /^Invalid request: .*wildcard/i],
+      [{ action: "query", resource: "public.orders", params: { limit: "5" } }, /^Invalid request: .*limit/i],
+    ];
+    for (const [req, reason] of cases) {
+      const r = await allowAll().handle(req as never);
+      assert.equal(r.ok, false);
+      assert.match(r.decision.reason, reason, JSON.stringify(req));
+      assert.equal(r.error, r.decision.reason);
+    }
+  });
+
+  it("never echoes agent input in the reason", async () => {
+    const r = await allowAll().handle({
+      action: "query",
+      resource: "public.orders",
+      params: { "<script>SECRET_KEY": 1 } as never,
+    });
+    assert.equal(r.ok, false);
+    assert.doesNotMatch(r.decision.reason, /script|SECRET_KEY/);
+  });
+});
