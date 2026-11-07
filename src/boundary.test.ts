@@ -208,3 +208,34 @@ describe("N5 refusal reasons tell the agent what to fix", () => {
     assert.doesNotMatch(r.decision.reason, /script|SECRET_KEY/);
   });
 });
+
+describe("N7 equal-priority ties resolve to the most restrictive effect", () => {
+  const req = { id: "n7", action: "query" as const, resource: "public.orders", receivedAt: "t" };
+  const eff = (rules: unknown[]) =>
+    new PolicyEngine(loadPolicyFromObject({ version: "0.1", defaultEffect: "deny", rules })).evaluate(req);
+
+  it("deny wins over an allow listed first at the same priority", () => {
+    const d = eff([
+      { id: "allow-first", match: { resource: "public.*" }, effect: "allow", priority: 10 },
+      { id: "deny-second", match: { resource: "public.orders" }, effect: "deny", priority: 10 },
+    ]);
+    assert.equal(d.outcome, "deny");
+    assert.equal(d.ruleId, "deny-second");
+  });
+
+  it("constrained allow wins over a plain allow at the same priority", () => {
+    const d = eff([
+      { id: "plain", match: { resource: "public.*" }, effect: "allow", priority: 5 },
+      { id: "limited", match: { resource: "public.orders" }, effect: "allow_with_constraints", constraints: [{ type: "limit", value: 1 }], priority: 5 },
+    ]);
+    assert.equal(d.ruleId, "limited");
+  });
+
+  it("higher priority still wins over a lower-priority deny", () => {
+    const d = eff([
+      { id: "deny-low", match: { resource: "public.orders" }, effect: "deny", priority: 1 },
+      { id: "allow-high", match: { resource: "public.orders" }, effect: "allow", priority: 2 },
+    ]);
+    assert.equal(d.ruleId, "allow-high");
+  });
+});

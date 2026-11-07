@@ -48,7 +48,7 @@ findings against an invariant are tracked in [STATUS.md](STATUS.md).
 |---|---|---|---|
 | I1 | Policy binds to what executes | attacks A1–A3, A10, N1a/N1b; H8 (caller spoofing); `validate.test`; N1 tests in `boundary.test` | — |
 | I2 | No over-release beyond the projection | attacks A2, A8, N2, N6; H5, H10; `bounds.test` (row and byte caps) | — |
-| I3 | Fail closed | `failclosed.test`; attacks A4, A5; H7; K7 | N7 (tie order) |
+| I3 | Fail closed | `failclosed.test`; attacks A4, A5, N7; H7; K7 | — |
 | I4 | Receipts are evidence (durable, chained, verifiable) | `receipt.test`; attack A6; H1–H4, H9; K1–K10; `recovery.test`; agent review C10 (G6) | N9 (rate-limit refusals unreceipted) |
 | I5 | No writes | integration read-only probe and canary; attacks A7a (startup probe), A7b (`READ ONLY` transaction, SQLSTATE 25006), A7c (role privileges after a read-write escape, 42501) | — (the role is the primary write control: an injected `SET LOCAL transaction_read_only = off` before the first query re-enables writes, which A7c covers) |
 | I6 | Agent contract, incl. honest `truncated`, `dataSource`, sanitized errors and values as stored | agent review C0–C10; attack A9; H6; H12 and integration 4b (dates unshifted under `TZ=Asia/Tokyo`); N5 tests in `validate.test` and `boundary.test` (specific, input-free refusal reasons) | — |

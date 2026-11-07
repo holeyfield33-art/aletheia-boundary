@@ -327,6 +327,15 @@ async function main() {
     const honest = r.payload?.stats?.truncated === true;
     report(`N6 byte cap ${cap} on public.orders (rows + fields + transforms)`, !r.ok || released > cap || !honest, `ok=${r.ok} rows=${rows.length} released=${released} truncated=${r.payload?.stats?.truncated} transforms=${r.payload?.transforms.join(",")}`);
   }
+  // N7: an allow listed before an equal-priority deny must not win the tie.
+  {
+    const pol = new PolicyEngine(loadPolicyFromObject({ version: "0.1", defaultEffect: "deny", rules: [
+      { id: "allow-all-public", match: { action: "query", resource: "public.*" }, effect: "allow", priority: 50 },
+      { id: "deny-users", match: { resource: "public.users" }, effect: "deny", priority: 50 },
+    ] }));
+    const r = await new Boundary(pol, provider, new ReceiptLog(keys)).handle({ action: "query", resource: "public.users" });
+    report("N7 equal-priority allow listed before deny", r.ok || containsSsn(r.payload?.data), `ok=${r.ok} rule=${r.decision.ruleId}`);
+  }
   await pool.end();
 
   for (const r of results)
