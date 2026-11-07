@@ -8,10 +8,12 @@
   starting with `*` still match any schema. Previously a deny on
   `public.users` missed a request for `users` (and the reverse), releasing
   the table under a broader allow.
-- Exact resource matches are now case-insensitive, consistent with globs.
+- Resource case handling fails closed: deny rules match regardless of case;
+  allow rules (exact and glob) match case exactly, so an allow for
+  `public.users` does not release a quoted `public."Users"`.
 - Shared helper `src/policy/resource.ts` used by both the engine and
   `PostgresProvider.resolveTable`.
-- Tests: 5 unit tests in `src/boundary.test.ts`; attacks N1a/N1b in
+- Tests: 6 unit tests in `src/boundary.test.ts`; attacks N1a/N1b in
   `audit/attacks.ts` (both LEAK before the fix, HELD after).
 
 ## Unreleased - documentation reorganized (2026-11-02)

@@ -54,9 +54,9 @@ Local gates on `0f59c4c` (2026-11-02): G1–G5 and the agent review **PASS**
 
 **Resource matching:** a bare table name means the `public` schema, in
 requests and in policy rules (`users` = `public.users`, `user*` =
-`public.user*`); patterns that start with `*` match any schema. Resource
-matching ignores case. Tables whose names differ only by case are not
-distinguished by policy.
+`public.user*`); patterns that start with `*` match any schema. Deny rules
+match resources regardless of case; allow rules match case exactly, so an
+allow never reaches a quoted table whose name differs only by case.
 
 **Beta stop-ship:** a policy-denied row in a tool result, a write reaching the
 database, a receipt that fails offline verification, or stub data without

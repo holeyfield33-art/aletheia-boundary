@@ -145,13 +145,24 @@ describe("N1 resource spelling binds policy to the table that is read", () => {
     assert.equal(p.evaluate(req("query", "users")).outcome, "deny");
   });
 
-  it("exact resource matches ignore case, like glob matches", () => {
+  it("deny resource matches ignore case", () => {
     const p = engine([
       { id: "deny", match: { resource: "public.users" }, effect: "deny", priority: 100 },
       { id: "allow", match: { resource: "*" }, effect: "allow", priority: 1 },
     ]);
     assert.equal(p.evaluate(req("query", "PUBLIC.USERS")).outcome, "deny");
     assert.equal(p.evaluate(req("query", "Users")).outcome, "deny");
+  });
+
+  it("allows match case exactly, so a case-only twin table is not released", () => {
+    const p = engine([
+      { id: "exact", match: { resource: "public.users" }, effect: "allow" },
+      { id: "glob", match: { resource: "public.user*" }, effect: "allow" },
+    ]);
+    assert.equal(p.evaluate(req("query", "public.users")).outcome, "allow");
+    assert.equal(p.evaluate(req("query", "public.Users")).outcome, "deny");
+    assert.equal(p.evaluate(req("query", "Users")).outcome, "deny");
+    assert.equal(p.evaluate(req("query", "public.USERS")).outcome, "deny");
   });
 
   it("an allow on a bare name does not reach another schema", () => {
