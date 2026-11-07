@@ -108,11 +108,11 @@ returned without `dataSource: "stub"`.
 
 | Check | Result | Source |
 |---|---|---|
-| G1 `npm ci` · G2 typecheck | PASS | `d7c8c0d` (= code of `main` `3be09f9`), 2026-11-07: operator local run (Windows, Docker PostgreSQL 16, default fixture) and a cloud run (PostgreSQL 16, volume seed) |
-| G3 `npm test` | PASS, 85/85 (incl. H12) | cloud run; operator run completed (count not captured) |
-| G4 integration | PASS, incl. dates unshifted under `TZ=Asia/Tokyo` | operator and cloud |
-| G5 `npm run test:attacks` | PASS, 19/19 held (incl. N1a/N1b, N2, A7a/b/c) | same |
-| Agent review C0–C10 incl. G6 offline receipt verification | PASS, 11/11, `live:true`, exit 0 | same |
+| G1 `npm ci` · G2 typecheck | PASS | Operator local runs, 2026-11-07 (Windows, Docker PostgreSQL 16, **volume seed**): `7c50795` (N5) and `fee4467` (N6 first commit). Cloud runs (PostgreSQL 16, volume seed) on every head through `65308f5` (N7). The N6 review fix `efb9db7` (in `main` `c01bd63`) has a cloud run only |
+| G3 `npm test` | PASS: operator 89/89 (`7c50795`), 94/94 (`fee4467`); cloud 98/98 (`65308f5`) | as above |
+| G4 integration | PASS on the volume seed, incl. dates unshifted under `TZ=Asia/Tokyo` | operator and cloud |
+| G5 `npm run test:attacks` | PASS: operator 19/19 (`7c50795`), 20/20 incl. N6 (`fee4467`); cloud 21/21 incl. N7 (`65308f5`) | as above |
+| Agent review C0–C10 incl. G6 offline receipt verification | PASS, 11/11, `live:true` | operator and cloud |
 | CI | **NOT_RUN** | Actions billing lock (no runner assigned) |
 | Independent review | NOT_RUN | required for production only |
 
