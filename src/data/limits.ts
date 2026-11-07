@@ -22,3 +22,46 @@ export function resolveMaxRows(envValue?: string | number): number {
   if (!Number.isFinite(raw) || raw < 1) return DEFAULT_MAX_ROWS;
   return Math.min(Math.floor(raw), HARD_MAX_ROWS);
 }
+
+/**
+ * N6: byte cap on released rows, so one tool result cannot flood an agent's
+ * context even within the row cap (wide text or bytea columns).
+ */
+export const DEFAULT_MAX_BYTES = 65_536;
+
+/** Absolute ceiling for BOUNDARY_MAX_BYTES. */
+export const HARD_MAX_BYTES = 1_048_576;
+
+/** Resolve effective max bytes from env with clamp (same rules as rows). */
+export function resolveMaxBytes(envValue?: string | number): number {
+  const raw =
+    typeof envValue === "number"
+      ? envValue
+      : envValue != null && envValue !== ""
+        ? Number(envValue)
+        : DEFAULT_MAX_BYTES;
+  if (!Number.isFinite(raw) || raw < 1) return DEFAULT_MAX_BYTES;
+  return Math.min(Math.floor(raw), HARD_MAX_BYTES);
+}
+
+/**
+ * Keep whole rows, in order, while their JSON array plus `overhead` (the
+ * other bytes released with them) stays within maxBytes (UTF-8). Never cuts
+ * inside a value. A single row larger than the budget yields no rows; the
+ * caller reports truncated so the agent can narrow columns.
+ */
+export function capRowsByBytes<T>(
+  rows: T[],
+  maxBytes: number,
+  overhead = 0,
+): { rows: T[]; truncated: boolean; bytes: number } {
+  let bytes = 2; // "[]"
+  let kept = 0;
+  for (const row of rows) {
+    const size = Buffer.byteLength(JSON.stringify(row)) + (kept > 0 ? 1 : 0);
+    if (overhead + bytes + size > maxBytes) break;
+    bytes += size;
+    kept++;
+  }
+  return { rows: rows.slice(0, kept), truncated: kept < rows.length, bytes };
+}

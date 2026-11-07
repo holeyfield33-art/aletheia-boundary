@@ -47,7 +47,7 @@ findings against an invariant are tracked in [STATUS.md](STATUS.md).
 | ID | Invariant | Guarded by | Known open gap |
 |---|---|---|---|
 | I1 | Policy binds to what executes | attacks A1–A3, A10, N1a/N1b; H8 (caller spoofing); `validate.test`; N1 tests in `boundary.test` | — |
-| I2 | No over-release beyond the projection | attacks A2, A8; H5, H10; `bounds.test` | N2 (untyped constraints), N6 (no byte cap) |
+| I2 | No over-release beyond the projection | attacks A2, A8, N2, N6; H5, H10; `bounds.test` (row and byte caps) | — |
 | I3 | Fail closed | `failclosed.test`; attacks A4, A5; H7; K7 | N7 (tie order) |
 | I4 | Receipts are evidence (durable, chained, verifiable) | `receipt.test`; attack A6; H1–H4, H9; K1–K10; `recovery.test`; agent review C10 (G6) | N9 (rate-limit refusals unreceipted) |
 | I5 | No writes | integration read-only probe and canary; attacks A7a (startup probe), A7b (`READ ONLY` transaction, SQLSTATE 25006), A7c (role privileges after a read-write escape, 42501) | — (the role is the primary write control: an injected `SET LOCAL transaction_read_only = off` before the first query re-enables writes, which A7c covers) |

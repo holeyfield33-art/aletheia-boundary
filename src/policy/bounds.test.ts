@@ -15,6 +15,10 @@ import {
   DEFAULT_MAX_ROWS,
   HARD_MAX_ROWS,
   resolveMaxRows,
+  DEFAULT_MAX_BYTES,
+  HARD_MAX_BYTES,
+  resolveMaxBytes,
+  capRowsByBytes,
 } from "../data/limits.js";
 
 describe("output limits (F9)", () => {
@@ -31,6 +35,53 @@ describe("output limits (F9)", () => {
   it("rejects non-positive", () => {
     assert.equal(resolveMaxRows(0), DEFAULT_MAX_ROWS);
     assert.equal(resolveMaxRows(-1), DEFAULT_MAX_ROWS);
+  });
+});
+
+describe("output byte cap (N6)", () => {
+  it("defaults, clamps and rejects non-positive like the row cap", () => {
+    assert.equal(resolveMaxBytes(undefined), DEFAULT_MAX_BYTES);
+    assert.equal(DEFAULT_MAX_BYTES, 65_536);
+    assert.equal(resolveMaxBytes(50_000_000), HARD_MAX_BYTES);
+    assert.equal(resolveMaxBytes("0"), DEFAULT_MAX_BYTES);
+    assert.equal(resolveMaxBytes("4096"), 4096);
+  });
+
+  it("keeps whole rows in order until the next would exceed the cap", () => {
+    const rows = Array.from({ length: 10 }, (_, i) => ({ id: i, note: "x".repeat(40) }));
+    const out = capRowsByBytes(rows, 200);
+    assert.ok(out.rows.length > 0 && out.rows.length < 10);
+    assert.deepEqual(out.rows, rows.slice(0, out.rows.length));
+    assert.equal(out.truncated, true);
+    assert.ok(Buffer.byteLength(JSON.stringify(out.rows)) <= 200);
+    assert.equal(out.bytes, Buffer.byteLength(JSON.stringify(out.rows)));
+  });
+
+  it("returns everything untouched when under the cap", () => {
+    const rows = [{ id: 1 }, { id: 2 }];
+    const out = capRowsByBytes(rows, 1000);
+    assert.deepEqual(out.rows, rows);
+    assert.equal(out.truncated, false);
+  });
+
+  it("returns no rows, marked truncated, when one row alone exceeds the cap", () => {
+    const out = capRowsByBytes([{ blob: "y".repeat(500) }], 100);
+    assert.deepEqual(out.rows, []);
+    assert.equal(out.truncated, true);
+  });
+
+  it("counts a fixed overhead against the cap", () => {
+    const rows = Array.from({ length: 10 }, (_, i) => ({ id: i }));
+    const all = capRowsByBytes(rows, 1000);
+    const tight = capRowsByBytes(rows, 1000, 960);
+    assert.equal(all.rows.length, 10);
+    assert.ok(tight.rows.length < 10 && tight.truncated);
+    assert.ok(tight.bytes + 960 <= 1000);
+  });
+
+  it("measures UTF-8 bytes, not characters", () => {
+    const out = capRowsByBytes([{ t: "é".repeat(60) }], 100);
+    assert.deepEqual(out.rows, []);
   });
 });
 
