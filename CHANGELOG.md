@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased - N8 warn on purpose-only allow rules (2026-11-07)
+
+- **Footgun (N8):** the loader accepted allow rules gated on agent-claimed
+  `purpose` without a host-configured `caller`, silently. New
+  `policyWarnings(doc)` lists them, and the MCP server prints each as
+  `[aletheia-boundary] WARNING: rule "<id>" allows access based on purpose
+  without caller ...` on stderr at startup. Warn, not refuse: the policy
+  still loads. `policies/example.yaml` produces no warnings.
+- Tests: N8 cases in `src/policy/failclosed.test.ts`; H13 (server stderr).
+
 ## Unreleased - N7 deny wins equal-priority ties (2026-11-07)
 
 - **Security (N7):** equal-priority rules resolved by document order, so an

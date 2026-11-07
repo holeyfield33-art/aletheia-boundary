@@ -81,7 +81,9 @@ and `purpose`.
   It is trustworthy because the agent cannot change it. Use it for per-person
   rules, for example only `finance-*` callers may query `public.orders`.
 - `purpose` is whatever the agent claims. Never use it as the only condition on
-  an allow rule.
+  an allow rule. The server prints a `WARNING` line at startup for any allow
+  rule that matches on `purpose` without a `caller`; check the MCP server log
+  in Claude Desktop or Codex after editing the policy.
 
 Until open queue items are fixed (see [STATUS](STATUS.md)):
 

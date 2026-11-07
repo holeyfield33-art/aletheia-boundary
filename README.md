@@ -51,8 +51,6 @@ live). CI is **NOT_RUN** (Actions billing).
   startup re-verifies every receipt (about 92 ms per request and 3 s startup
   at 20,000 receipts). Expect this on long beta runs; never trim or reset a
   receipt log to work around it.
-- **Purpose is a claim (N8):** a rule gated only on `purpose` is unlocked by
-  the agent saying so; gate on `caller` (host-configured) instead.
 - **Unreceipted refusals (N9):** rate-limit refusals write no receipt.
 
 **Constraint values are checked at load:** `columns` and `redact` take a
@@ -219,7 +217,8 @@ With `DATABASE_URL` set, a failed probe **exits 1** (never silent stub).
 | `params.limit`                | Optional; capped by policy and hard max **2000** (default **500**) |
 
 `purpose` is an agent claim, not authentication. Do not use it as the sole basis
-for privileged access. Embedded library users must supply their own trusted
+for privileged access. At startup the server prints a `WARNING` to stderr for
+every allow rule that matches on `purpose` without a `caller`. Embedded library users must supply their own trusted
 caller context. Schema metadata uses the intersection of schema constraints and
 all allowed sample/query paths: column allowlists apply and redacted names/types
 are omitted. Denied tables are omitted. Export-only tables remain hidden from

@@ -14,7 +14,11 @@ import {
 import YAML from "yaml";
 
 import { Boundary } from "../boundary.js";
-import { PolicyEngine, loadPolicyFromObject } from "../policy/engine.js";
+import {
+  PolicyEngine,
+  loadPolicyFromObject,
+  policyWarnings,
+} from "../policy/engine.js";
 import { ReceiptLog } from "../receipt/log.js";
 import { loadReceiptCheckpoint } from "../receipt/checkpoint.js";
 import { loadOrCreateKeyPair } from "../receipt/crypto.js";
@@ -48,6 +52,9 @@ function loadPolicy(): PolicyEngine {
   try {
     const raw = readFileSync(path, "utf8");
     const doc = loadPolicyFromObject(YAML.parse(raw));
+    for (const warning of policyWarnings(doc)) {
+      console.error(`[aletheia-boundary] WARNING: ${warning}`);
+    }
     return new PolicyEngine(doc);
   } catch (err) {
     console.error(

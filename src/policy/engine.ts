@@ -125,3 +125,17 @@ export function loadPolicyFromObject(obj: unknown): PolicyDocument {
   }
   return parsed.data as PolicyDocument;
 }
+
+/**
+ * N8: load-time warnings for rules that are valid but weak. `purpose` is an
+ * agent claim, so an allow rule that matches on purpose without a
+ * host-configured `caller` is unlocked by any agent that says the words.
+ */
+export function policyWarnings(doc: PolicyDocument): string[] {
+  return doc.rules
+    .filter((r) => r.effect !== "deny" && r.match.purpose && !r.match.caller)
+    .map(
+      (r) =>
+        `rule "${r.id}" allows access based on purpose without caller; purpose is an agent claim, so any agent can unlock it. Add match.caller (set by BOUNDARY_TRUSTED_CALLER) or remove purpose.`,
+    );
+}
