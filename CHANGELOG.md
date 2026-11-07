@@ -3,12 +3,14 @@
 ## Unreleased - N6 byte cap on output (2026-11-07)
 
 - **Security (N6):** output was capped by rows only, so wide text or `bytea`
-  columns could flood an agent's context. Released rows are now also capped
-  by bytes: `BOUNDARY_MAX_BYTES` (default 65536, hard max 1048576, same
-  clamping as `BOUNDARY_MAX_ROWS`). Whole trailing rows are dropped, never
-  part of a value; the result is marked `truncated: true` with a
-  `bytes:<cap>` transform, and `stats.bytes` is the released size. A single
-  row larger than the cap yields no rows (narrow `columns` and retry).
+  columns could flood an agent's context. The released payload (rows, column
+  list and transforms) is now capped by bytes: `BOUNDARY_MAX_BYTES` (default
+  65536, hard max 1048576, same clamping as `BOUNDARY_MAX_ROWS`). Whole
+  trailing rows are dropped, never part of a value; the result is marked
+  `truncated: true` with a `bytes:<cap>` transform, and `stats.bytes` is the
+  released row size. A single row larger than the budget yields no rows
+  (narrow `columns` and retry). The MCP result adds a fixed envelope
+  (decision, stats, receipt) of about 1 KB.
 - **Agent-visible change:** the MCP server now returns compact JSON instead
   of pretty-printed JSON, so the cap matches what the agent receives (a full
   500-row analytics result: 73 KB to 46 KB). Same fields and values.

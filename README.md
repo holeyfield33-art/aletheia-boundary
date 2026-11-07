@@ -246,7 +246,7 @@ Response includes `ok`, `decision`, `data`, `transforms`, `stats` (incl.
 | `BOUNDARY_KEY_PATH`            | Ed25519 private key PEM path                                                                                                    |
 | `BOUNDARY_LOG_PATH`            | Receipt JSONL path                                                                                                              |
 | `BOUNDARY_CHECKPOINT_PATH`     | Required in production: independently retained, trusted checkpoint JSON. Never automatically generated or updated by the server |
-| `BOUNDARY_MAX_BYTES`           | Byte cap on released rows per result (default 65536, hard max 1048576); whole trailing rows are dropped and `truncated` is set |
+| `BOUNDARY_MAX_BYTES`           | Byte cap on the released payload per result: rows, column list and transforms (default 65536, hard max 1048576). Whole trailing rows are dropped and `truncated` is set. The MCP result adds a fixed envelope (decision, stats, receipt) of about 1 KB, at most about 5 KB with a 1,024-character policy reason |
 | `BOUNDARY_MAX_ROWS`            | Soft default row cap (clamped to hard max 2000)                                                                                 |
 | `BOUNDARY_STMT_TIMEOUT_MS`     | Statement timeout (default 10000)                                                                                               |
 | `BOUNDARY_MAX_CONCURRENT`      | Max in-flight `boundary_request` calls (default 4, hard max 32; 0 disables)                                                     |

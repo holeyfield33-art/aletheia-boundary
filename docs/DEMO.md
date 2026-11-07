@@ -111,8 +111,9 @@ reconnects, and try these as the agent:
 
 A full 500-row analytics result is about 46 KB of tool output (compact JSON),
 inside the default 64 KiB byte cap. To see the cap cut rows, restart the MCP
-server with `BOUNDARY_MAX_BYTES=16384`: the same query returns about 184 rows,
-`truncated: true`, and a `bytes:16384` transform.
+server with `BOUNDARY_MAX_BYTES=16384`: the same query returns about 181 rows,
+`truncated: true`, and a `bytes:16384` transform; the whole tool result is
+about 17 KB (the capped payload plus the decision and receipt envelope).
 
 **Reset to the default fixture** (deletes the container's data):
 

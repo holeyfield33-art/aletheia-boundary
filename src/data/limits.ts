@@ -45,20 +45,21 @@ export function resolveMaxBytes(envValue?: string | number): number {
 }
 
 /**
- * Keep whole rows, in order, while their JSON array stays within maxBytes
- * (UTF-8). Never cuts inside a value. A single row larger than the cap
- * yields no rows; the caller reports truncated so the agent can narrow
- * columns.
+ * Keep whole rows, in order, while their JSON array plus `overhead` (the
+ * other bytes released with them) stays within maxBytes (UTF-8). Never cuts
+ * inside a value. A single row larger than the budget yields no rows; the
+ * caller reports truncated so the agent can narrow columns.
  */
 export function capRowsByBytes<T>(
   rows: T[],
   maxBytes: number,
+  overhead = 0,
 ): { rows: T[]; truncated: boolean; bytes: number } {
   let bytes = 2; // "[]"
   let kept = 0;
   for (const row of rows) {
     const size = Buffer.byteLength(JSON.stringify(row)) + (kept > 0 ? 1 : 0);
-    if (bytes + size > maxBytes) break;
+    if (overhead + bytes + size > maxBytes) break;
     bytes += size;
     kept++;
   }

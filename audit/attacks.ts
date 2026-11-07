@@ -312,18 +312,20 @@ async function main() {
     const r = await new Boundary(pol, provider, new ReceiptLog(keys)).handle({action: "sample", resource: "public.users"});
     report(`N2 ${type}: ${JSON.stringify(value)} rejected at load`, true, `loaded; ok=${r.ok} ssnReleased=${containsSsn(r.payload?.data)} transforms=${r.payload?.transforms.join(",")}`);
   }
-  // N6: a byte cap bounds what one tool result can carry, not only rows.
+  // N6: a byte cap bounds the whole released payload (rows, fields and
+  // transforms), not only rows.
   {
-    const capped = new PostgresProvider({ pool, identity: "audit-n6", requireReadOnlyRole: true, maxBytes: 120 });
+    const cap = 250;
+    const capped = new PostgresProvider({ pool, identity: "audit-n6", requireReadOnlyRole: true, maxBytes: cap });
     await capped.init();
     const pol = new PolicyEngine(loadPolicyFromObject({ version: "0.1", defaultEffect: "deny", rules: [
       { id: "q", match: { action: "query", resource: "public.orders" }, effect: "allow" },
     ] }));
     const r = await new Boundary(pol, capped, new ReceiptLog(keys)).handle({ action: "query", resource: "public.orders" });
+    const released = Buffer.byteLength(JSON.stringify(r.payload?.data ?? null)) + Buffer.byteLength(JSON.stringify(r.payload?.transforms ?? []));
     const rows = (r.payload?.data as { rows?: unknown[] } | undefined)?.rows ?? [];
-    const bytes = Buffer.byteLength(JSON.stringify(rows));
     const honest = r.payload?.stats?.truncated === true;
-    report("N6 byte cap 120 on public.orders", !r.ok || bytes > 120 || !honest, `ok=${r.ok} rows=${rows.length} bytes=${bytes} truncated=${r.payload?.stats?.truncated} transforms=${r.payload?.transforms.join(",")}`);
+    report(`N6 byte cap ${cap} on public.orders (rows + fields + transforms)`, !r.ok || released > cap || !honest, `ok=${r.ok} rows=${rows.length} released=${released} truncated=${r.payload?.stats?.truncated} transforms=${r.payload?.transforms.join(",")}`);
   }
   await pool.end();
 

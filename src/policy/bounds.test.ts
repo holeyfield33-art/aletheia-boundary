@@ -70,6 +70,15 @@ describe("output byte cap (N6)", () => {
     assert.equal(out.truncated, true);
   });
 
+  it("counts a fixed overhead against the cap", () => {
+    const rows = Array.from({ length: 10 }, (_, i) => ({ id: i }));
+    const all = capRowsByBytes(rows, 1000);
+    const tight = capRowsByBytes(rows, 1000, 960);
+    assert.equal(all.rows.length, 10);
+    assert.ok(tight.rows.length < 10 && tight.truncated);
+    assert.ok(tight.bytes + 960 <= 1000);
+  });
+
   it("measures UTF-8 bytes, not characters", () => {
     const out = capRowsByBytes([{ t: "é".repeat(60) }], 100);
     assert.deepEqual(out.rows, []);

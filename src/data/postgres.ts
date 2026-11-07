@@ -298,8 +298,9 @@ export class PostgresProvider implements DataProvider {
   }
 
   /**
-   * N6: drop whole trailing rows until the released rows fit maxBytes.
-   * Applied after projection/redaction, so only released bytes count.
+   * N6: drop whole trailing rows until the released payload (rows, fields,
+   * flags and transforms) fits maxBytes. Applied after projection and
+   * redaction, so only released bytes count.
    */
   private applyByteCap(payload: MinimizedPayload): MinimizedPayload {
     const data = payload.data as {
@@ -307,13 +308,23 @@ export class PostgresProvider implements DataProvider {
       truncated: boolean;
       rowCount: number;
     };
-    const cut = capRowsByBytes(data.rows, this.maxBytes);
+    const cutTransforms = [
+      ...payload.transforms.filter((t) => t !== "none"),
+      `bytes:${this.maxBytes}`,
+    ];
+    // Everything but the rows, sized as if cut (worst case); the row
+    // array's own "[]" is counted by capRowsByBytes.
+    const overhead =
+      Buffer.byteLength(
+        JSON.stringify({ ...data, rows: [], rowCount: data.rows.length, truncated: true }),
+      ) -
+      2 +
+      Buffer.byteLength(JSON.stringify(cutTransforms));
+    const cut = capRowsByBytes(data.rows, this.maxBytes, overhead);
     const truncated = data.truncated || cut.truncated;
     return {
       data: { ...data, rows: cut.rows, rowCount: cut.rows.length, truncated },
-      transforms: cut.truncated
-        ? [...payload.transforms.filter((t) => t !== "none"), `bytes:${this.maxBytes}`]
-        : payload.transforms,
+      transforms: cut.truncated ? cutTransforms : payload.transforms,
       stats: {
         ...payload.stats,
         rows: cut.rows.length,
@@ -482,11 +493,13 @@ export class PostgresProvider implements DataProvider {
           this.readLimited(client, built.sql, [], built.lim + 1),
         );
         const capped = this.applyRowCap(raw, built.lim);
-        const minimized = this.applyByteCap(minimize(capped, constraints));
-        minimized.transforms = [
+        const projected = minimize(capped, constraints);
+        projected.transforms = [
           ...built.transforms,
-          ...minimized.transforms.filter((t) => t !== "none"),
+          ...projected.transforms.filter((t) => t !== "none"),
         ];
+        // N6: cap last, so every released transform is counted.
+        const minimized = this.applyByteCap(projected);
         // Preserve SQL-level truncation flag if minimizer didn't clear it
         if (capped.truncated && minimized.stats) {
           minimized.stats.truncated = true;
@@ -506,11 +519,13 @@ export class PostgresProvider implements DataProvider {
           this.readLimited(client, built.sql, [], built.lim + 1),
         );
         const capped = this.applyRowCap(raw, built.lim);
-        const minimized = this.applyByteCap(minimize(capped, constraints));
-        minimized.transforms = [
+        const projected = minimize(capped, constraints);
+        projected.transforms = [
           ...built.transforms,
-          ...minimized.transforms.filter((t) => t !== "none"),
+          ...projected.transforms.filter((t) => t !== "none"),
         ];
+        // N6: cap last, so every released transform is counted.
+        const minimized = this.applyByteCap(projected);
         if (capped.truncated && minimized.stats) {
           minimized.stats.truncated = true;
           if (minimized.data && typeof minimized.data === "object") {
