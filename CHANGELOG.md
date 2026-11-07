@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased - N2 constraint values typed at load (2026-11-07)
+
+- **Security (N2, High):** constraint values are now validated when the policy
+  loads. `columns`/`redact` must be a non-empty list of plain column
+  identifiers; `limit`/`sample` must be a positive integer. Previously
+  `columns: "id"`, `redact: "ssn"` or `limit: "1"` loaded and were silently
+  skipped, releasing all columns, unredacted, up to 500 rows.
+- **Upgrade note:** a policy that relied on a mistyped value now refuses to
+  load (fail closed), e.g.
+  `rules.0.constraints.0.value: Invalid input: expected array, received string`.
+- Tests: 15 load tests in `src/policy/failclosed.test.ts`; attacks N2 (3 rows)
+  in `audit/attacks.ts` (LEAK before the fix, HELD after).
+
 ## Unreleased - N1 policy binds to the canonical table (2026-11-07)
 
 - **Security (N1, High):** the policy engine now evaluates the same canonical

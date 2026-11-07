@@ -103,3 +103,53 @@ describe("policy load fail-closed", () => {
     assert.equal(doc.rules.length, 2);
   });
 });
+
+describe("N2 constraint values are typed at load", () => {
+  const withConstraint = (type: string, value: unknown) => ({
+    version: "0.1",
+    defaultEffect: "deny",
+    rules: [
+      {
+        id: "r",
+        match: { resource: "public.users" },
+        effect: "allow_with_constraints",
+        constraints: [{ type, value }],
+      },
+    ],
+  });
+  const bad: [string, unknown][] = [
+    ["columns", "id"],
+    ["columns", []],
+    ["columns", [1]],
+    ["columns", ["public.id"]],
+    ["columns", ["id; DROP"]],
+    ["redact", "ssn"],
+    ["redact", []],
+    ["limit", "1"],
+    ["limit", 0],
+    ["limit", -5],
+    ["limit", 1.5],
+    ["limit", null],
+    ["sample", "10"],
+    ["sample", Number.POSITIVE_INFINITY],
+  ];
+  for (const [type, value] of bad) {
+    it(`rejects ${type}: ${JSON.stringify(value) ?? String(value)}`, () => {
+      assert.throws(
+        () => loadPolicyFromObject(withConstraint(type, value)),
+        /Invalid policy document/,
+      );
+    });
+  }
+
+  it("accepts well-typed constraint values", () => {
+    for (const [type, value] of [
+      ["columns", ["id", "email"]],
+      ["redact", ["ssn"]],
+      ["limit", 1],
+      ["sample", 20],
+    ] as [string, unknown][]) {
+      assert.doesNotThrow(() => loadPolicyFromObject(withConstraint(type, value)));
+    }
+  });
+});
