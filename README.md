@@ -37,17 +37,30 @@ has to be local and independent of them.
 
 ## Status
 
-**0.0.11. Production: NO-GO. Beta (disposable data only): targeted for
-2026-11-06 once the entry criteria in [docs/STATUS.md](docs/STATUS.md) are met.**
+**0.0.11. Production: NO-GO. Beta: outside testers on synthetic, disposable
+or explicitly approved non-production data only.** The beta date is set by the
+operator once the entry criteria in [docs/STATUS.md](docs/STATUS.md) are met.
 
-Local gates on `0f59c4c` (2026-11-02): G1–G5 and the agent review **PASS**
-(62 unit; integration ok; attacks 12/12 held; agent review 11/11). CI is
-**NOT_RUN** (Actions billing).
+Local gates on `main` `d90797e` (2026-11-07): G1–G6 and the agent review
+**PASS** (84 unit; integration ok; attacks 19/19 held; agent review 11/11
+live). CI is **NOT_RUN** (Actions billing).
 
 **Known limitations (open in the STATUS queue):**
 
-- Output is capped by rows, not bytes; equal-priority rules resolve by document
-  order (write denies at a higher priority); rate-limit refusals write no receipt.
+- **Generic refusals (N5):** every malformed request returns `Invalid request`,
+  and some ordinary long mixed-case names (`CustomerOrders2024`) are refused as
+  "encoded". Prefer lowercase snake_case table names and short purposes.
+- **No byte cap (N6):** output is capped by rows, not bytes; wide text columns
+  can still produce a large tool result. Use `columns` constraints.
+- **Tie order (N7):** equal-priority rules resolve by document order; give
+  deny rules a higher priority than allows.
+- **Receipt log cost (N4):** each request re-reads the whole receipt log and
+  startup re-verifies every receipt (about 92 ms per request and 3 s startup
+  at 20,000 receipts). Expect this on long beta runs; never trim or reset a
+  receipt log to work around it.
+- **Purpose is a claim (N8):** a rule gated only on `purpose` is unlocked by
+  the agent saying so; gate on `caller` (host-configured) instead.
+- **Unreceipted refusals (N9):** rate-limit refusals write no receipt.
 
 **Constraint values are checked at load:** `columns` and `redact` take a
 non-empty list of plain column names; `limit` and `sample` take a positive
