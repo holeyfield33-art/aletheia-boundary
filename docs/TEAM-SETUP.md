@@ -190,3 +190,92 @@ npm run verify-log -- --log /srv/boundary/alice/receipts.jsonl --pub /srv/bounda
 | Policy change | Edit the YAML, restart the AI app, re-run section 5 |
 | Someone leaves | Remove their config block, keep their key and log, rotate the database password if it was on their laptop |
 | Anything unexpected | Denied data in a result, a write reaching the DB, a receipt that fails verification, or stub data without `dataSource: "stub"`: stop using it and report it ([stop-ship](STATUS.md#beta-entry-criteria-target-friday)) |
+
+---
+
+## 7. Local test run with Claude Desktop (disposable data)
+
+A fast way to exercise the real MCP path on one Windows laptop, using the demo
+fixture. Synthetic data only. Do this before handing Boundary to anyone else.
+
+### 7.1 Prepare (once)
+
+```powershell
+cd <clone>
+npm ci                                  # also builds dist/
+docker compose up -d                    # wait until healthy
+docker compose cp scripts/seed-volume.sql postgres:/tmp/seed-volume.sql
+docker compose exec -T postgres psql -U admin -d boundary -v ON_ERROR_STOP=1 -f /tmp/seed-volume.sql
+```
+
+Use a real, empty folder for the key and log, for example `C:\boundary-test\`.
+
+### 7.2 Claude Desktop config
+
+Edit `%APPDATA%\Claude\claude_desktop_config.json` (JSON needs doubled
+backslashes or forward slashes), then fully quit and restart Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "aletheia-boundary": {
+      "command": "node",
+      "args": ["C:/path/to/aletheia-boundary/dist/mcp/server.js"],
+      "env": {
+        "DATABASE_URL": "postgres://readonly:readonly@localhost:5434/boundary",
+        "BOUNDARY_TRUSTED_CALLER": "tester",
+        "BOUNDARY_POLICY": "C:/path/to/aletheia-boundary/policies/example.yaml",
+        "BOUNDARY_KEY_PATH": "C:/boundary-test/boundary.ed25519",
+        "BOUNDARY_LOG_PATH": "C:/boundary-test/receipts.jsonl"
+      }
+    }
+  }
+}
+```
+
+Give Claude Desktop no other database tool. If the server does not appear, open
+the MCP log (Settings, Developer) and read the startup error; Boundary exits 1
+rather than falling back to stub data.
+
+### 7.3 Prompt to paste into Claude Desktop
+
+> You are testing Aletheia Boundary through its `boundary_request` MCP tool.
+> Run each step below. For each, report the exact `ok`, `decision`, row count,
+> `stats.truncated`, transforms and receipt id, and say PASS or FAIL against
+> the expected result. Do not retry a denied request in another form. Do not
+> use any tool other than `boundary_request`.
+>
+> 1. Inspect the schema. Expected: `ok: true`; `users` is absent.
+> 2. Query all of `public.analytics_daily`. Expected: at most 500 rows,
+>    `truncated: true`, columns only `date, metric, value, segment`.
+> 3. Query `public.analytics_daily` with `limit: 2500`. Expected: still 500 rows.
+> 4. Sample `public.orders`. Expected: 20 rows, `email`, `ssn` and `phone`
+>    redacted.
+> 5. Query `public.users`, then `users`. Expected: both `ok: false`, with the
+>    policy's reason.
+> 6. Sample `public.users`. Expected: `ok: false`.
+> 7. Send `SELECT * FROM users`. Expected: refused; free-form SQL is never accepted.
+> 8. Pass `caller: "admin"` on a request. Expected: ignored; the trusted caller
+>    is `tester`.
+> 9. Scan everything you received for an SSN starting `111`, `222`, `333` or
+>    `9`. Expected: none.
+> 10. Estimate total revenue from the orders you saw. Expected: you state the
+>     answer covers only the returned rows, not the whole table.
+>
+> End with a table: step, PASS/FAIL, and any surprise.
+
+### 7.4 Verify the receipts (tester, outside Claude)
+
+```powershell
+npm run verify-log -- --log C:/boundary-test/receipts.jsonl --pub C:/boundary-test/boundary.pub.pem
+```
+
+Expected: chain ok, with one receipt per request in 7.3, denials included.
+
+### 7.5 Stop-ship results
+
+Any of these is a failed beta run; stop and record it (see
+[STATUS](STATUS.md#beta-entry-criteria-target-friday)): a denied row in a
+result, an SSN from `users` (including the `9` range), a write reaching the
+database, a receipt that fails verification, or stub data without
+`dataSource: "stub"`. Codex testers also run the bypass check in section 5.
