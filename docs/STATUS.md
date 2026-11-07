@@ -1,6 +1,6 @@
 # Aletheia Boundary — current status
 
-**Updated:** 2026-11-07 · **Code at:** `main` `5ab88d7` · **Package:** `0.0.11`
+**Updated:** 2026-11-07 · **Code at:** `main` `811308f` · **Package:** `0.0.11`
 **Production:** **NO-GO** · **Beta target:** 2026-11-06 missed (Must items N2, N3, N9 still open); new date set by the operator once the beta entry criteria below are met
 
 This is the **only** living status and plan. Everything dated under
@@ -52,8 +52,8 @@ Findings N1–N9 come from the [2026-11-02 re-audit](evidence/REAUDIT-2026-11-02
 | # | Item | Type · severity | Needed for beta | State |
 |---|---|---|---|---|
 | 1 | **N1** Policy matches the exact resource string; the provider reads `public.<name>`. A deny on `public.users` misses `users` (and the reverse). Resolve to canonical `schema.table` before policy and schema filtering; match case consistently. | Security · High | **Must** | **Closed** 2026-11-07 in PR #25 (`5ab88d7`): engine and provider share one canonical `schema.table` key; deny rules match any case, allow rules exact case. Attacks N1a/N1b LEAK before, HELD after |
-| 2 | **N2** Constraint `value` is untyped (`z.unknown()`): `columns: "id"`, `redact: "ssn"`, `limit: "1"` load and are silently not enforced. Type every constraint value in the schema. | Security · High | **Must** | **Fixed on branch `claude/optimistic-wright-prmmne`**, awaiting operator check and merge (attacks N2 LEAK before, HELD after) |
-| 3 | **N3** Attack A7 cannot detect a read-write escape (its SQL is refused before Postgres). Replace with a test that reaches Postgres or asserts the probe + `READ ONLY` transaction directly. | Test gap · Medium | **Must** | Open |
+| 2 | **N2** Constraint `value` is untyped (`z.unknown()`): `columns: "id"`, `redact: "ssn"`, `limit: "1"` load and are silently not enforced. Type every constraint value in the schema. | Security · High | **Must** | **Closed** 2026-11-07 in PR #27 (`811308f`): constraint values typed at load (`columns`/`redact` non-empty identifier lists, `limit`/`sample` positive integers). Attacks N2 LEAK before, HELD after |
+| 3 | **N3** Attack A7 cannot detect a read-write escape (its SQL is refused before Postgres). Replace with a test that reaches Postgres or asserts the probe + `READ ONLY` transaction directly. | Test gap · Medium | **Must** | **Fixed on branch `claude/optimistic-wright-prmmne`**, awaiting operator check and merge (A7a/b/c each LEAK with its layer removed, HELD with it) |
 | 4 | **N9** MCP server reports `0.0.10` while the package is `0.0.11`; read the version from `package.json`. Rate-limit refusals write no receipt. | Bug · Low | **Must** (version) | Open |
 | 5 | **N5** Validator rejects ordinary names (`CustomerOrders2024`, purpose `QuarterlyBusinessReview`) as "encoded", and every validation failure returns the same `Invalid request`. | Bug · Medium | Should | Open |
 | 6 | **N6** Output is capped by rows only; 2,000 wide rows have no byte cap. | Security · Medium | Should | Open |
@@ -107,10 +107,10 @@ returned without `dataSource: "stub"`.
 
 | Check | Result | Source |
 |---|---|---|
-| G1 `npm ci` · G2 typecheck | PASS | `3c6a16c` (= tree of `main` `5ab88d7`), 2026-11-07: operator local run (Windows, Docker PostgreSQL 16) and a cloud run (PostgreSQL 16) |
-| G3 `npm test` | PASS, 68/68 | same |
+| G1 `npm ci` · G2 typecheck | PASS | `4078e55` (= tree of `main` `811308f`), 2026-11-07: operator local run (Windows, Docker PostgreSQL 16) and a cloud run (PostgreSQL 16) |
+| G3 `npm test` | PASS, 83/83 | same |
 | G4 integration | PASS | same |
-| G5 `npm run test:attacks` | PASS, 14/14 held (incl. N1a/N1b) | same — does not yet cover N2, N3 |
+| G5 `npm run test:attacks` | PASS, 17/17 held (incl. N1a/N1b, N2) | same — A7 does not yet reach Postgres (N3) |
 | Agent review C0–C10 incl. G6 offline receipt verification | PASS, 11/11, `live:true`, exit 0 | same |
 | CI | **NOT_RUN** | Actions billing lock (no runner assigned) |
 | Independent review | NOT_RUN | required for production only |
