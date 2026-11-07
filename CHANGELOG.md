@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased - N3 attack A7 reaches Postgres (2026-11-07)
+
+- **Test gap (N3):** attack A7 sent free-form SQL that request validation
+  refuses before Postgres, so it could not see a write. It is replaced by
+  A7a (startup probe refuses the `writable` role), A7b (a write injected into
+  the provider's own transaction is refused by `READ ONLY`, SQLSTATE 25006)
+  and A7c (after an injected `SET LOCAL transaction_read_only = off`, the
+  read-only role refuses the write, 42501). Each was confirmed to report LEAK
+  with its layer removed.
+- G5 now also connects as the fixture's `writable` role
+  (`DATABASE_URL_WRITABLE`, default `postgres://writable:writable@localhost:5434/boundary`);
+  if it is unreachable the suite exits 2 rather than passing.
+- No product behavior change.
+
 ## Unreleased - N2 constraint values typed at load (2026-11-07)
 
 - **Security (N2, High):** constraint values are now validated when the policy
