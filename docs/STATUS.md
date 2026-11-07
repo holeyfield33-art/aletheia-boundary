@@ -1,7 +1,7 @@
 # Aletheia Boundary — current status
 
-**Updated:** 2026-11-02 · **Code at:** `main` `0f59c4c` · **Package:** `0.0.11`
-**Production:** **NO-GO** · **Beta target:** Friday 2026-11-06, if the beta entry criteria below are met
+**Updated:** 2026-11-07 · **Code at:** `main` `5ab88d7` · **Package:** `0.0.11`
+**Production:** **NO-GO** · **Beta target:** 2026-11-06 missed (Must items N2, N3, N9 still open); new date set by the operator once the beta entry criteria below are met
 
 This is the **only** living status and plan. Everything dated under
 [`archive/`](archive/README.md) is history; [`evidence/`](evidence/) holds immutable raw
@@ -51,7 +51,7 @@ Findings N1–N9 come from the [2026-11-02 re-audit](evidence/REAUDIT-2026-11-02
 
 | # | Item | Type · severity | Needed for beta | State |
 |---|---|---|---|---|
-| 1 | **N1** Policy matches the exact resource string; the provider reads `public.<name>`. A deny on `public.users` misses `users` (and the reverse). Resolve to canonical `schema.table` before policy and schema filtering; match case consistently. | Security · High | **Must** | **Fixed on branch `claude/optimistic-wright-prmmne`**, awaiting operator check and merge (attacks N1a/N1b LEAK before, HELD after) |
+| 1 | **N1** Policy matches the exact resource string; the provider reads `public.<name>`. A deny on `public.users` misses `users` (and the reverse). Resolve to canonical `schema.table` before policy and schema filtering; match case consistently. | Security · High | **Must** | **Closed** 2026-11-07 in PR #25 (`5ab88d7`): engine and provider share one canonical `schema.table` key; deny rules match any case, allow rules exact case. Attacks N1a/N1b LEAK before, HELD after |
 | 2 | **N2** Constraint `value` is untyped (`z.unknown()`): `columns: "id"`, `redact: "ssn"`, `limit: "1"` load and are silently not enforced. Type every constraint value in the schema. | Security · High | **Must** | Open |
 | 3 | **N3** Attack A7 cannot detect a read-write escape (its SQL is refused before Postgres). Replace with a test that reaches Postgres or asserts the probe + `READ ONLY` transaction directly. | Test gap · Medium | **Must** | Open |
 | 4 | **N9** MCP server reports `0.0.10` while the package is `0.0.11`; read the version from `package.json`. Rate-limit refusals write no receipt. | Bug · Low | **Must** (version) | Open |
@@ -78,7 +78,7 @@ framework.
 
 | Item | Owner | State |
 |---|---|---|
-| GitHub Actions billing | Operator | Payment Wednesday 2026-11-04; until then CI is **NOT_RUN** |
+| GitHub Actions billing | Operator | Still locked on 2026-11-07 (PR #25 jobs got no runner, 0 steps). Operator plans to transfer the repo to `enkidagoat`; until CI executes it is **NOT_RUN** |
 | Local host-isolation rehearsal | Operator | Done 2026-11-01 for a disposable host ([report](evidence/HOST-CUSTODY-2026-11-01/REPORT.md)); exclusive single-writer supervision and a restricted agent host are not proven |
 | Beta tester / customer setup (read-only role, policy, per-person Claude Desktop and Codex config, first-run checks incl. Codex bypass check) | Operator | Drafted: [TEAM-SETUP](TEAM-SETUP.md); config verified end to end in a cloud run (per-person `caller` rule, spoofed caller ignored, receipts verify). Operator's Claude Desktop + Codex run open |
 | Volume test data (~1,000 users, 5,000 orders, 2,500 analytics) so agents hit limits and truncation | Operator | Seed drafted ([DEMO §2b](DEMO.md#2b-volume-data-for-agent-testing-optional)); gates pass on it in a cloud run; operator's local run and Codex MCP pass open |
@@ -107,12 +107,12 @@ returned without `dataSource: "stub"`.
 
 | Check | Result | Source |
 |---|---|---|
-| G1 `npm ci` · G2 typecheck | PASS | Fresh clone of `0f59c4c`, 2026-11-02 (re-audit) |
-| G3 `npm test` | PASS, 62/62 | same |
-| G4 integration (PostgreSQL 16.15) | PASS | same |
-| G5 `npm run test:attacks` | PASS, 12/12 held | same — does not yet cover N1–N3 |
-| Agent review C0–C10 incl. G6 offline receipt verification | PASS, 11/11 | same |
-| CI | **NOT_RUN** | Actions billing lock |
+| G1 `npm ci` · G2 typecheck | PASS | `3c6a16c` (= tree of `main` `5ab88d7`), 2026-11-07: operator local run (Windows, Docker PostgreSQL 16) and a cloud run (PostgreSQL 16) |
+| G3 `npm test` | PASS, 68/68 | same |
+| G4 integration | PASS | same |
+| G5 `npm run test:attacks` | PASS, 14/14 held (incl. N1a/N1b) | same — does not yet cover N2, N3 |
+| Agent review C0–C10 incl. G6 offline receipt verification | PASS, 11/11, `live:true`, exit 0 | same |
+| CI | **NOT_RUN** | Actions billing lock (no runner assigned) |
 | Independent review | NOT_RUN | required for production only |
 
 The operator's own local runs on 2026-11-01/02 are recorded in

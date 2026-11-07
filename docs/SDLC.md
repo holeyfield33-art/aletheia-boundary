@@ -46,7 +46,7 @@ findings against an invariant are tracked in [STATUS.md](STATUS.md).
 
 | ID | Invariant | Guarded by | Known open gap |
 |---|---|---|---|
-| I1 | Policy binds to what executes | attacks A1–A3, A10; H8 (caller spoofing); `validate.test` | N1 (resource spelling) |
+| I1 | Policy binds to what executes | attacks A1–A3, A10, N1a/N1b; H8 (caller spoofing); `validate.test`; N1 tests in `boundary.test` | — |
 | I2 | No over-release beyond the projection | attacks A2, A8; H5, H10; `bounds.test` | N2 (untyped constraints), N6 (no byte cap) |
 | I3 | Fail closed | `failclosed.test`; attacks A4, A5; H7; K7 | N7 (tie order) |
 | I4 | Receipts are evidence (durable, chained, verifiable) | `receipt.test`; attack A6; H1–H4, H9; K1–K10; `recovery.test`; agent review C10 (G6) | N9 (rate-limit refusals unreceipted) |
