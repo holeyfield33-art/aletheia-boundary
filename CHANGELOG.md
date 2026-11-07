@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased - N1 policy binds to the canonical table (2026-11-07)
+
+- **Security (N1, High):** the policy engine now evaluates the same canonical
+  `schema.table` key the Postgres provider reads. A bare request (`users`) and
+  a bare rule pattern (`users`, `user*`) both mean `public.<name>`; patterns
+  starting with `*` still match any schema. Previously a deny on
+  `public.users` missed a request for `users` (and the reverse), releasing
+  the table under a broader allow.
+- Resource case handling fails closed: deny rules match regardless of case;
+  allow rules (exact and glob) match case exactly, so an allow for
+  `public.users` does not release a quoted `public."Users"`.
+- Shared helper `src/policy/resource.ts` used by both the engine and
+  `PostgresProvider.resolveTable`.
+- Tests: 6 unit tests in `src/boundary.test.ts`; attacks N1a/N1b in
+  `audit/attacks.ts` (both LEAK before the fix, HELD after).
+
 ## Unreleased - documentation reorganized (2026-11-02)
 
 - Docs only; no code or behavior change.

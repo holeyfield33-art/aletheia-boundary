@@ -5,6 +5,7 @@ import type {
   PolicyRule,
 } from "../types.js";
 import { PolicyDocumentSchema } from "./schema.js";
+import { canonicalResource, canonicalResourcePattern } from "./resource.js";
 
 /**
  * Minimal policy engine.
@@ -45,11 +46,33 @@ export class PolicyEngine {
     const m = rule.match;
 
     if (m.action && !this.valueMatches(m.action, req.action)) return false;
-    if (m.resource && !this.valueMatches(m.resource, req.resource)) return false;
+    if (m.resource && !this.resourceMatches(rule, req.resource)) return false;
     if (m.caller && !this.valueMatches(m.caller, req.caller ?? "")) return false;
     if (m.purpose && !this.valueMatches(m.purpose, req.purpose ?? "")) return false;
 
     return true;
+  }
+
+  /**
+   * N1: compare canonical schema.table keys so the rule binds to the table
+   * the provider actually reads. Postgres names are case-sensitive when
+   * quoted, so case handling fails closed: deny rules ignore case (match
+   * more), allow rules match case exactly (never reach a case-only twin).
+   */
+  private resourceMatches(rule: PolicyRule, resource: string): boolean {
+    const raw = rule.match.resource ?? [];
+    const patterns = (Array.isArray(raw) ? raw : [raw]).map(
+      canonicalResourcePattern,
+    );
+    const actual = canonicalResource(resource);
+    const flags = rule.effect === "deny" ? "i" : "";
+    return patterns.some((c) => {
+      if (c === "*") return true;
+      const escaped = c
+        .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+        .replace(/\*/g, ".*");
+      return new RegExp(`^${escaped}$`, flags).test(actual);
+    });
   }
 
   /**

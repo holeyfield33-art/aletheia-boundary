@@ -225,6 +225,23 @@ async function main() {
       report(`A10 malformed/encoded identifier ${resource}`, bad.ok || bad.payload !== undefined, `ok=${bad.ok}`);
     }
   }
+  // N1: policy must bind to the canonical schema.table the provider reads.
+  {
+    const n1a = new PolicyEngine(loadPolicyFromObject({version: "0.1", defaultEffect: "deny", rules: [
+      {id: "deny-public-users", match: {resource: "public.users"}, effect: "deny", priority: 100},
+      {id: "allow-sample", match: {action: "sample", resource: "*"}, effect: "allow", priority: 1},
+    ]}));
+    const r = await new Boundary(n1a, provider, new ReceiptLog(keys)).handle({action: "sample", resource: "users"});
+    report("N1a deny public.users, request bare users", containsSsn(r.payload?.data), `ok=${r.ok} rule=${r.decision.ruleId}`);
+  }
+  {
+    const n1b = new PolicyEngine(loadPolicyFromObject({version: "0.1", defaultEffect: "deny", rules: [
+      {id: "deny-users", match: {resource: "users"}, effect: "deny", priority: 100},
+      {id: "allow-public", match: {resource: "public.*"}, effect: "allow", priority: 1},
+    ]}));
+    const r = await new Boundary(n1b, provider, new ReceiptLog(keys)).handle({action: "query", resource: "public.users"});
+    report("N1b deny bare users, request public.users", containsSsn(r.payload?.data), `ok=${r.ok} rule=${r.decision.ruleId}`);
+  }
   await pool.end();
 
   for (const r of results)
