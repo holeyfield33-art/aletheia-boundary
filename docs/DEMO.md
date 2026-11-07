@@ -74,12 +74,16 @@ by hand into the disposable Docker database.
 
 **Load it** (after `docker compose up -d` is healthy):
 
+Copy the file into the container and let `psql` read it there. This works the
+same in PowerShell and bash (piping with `Get-Content` in Windows PowerShell
+adds a byte-order mark and fails with `syntax error at or near ""`):
+
 ```powershell
-Get-Content scripts\seed-volume.sql | docker compose exec -T postgres psql -U admin -d boundary -v ON_ERROR_STOP=1
+docker compose cp scripts/seed-volume.sql postgres:/tmp/seed-volume.sql
 ```
 
-```bash
-docker compose exec -T postgres psql -U admin -d boundary -v ON_ERROR_STOP=1 < scripts/seed-volume.sql
+```powershell
+docker compose exec -T postgres psql -U admin -d boundary -v ON_ERROR_STOP=1 -f /tmp/seed-volume.sql
 ```
 
 It ends with a count table matching "After" above. Running it twice changes

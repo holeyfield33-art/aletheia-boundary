@@ -8,7 +8,10 @@ import type {
 import { PolicyEngine } from "./policy/engine.js";
 import { ReceiptLog } from "./receipt/log.js";
 import type { DataProvider } from "./data/provider.js";
-import { assertSafeAgentRequest } from "./request/validate.js";
+import {
+  assertSafeAgentRequest,
+  RequestValidationError,
+} from "./request/validate.js";
 
 /**
  * The main boundary object.
@@ -28,7 +31,7 @@ export class Boundary {
   ): Promise<BoundaryResult> {
     try {
       assertSafeAgentRequest(partial);
-    } catch {
+    } catch (e) {
       const request: BoundaryRequest = {
         id: partial.id ?? randomUUID(),
         action: partial.action,
@@ -43,7 +46,11 @@ export class Boundary {
       };
       const decision: Decision = {
         outcome: "deny",
-        reason: "Invalid request",
+        // N5: say what to fix; only fixed validator text, never agent input.
+        reason:
+          e instanceof RequestValidationError
+            ? `Invalid request: ${e.message}`
+            : "Invalid request",
         decidedAt: new Date().toISOString(),
       };
       const receipt = this.log.create(request, decision);

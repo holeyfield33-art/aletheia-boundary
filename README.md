@@ -47,9 +47,6 @@ live). CI is **NOT_RUN** (Actions billing).
 
 **Known limitations (open in the STATUS queue):**
 
-- **Generic refusals (N5):** every malformed request returns `Invalid request`,
-  and some ordinary long mixed-case names (`CustomerOrders2024`) are refused as
-  "encoded". Prefer lowercase snake_case table names and short purposes.
 - **No byte cap (N6):** output is capped by rows, not bytes; wide text columns
   can still produce a large tool result. Use `columns` constraints.
 - **Tie order (N7):** equal-priority rules resolve by document order; give

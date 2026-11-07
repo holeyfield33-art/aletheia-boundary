@@ -1,7 +1,7 @@
 # Aletheia Boundary — current status
 
-**Updated:** 2026-11-07 · **Code at:** `main` `d90797e` · **Package:** `0.0.11`
-**Production:** **NO-GO** · **Beta target:** 2026-11-06 missed. All Must items (N1, N2, N3, N9 version) closed; N10 (dates) fixed on branch; remaining beta steps: operator Claude Desktop + Codex run (B5) and the beta tag (E3). New date set by the operator
+**Updated:** 2026-11-07 · **Code at:** `main` `3be09f9` · **Package:** `0.0.11`
+**Production:** **NO-GO** · **Beta target:** 2026-11-06 missed. All Must items (N1, N2, N3, N9 version) closed; N10 (dates) closed; remaining beta steps: operator Claude Desktop + Codex run (B5) and the beta tag (E3). New date set by the operator
 
 This is the **only** living status and plan. Everything dated under
 [`archive/`](archive/README.md) is history; [`evidence/`](evidence/) holds immutable raw
@@ -55,8 +55,8 @@ Findings N1–N9 come from the [2026-11-02 re-audit](evidence/REAUDIT-2026-11-02
 | 2 | **N2** Constraint `value` is untyped (`z.unknown()`): `columns: "id"`, `redact: "ssn"`, `limit: "1"` load and are silently not enforced. Type every constraint value in the schema. | Security · High | **Must** | **Closed** 2026-11-07 in PR #27 (`811308f`): constraint values typed at load (`columns`/`redact` non-empty identifier lists, `limit`/`sample` positive integers). Attacks N2 LEAK before, HELD after |
 | 3 | **N3** Attack A7 cannot detect a read-write escape (its SQL is refused before Postgres). Replace with a test that reaches Postgres or asserts the probe + `READ ONLY` transaction directly. | Test gap · Medium | **Must** | **Closed** 2026-11-07 in PR #28 (`9689281`): A7a (startup probe), A7b (`READ ONLY`, 25006) and A7c (role privileges after a read-write escape, 42501) reach Postgres; each LEAKs with its layer removed |
 | 4 | **N9** MCP server reports `0.0.10` while the package is `0.0.11`; read the version from `package.json`. Rate-limit refusals write no receipt. | Bug · Low | **Must** (version) | Version: **Closed** 2026-11-07 in PR #29 (`d90797e`): read from `package.json`; H11 fails before, passes after. Rate-limit receipts: **Open**, not required for beta |
-| 5 | **N10** (found 2026-11-07 in an MCP stdio run on the volume seed) `date` and `timestamp without time zone` values were returned as JS timestamps at the server's local midnight: on a UTC+9 host the stored `2026-10-01` reached the agent as `2026-09-30T15:00:00.000Z`. Return Postgres's own text. | Bug (honest results, I6) · Medium | Should (before beta) | **Fixed on branch `claude/optimistic-wright-prmmne`**, awaiting operator check and merge (integration 4b and H12 fail before, pass after) |
-| 6 | **N5** Validator rejects ordinary names (`CustomerOrders2024`, purpose `QuarterlyBusinessReview`) as "encoded", and every validation failure returns the same `Invalid request`. | Bug · Medium | Should | Open |
+| 5 | **N10** (found 2026-11-07 in an MCP stdio run on the volume seed) `date` and `timestamp without time zone` values were returned as JS timestamps at the server's local midnight: on a UTC+9 host the stored `2026-10-01` reached the agent as `2026-09-30T15:00:00.000Z`. Return Postgres's own text. | Bug (honest results, I6) · Medium | Should (before beta) | **Closed** 2026-11-07 in PR #30 (`3be09f9`): provider returns Postgres text for `date`/`timestamp` and their arrays; integration 4b and H12 fail before, pass after |
+| 6 | **N5** Validator rejects ordinary names (`CustomerOrders2024`, purpose `QuarterlyBusinessReview`) as "encoded", and every validation failure returns the same `Invalid request`. | Bug · Medium | Should | **Fixed on branch `claude/optimistic-wright-prmmne`**, awaiting operator check and merge: CamelCase names accepted (base64 blobs still refused); refusals say `Invalid request: <what to fix>` from fixed text only |
 | 7 | **N6** Output is capped by rows only; 2,000 wide rows have no byte cap. | Security · Medium | Should | Open |
 | 8 | **N7** Equal-priority rules resolve by document order, so an allow listed first beats a deny. Deny should win ties. | Security · Low | Should | Open |
 | 9 | **N4** Each receipt append re-reads the whole log; startup re-verifies every receipt (92 ms/request and 3.0 s startup at 20,000 receipts). | Performance · Medium | After (document the limit for beta) | Open |
@@ -108,9 +108,9 @@ returned without `dataSource: "stub"`.
 
 | Check | Result | Source |
 |---|---|---|
-| G1 `npm ci` · G2 typecheck | PASS | `d682414` (= code of `main` `d90797e`), 2026-11-07: operator local run (Windows, Docker PostgreSQL 16) and a cloud run (PostgreSQL 16) |
-| G3 `npm test` | PASS, 84/84 (incl. H11) | same |
-| G4 integration | PASS | same |
+| G1 `npm ci` · G2 typecheck | PASS | `d7c8c0d` (= code of `main` `3be09f9`), 2026-11-07: operator local run (Windows, Docker PostgreSQL 16, default fixture) and a cloud run (PostgreSQL 16, volume seed) |
+| G3 `npm test` | PASS, 85/85 (incl. H12) | cloud run; operator run completed (count not captured) |
+| G4 integration | PASS, incl. dates unshifted under `TZ=Asia/Tokyo` | operator and cloud |
 | G5 `npm run test:attacks` | PASS, 19/19 held (incl. N1a/N1b, N2, A7a/b/c) | same |
 | Agent review C0–C10 incl. G6 offline receipt verification | PASS, 11/11, `live:true`, exit 0 | same |
 | CI | **NOT_RUN** | Actions billing lock (no runner assigned) |
