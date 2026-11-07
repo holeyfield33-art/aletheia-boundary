@@ -11,6 +11,7 @@ import { PolicyEngine, loadPolicyFromObject } from "./policy/engine.js";
 import { ReceiptLog, verifyReceiptChain } from "./receipt/log.js";
 import { generateKeyPair } from "./receipt/crypto.js";
 import type { DataProvider } from "./data/provider.js";
+import { RESULT_TYPES } from "./data/postgres.js";
 
 const keys = generateKeyPair();
 const request = { id: "r", action: "query" as const, resource: "public.orders", receivedAt: "now" };
@@ -179,4 +180,18 @@ test("H11 MCP server reports the package.json version (N9)", async t => {
     await c.connect(transport);
     assert.equal(c.getServerVersion()?.version, pkg.version);
   } finally { await c.close(); }
+});
+
+test("H12 date and timestamp-without-zone values keep their database text (N10)", () => {
+  const raw: [number, string][] = [
+    [1082, "2026-10-01"],
+    [1114, "2026-10-01 12:34:56"],
+    [1182, "{2026-10-01,2026-10-02}"],
+    [1115, '{"2026-10-01 12:34:56"}'],
+  ];
+  for (const [oid, text] of raw) {
+    assert.equal(RESULT_TYPES.getTypeParser(oid, "text")(text), text, `oid ${oid}`);
+  }
+  // timestamptz is an instant and keeps the driver's default parser.
+  assert.ok(RESULT_TYPES.getTypeParser(1184, "text")("2026-10-01 00:00:00+00") instanceof Date);
 });
