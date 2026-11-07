@@ -51,7 +51,7 @@ Findings N1–N9 come from the [2026-11-02 re-audit](evidence/REAUDIT-2026-11-02
 
 | # | Item | Type · severity | Needed for beta | State |
 |---|---|---|---|---|
-| 1 | **N1** Policy matches the exact resource string; the provider reads `public.<name>`. A deny on `public.users` misses `users` (and the reverse). Resolve to canonical `schema.table` before policy and schema filtering; match case consistently. | Security · High | **Must** | Open |
+| 1 | **N1** Policy matches the exact resource string; the provider reads `public.<name>`. A deny on `public.users` misses `users` (and the reverse). Resolve to canonical `schema.table` before policy and schema filtering; match case consistently. | Security · High | **Must** | **Fixed on branch `claude/optimistic-wright-prmmne`**, awaiting operator check and merge (attacks N1a/N1b LEAK before, HELD after) |
 | 2 | **N2** Constraint `value` is untyped (`z.unknown()`): `columns: "id"`, `redact: "ssn"`, `limit: "1"` load and are silently not enforced. Type every constraint value in the schema. | Security · High | **Must** | Open |
 | 3 | **N3** Attack A7 cannot detect a read-write escape (its SQL is refused before Postgres). Replace with a test that reaches Postgres or asserts the probe + `READ ONLY` transaction directly. | Test gap · Medium | **Must** | Open |
 | 4 | **N9** MCP server reports `0.0.10` while the package is `0.0.11`; read the version from `package.json`. Rate-limit refusals write no receipt. | Bug · Low | **Must** (version) | Open |

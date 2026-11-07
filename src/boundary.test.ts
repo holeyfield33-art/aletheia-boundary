@@ -103,3 +103,62 @@ describe("Boundary smoke", () => {
     assert.match(log.keyId, /^ed25519:/);
   });
 });
+
+describe("N1 resource spelling binds policy to the table that is read", () => {
+  function engine(rules: unknown[]) {
+    return new PolicyEngine(
+      loadPolicyFromObject({ version: "0.1", defaultEffect: "deny", rules }),
+    );
+  }
+  const req = (action: "query" | "sample", resource: string) => ({
+    id: "n1",
+    action,
+    resource,
+    receivedAt: new Date().toISOString(),
+  });
+
+  it("N1a: deny on public.users also denies the bare name users", () => {
+    const p = engine([
+      { id: "deny", match: { resource: "public.users" }, effect: "deny", priority: 100 },
+      { id: "allow", match: { action: "sample", resource: "*" }, effect: "allow", priority: 1 },
+    ]);
+    assert.equal(p.evaluate(req("sample", "users")).outcome, "deny");
+    assert.equal(p.evaluate(req("sample", "public.users")).outcome, "deny");
+  });
+
+  it("N1b: deny on bare users also denies public.users", () => {
+    const p = engine([
+      { id: "deny", match: { resource: "users" }, effect: "deny", priority: 100 },
+      { id: "allow", match: { resource: "public.*" }, effect: "allow", priority: 1 },
+    ]);
+    assert.equal(p.evaluate(req("query", "public.users")).outcome, "deny");
+    assert.equal(p.evaluate(req("query", "users")).outcome, "deny");
+    assert.equal(p.evaluate(req("query", "orders")).outcome, "allow");
+  });
+
+  it("dotless globs mean the public schema, like bare requests", () => {
+    const p = engine([
+      { id: "deny", match: { resource: "user*" }, effect: "deny", priority: 100 },
+      { id: "allow", match: { resource: "*" }, effect: "allow", priority: 1 },
+    ]);
+    assert.equal(p.evaluate(req("query", "public.users")).outcome, "deny");
+    assert.equal(p.evaluate(req("query", "users")).outcome, "deny");
+  });
+
+  it("exact resource matches ignore case, like glob matches", () => {
+    const p = engine([
+      { id: "deny", match: { resource: "public.users" }, effect: "deny", priority: 100 },
+      { id: "allow", match: { resource: "*" }, effect: "allow", priority: 1 },
+    ]);
+    assert.equal(p.evaluate(req("query", "PUBLIC.USERS")).outcome, "deny");
+    assert.equal(p.evaluate(req("query", "Users")).outcome, "deny");
+  });
+
+  it("an allow on a bare name does not reach another schema", () => {
+    const p = engine([
+      { id: "allow", match: { resource: "orders" }, effect: "allow" },
+    ]);
+    assert.equal(p.evaluate(req("query", "public.orders")).outcome, "allow");
+    assert.equal(p.evaluate(req("query", "secret.orders")).outcome, "deny");
+  });
+});

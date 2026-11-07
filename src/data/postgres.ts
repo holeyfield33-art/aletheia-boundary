@@ -15,6 +15,7 @@ import Cursor from "pg-cursor";
 import type { BoundaryRequest, Constraint, MinimizedPayload } from "../types.js";
 import type { DataProvider } from "./provider.js";
 import { DEFAULT_MAX_ROWS, HARD_MAX_ROWS, resolveMaxRows } from "./limits.js";
+import { canonicalResource } from "../policy/resource.js";
 
 export interface PostgresProviderOptions {
   pool: Pool;
@@ -318,7 +319,8 @@ export class PostgresProvider implements DataProvider {
     if (!isSafeIdentifier(resource)) {
       throw new Error("invalid table identifier");
     }
-    const key = resource.includes(".") ? resource : `public.${resource}`;
+    // Same key the policy engine evaluated (N1).
+    const key = canonicalResource(resource);
     if (!this.tableKeys.has(key)) {
       throw new Error(`unknown table: ${resource}`);
     }

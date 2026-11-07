@@ -5,6 +5,7 @@ import type {
   PolicyRule,
 } from "../types.js";
 import { PolicyDocumentSchema } from "./schema.js";
+import { canonicalResource, canonicalResourcePattern } from "./resource.js";
 
 /**
  * Minimal policy engine.
@@ -45,7 +46,14 @@ export class PolicyEngine {
     const m = rule.match;
 
     if (m.action && !this.valueMatches(m.action, req.action)) return false;
-    if (m.resource && !this.valueMatches(m.resource, req.resource)) return false;
+    if (m.resource) {
+      // N1: compare canonical schema.table keys, case-insensitively, so the
+      // rule binds to the table the provider actually reads.
+      const patterns = (Array.isArray(m.resource) ? m.resource : [m.resource])
+        .map(canonicalResourcePattern);
+      if (!this.valueMatches(patterns, canonicalResource(req.resource), true))
+        return false;
+    }
     if (m.caller && !this.valueMatches(m.caller, req.caller ?? "")) return false;
     if (m.purpose && !this.valueMatches(m.purpose, req.purpose ?? "")) return false;
 
@@ -58,9 +66,13 @@ export class PolicyEngine {
    *   prefix*     → starts with prefix
    *   *suffix     → ends with suffix
    *   *mid*       → contains mid
-   *   exact       → equality
+   *   exact       → equality (case-insensitive for resources)
    */
-  private valueMatches(matcher: string | string[], actual: string): boolean {
+  private valueMatches(
+    matcher: string | string[],
+    actual: string,
+    ignoreCase = false,
+  ): boolean {
     const candidates = Array.isArray(matcher) ? matcher : [matcher];
     return candidates.some((c) => {
       if (c === "*") return true;
@@ -70,7 +82,7 @@ export class PolicyEngine {
           .replace(/\*/g, ".*");
         return new RegExp(`^${escaped}$`, "i").test(actual);
       }
-      return c === actual;
+      return ignoreCase ? c.toLowerCase() === actual.toLowerCase() : c === actual;
     });
   }
 }

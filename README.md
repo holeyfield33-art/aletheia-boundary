@@ -46,14 +46,17 @@ Local gates on `0f59c4c` (2026-11-02): G1–G5 and the agent review **PASS**
 
 **Known limitations (open in the STATUS queue):**
 
-- **N1:** policy matches the resource string exactly, while reads resolve a
-  bare name to `public.<name>`. Until fixed, write deny rules that cover both
-  spellings (`users` and `public.users`) or use globs such as `*users*`.
 - **N2:** constraint values are not type-checked; `columns`/`redact` must be
   lists and `limit` a number, or the constraint is silently ignored. Check
   your policy against [policies/example.yaml](policies/example.yaml).
 - Output is capped by rows, not bytes; equal-priority rules resolve by document
   order (write denies at a higher priority); rate-limit refusals write no receipt.
+
+**Resource matching:** a bare table name means the `public` schema, in
+requests and in policy rules (`users` = `public.users`, `user*` =
+`public.user*`); patterns that start with `*` match any schema. Resource
+matching ignores case. Tables whose names differ only by case are not
+distinguished by policy.
 
 **Beta stop-ship:** a policy-denied row in a tool result, a write reaching the
 database, a receipt that fails offline verification, or stub data without
