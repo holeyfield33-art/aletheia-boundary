@@ -47,8 +47,6 @@ live). CI is **NOT_RUN** (Actions billing).
 
 **Known limitations (open in the STATUS queue):**
 
-- **Tie order (N7):** equal-priority rules resolve by document order; give
-  deny rules a higher priority than allows.
 - **Receipt log cost (N4):** each request re-reads the whole receipt log and
   startup re-verifies every receipt (about 92 ms per request and 3 s startup
   at 20,000 receipts). Expect this on long beta runs; never trim or reset a
@@ -60,6 +58,10 @@ live). CI is **NOT_RUN** (Actions billing).
 **Constraint values are checked at load:** `columns` and `redact` take a
 non-empty list of plain column names; `limit` and `sample` take a positive
 whole number. A policy with any other value refuses to load.
+
+**Rule order:** the highest `priority` wins; on a tie the most restrictive
+effect wins (`deny`, then `allow_with_constraints`, then `allow`), never the
+order rules appear in the file.
 
 **Resource matching:** a bare table name means the `public` schema, in
 requests and in policy rules (`users` = `public.users`, `user*` =

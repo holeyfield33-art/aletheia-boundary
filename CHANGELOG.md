@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased - N7 deny wins equal-priority ties (2026-11-07)
+
+- **Security (N7):** equal-priority rules resolved by document order, so an
+  allow listed before a matching deny won. Ties now go to the most
+  restrictive effect: `deny`, then `allow_with_constraints`, then `allow`.
+  Higher priority still wins outright.
+- **Upgrade note:** a policy that relied on document order between an allow
+  and a deny of the same priority now denies. Give the allow a higher
+  priority if that was intended.
+- Tests: N7 cases in `src/boundary.test.ts`; attack N7 in `audit/attacks.ts`
+  (LEAK before, HELD after).
+
 ## Unreleased - N6 byte cap on output (2026-11-07)
 
 - **Security (N6):** output was capped by rows only, so wide text or `bytea`

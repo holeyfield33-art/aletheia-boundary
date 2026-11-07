@@ -1,6 +1,6 @@
 # Aletheia Boundary — current status
 
-**Updated:** 2026-11-07 · **Code at:** `main` `8d82740` · **Package:** `0.0.11`
+**Updated:** 2026-11-07 · **Code at:** `main` `c01bd63` · **Package:** `0.0.11`
 **Production:** **NO-GO** · **Beta target:** 2026-11-06 missed. All Must items (N1, N2, N3, N9 version) closed; N10 (dates) closed; remaining beta steps: operator Claude Desktop + Codex run (B5) and the beta tag (E3). New date set by the operator
 
 This is the **only** living status and plan. Everything dated under
@@ -57,8 +57,8 @@ Findings N1–N9 come from the [2026-11-02 re-audit](evidence/REAUDIT-2026-11-02
 | 4 | **N9** MCP server reports `0.0.10` while the package is `0.0.11`; read the version from `package.json`. Rate-limit refusals write no receipt. | Bug · Low | **Must** (version) | Version: **Closed** 2026-11-07 in PR #29 (`d90797e`): read from `package.json`; H11 fails before, passes after. Rate-limit receipts: **Open**, not required for beta |
 | 5 | **N10** (found 2026-11-07 in an MCP stdio run on the volume seed) `date` and `timestamp without time zone` values were returned as JS timestamps at the server's local midnight: on a UTC+9 host the stored `2026-10-01` reached the agent as `2026-09-30T15:00:00.000Z`. Return Postgres's own text. | Bug (honest results, I6) · Medium | Should (before beta) | **Closed** 2026-11-07 in PR #30 (`3be09f9`): provider returns Postgres text for `date`/`timestamp` and their arrays; integration 4b and H12 fail before, pass after |
 | 6 | **N5** Validator rejects ordinary names (`CustomerOrders2024`, purpose `QuarterlyBusinessReview`) as "encoded", and every validation failure returns the same `Invalid request`. | Bug · Medium | Should | **Closed** 2026-11-07 in PR #31 (`8d82740`): CamelCase names accepted (base64 blobs still refused); refusals read `Invalid request: <what to fix>` from fixed text only |
-| 7 | **N6** Output is capped by rows only; 2,000 wide rows have no byte cap. | Security · Medium | Should | **Fixed on branch `claude/optimistic-wright-prmmne`**, awaiting operator check and merge: released payload (rows, column list, transforms) capped at `BOUNDARY_MAX_BYTES` (default 64 KiB, hard max 1 MiB) by dropping whole trailing rows, marked `truncated` + `bytes:<cap>`; MCP output now compact JSON (full analytics result 73 KB → 46 KB). Attack N6 LEAK before, HELD after |
-| 8 | **N7** Equal-priority rules resolve by document order, so an allow listed first beats a deny. Deny should win ties. | Security · Low | Should | Open |
+| 7 | **N6** Output is capped by rows only; 2,000 wide rows have no byte cap. | Security · Medium | Should | **Closed** 2026-11-07 in PR #32 (`c01bd63`): released payload (rows, column list, transforms) capped at `BOUNDARY_MAX_BYTES` (default 64 KiB); MCP output compact JSON. Attack N6 LEAK before, HELD after |
+| 8 | **N7** Equal-priority rules resolve by document order, so an allow listed first beats a deny. Deny should win ties. | Security · Low | Should | **Fixed on branch `claude/optimistic-wright-prmmne`**, awaiting operator check and merge: equal-priority ties go to the most restrictive effect (deny, then allow_with_constraints, then allow). Attack N7 LEAK before, HELD after |
 | 9 | **N4** Each receipt append re-reads the whole log; startup re-verifies every receipt (92 ms/request and 3.0 s startup at 20,000 receipts). | Performance · Medium | After (document the limit for beta) | Open |
 | 10 | **N8** Loader accepts allow rules gated only on agent-claimed `purpose` without a warning. | Footgun · Low | After | Open |
 | — | NEXT-001 deny-timing side channel | Security · Low | After | Deferred |

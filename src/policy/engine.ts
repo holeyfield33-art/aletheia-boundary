@@ -10,17 +10,29 @@ import { canonicalResource, canonicalResourcePattern } from "./resource.js";
 /**
  * Minimal policy engine.
  *
- * v0: ordered rules by priority (desc), first match wins.
+ * v0: ordered rules by priority (desc), first match wins; ties go to the
+ * most restrictive effect (N7).
  * Default is fail-closed (deny) unless the document says otherwise.
  * Effects and constraints are validated at load time (see schema.ts).
  */
+/** Lower rank wins an equal-priority tie (fail closed). */
+const EFFECT_RANK: Record<PolicyRule["effect"], number> = {
+  deny: 0,
+  allow_with_constraints: 1,
+  allow: 2,
+};
+
 export class PolicyEngine {
   constructor(private readonly doc: PolicyDocument) {}
 
   evaluate(req: BoundaryRequest): Decision {
     const now = new Date().toISOString();
+    // Highest priority first; on a tie the most restrictive effect wins
+    // (N7: deny, then allow_with_constraints, then allow), never document order.
     const rules = [...this.doc.rules].sort(
-      (a, b) => (b.priority ?? 0) - (a.priority ?? 0),
+      (a, b) =>
+        (b.priority ?? 0) - (a.priority ?? 0) ||
+        EFFECT_RANK[a.effect] - EFFECT_RANK[b.effect],
     );
 
     for (const rule of rules) {
