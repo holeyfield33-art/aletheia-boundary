@@ -15,7 +15,13 @@ import type { Pool, PoolClient } from "pg";
 import Cursor from "pg-cursor";
 import type { BoundaryRequest, Constraint, MinimizedPayload } from "../types.js";
 import type { DataProvider } from "./provider.js";
-import { DEFAULT_MAX_ROWS, HARD_MAX_ROWS, resolveMaxRows } from "./limits.js";
+import {
+  DEFAULT_MAX_ROWS,
+  HARD_MAX_ROWS,
+  capRowsByBytes,
+  resolveMaxBytes,
+  resolveMaxRows,
+} from "./limits.js";
 import { canonicalResource } from "../policy/resource.js";
 
 export interface PostgresProviderOptions {
@@ -23,6 +29,8 @@ export interface PostgresProviderOptions {
   /** Label for receipts — never the connection string. */
   identity: string;
   maxRows?: number;
+  /** N6: cap on the JSON bytes of released rows (default 64 KiB). */
+  maxBytes?: number;
   statementTimeoutMs?: number;
   requireReadOnlyRole?: boolean;
 }
@@ -211,6 +219,7 @@ function minimize(
 
 export class PostgresProvider implements DataProvider {
   private readonly maxRows: number;
+  private readonly maxBytes: number;
   private readonly stmtTimeout: number;
   private schemaCache:
     | {
@@ -223,6 +232,7 @@ export class PostgresProvider implements DataProvider {
 
   constructor(private readonly opts: PostgresProviderOptions) {
     this.maxRows = resolveMaxRows(opts.maxRows ?? DEFAULT_MAX_ROWS);
+    this.maxBytes = resolveMaxBytes(opts.maxBytes);
     this.stmtTimeout = opts.statementTimeoutMs ?? 10_000;
   }
 
@@ -285,6 +295,32 @@ export class PostgresProvider implements DataProvider {
         },
       );
     });
+  }
+
+  /**
+   * N6: drop whole trailing rows until the released rows fit maxBytes.
+   * Applied after projection/redaction, so only released bytes count.
+   */
+  private applyByteCap(payload: MinimizedPayload): MinimizedPayload {
+    const data = payload.data as {
+      rows: Record<string, unknown>[];
+      truncated: boolean;
+      rowCount: number;
+    };
+    const cut = capRowsByBytes(data.rows, this.maxBytes);
+    const truncated = data.truncated || cut.truncated;
+    return {
+      data: { ...data, rows: cut.rows, rowCount: cut.rows.length, truncated },
+      transforms: cut.truncated
+        ? [...payload.transforms.filter((t) => t !== "none"), `bytes:${this.maxBytes}`]
+        : payload.transforms,
+      stats: {
+        ...payload.stats,
+        rows: cut.rows.length,
+        bytes: cut.bytes,
+        truncated: truncated || payload.stats?.truncated === true,
+      },
+    };
   }
 
   /** Slice to public limit; mark truncated if a sentinel extra row was present. */
@@ -446,7 +482,7 @@ export class PostgresProvider implements DataProvider {
           this.readLimited(client, built.sql, [], built.lim + 1),
         );
         const capped = this.applyRowCap(raw, built.lim);
-        const minimized = minimize(capped, constraints);
+        const minimized = this.applyByteCap(minimize(capped, constraints));
         minimized.transforms = [
           ...built.transforms,
           ...minimized.transforms.filter((t) => t !== "none"),
@@ -470,7 +506,7 @@ export class PostgresProvider implements DataProvider {
           this.readLimited(client, built.sql, [], built.lim + 1),
         );
         const capped = this.applyRowCap(raw, built.lim);
-        const minimized = minimize(capped, constraints);
+        const minimized = this.applyByteCap(minimize(capped, constraints));
         minimized.transforms = [
           ...built.transforms,
           ...minimized.transforms.filter((t) => t !== "none"),
@@ -504,6 +540,7 @@ export async function createPostgresProviderFromEnv(): Promise<PostgresProvider>
     pool,
     identity: process.env.BOUNDARY_DB_IDENTITY ?? "postgres",
     maxRows: resolveMaxRows(process.env.BOUNDARY_MAX_ROWS),
+    maxBytes: resolveMaxBytes(process.env.BOUNDARY_MAX_BYTES),
     statementTimeoutMs: Number(process.env.BOUNDARY_STMT_TIMEOUT_MS ?? 10_000),
     requireReadOnlyRole: process.env.BOUNDARY_SKIP_READONLY_PROBE !== "1",
   });

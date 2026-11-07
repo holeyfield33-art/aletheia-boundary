@@ -109,8 +109,10 @@ reconnects, and try these as the agent:
 | Query or sample `public.users` | Denied; no SSN beginning `111`, `222`, `333` **or `9`** anywhere in the result |
 | Summarize "total revenue" from a truncated result | The agent should say the answer covers only the returned rows. If it reports a total as if complete, that is an agent-contract finding: record it |
 
-A full 500-row analytics result is about 80 KB of tool output. That is the
-context-flooding risk tracked as N6 in [STATUS](STATUS.md).
+A full 500-row analytics result is about 46 KB of tool output (compact JSON),
+inside the default 64 KiB byte cap. To see the cap cut rows, restart the MCP
+server with `BOUNDARY_MAX_BYTES=16384`: the same query returns about 184 rows,
+`truncated: true`, and a `bytes:16384` transform.
 
 **Reset to the default fixture** (deletes the container's data):
 

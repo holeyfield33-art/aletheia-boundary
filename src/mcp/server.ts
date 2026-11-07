@@ -228,7 +228,8 @@ async function main() {
         content: [
           {
             type: "text",
-            text: JSON.stringify(body, null, 2),
+            // N6: compact JSON so the byte cap on rows matches what the agent receives.
+            text: JSON.stringify(body),
           },
         ],
         isError: !result.ok,

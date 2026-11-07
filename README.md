@@ -47,8 +47,6 @@ live). CI is **NOT_RUN** (Actions billing).
 
 **Known limitations (open in the STATUS queue):**
 
-- **No byte cap (N6):** output is capped by rows, not bytes; wide text columns
-  can still produce a large tool result. Use `columns` constraints.
 - **Tie order (N7):** equal-priority rules resolve by document order; give
   deny rules a higher priority than allows.
 - **Receipt log cost (N4):** each request re-reads the whole receipt log and
@@ -248,6 +246,7 @@ Response includes `ok`, `decision`, `data`, `transforms`, `stats` (incl.
 | `BOUNDARY_KEY_PATH`            | Ed25519 private key PEM path                                                                                                    |
 | `BOUNDARY_LOG_PATH`            | Receipt JSONL path                                                                                                              |
 | `BOUNDARY_CHECKPOINT_PATH`     | Required in production: independently retained, trusted checkpoint JSON. Never automatically generated or updated by the server |
+| `BOUNDARY_MAX_BYTES`           | Byte cap on released rows per result (default 65536, hard max 1048576); whole trailing rows are dropped and `truncated` is set |
 | `BOUNDARY_MAX_ROWS`            | Soft default row cap (clamped to hard max 2000)                                                                                 |
 | `BOUNDARY_STMT_TIMEOUT_MS`     | Statement timeout (default 10000)                                                                                               |
 | `BOUNDARY_MAX_CONCURRENT`      | Max in-flight `boundary_request` calls (default 4, hard max 32; 0 disables)                                                     |
