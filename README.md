@@ -46,11 +46,12 @@ Local gates on `0f59c4c` (2026-11-02): G1–G5 and the agent review **PASS**
 
 **Known limitations (open in the STATUS queue):**
 
-- **N2:** constraint values are not type-checked; `columns`/`redact` must be
-  lists and `limit` a number, or the constraint is silently ignored. Check
-  your policy against [policies/example.yaml](policies/example.yaml).
 - Output is capped by rows, not bytes; equal-priority rules resolve by document
   order (write denies at a higher priority); rate-limit refusals write no receipt.
+
+**Constraint values are checked at load:** `columns` and `redact` take a
+non-empty list of plain column names; `limit` and `sample` take a positive
+whole number. A policy with any other value refuses to load.
 
 **Resource matching:** a bare table name means the `public` schema, in
 requests and in policy rules (`users` = `public.users`, `user*` =

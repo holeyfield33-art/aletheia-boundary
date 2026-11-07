@@ -20,10 +20,25 @@ export const IMPLEMENTED_CONSTRAINT_TYPES = [
 
 const StringList = z.array(z.string()).max(64);
 
-export const ConstraintSchema = z.object({
-  type: z.enum(IMPLEMENTED_CONSTRAINT_TYPES),
-  value: z.unknown(),
-});
+/** Single-part column name; same rule as isSafeIdentifier without a dot. */
+const ColumnName = z
+  .string()
+  .max(64)
+  .regex(/^[A-Za-z_][A-Za-z0-9_$]*$/, "must be a plain column identifier");
+const ColumnList = z.array(ColumnName).min(1).max(64);
+const RowCount = z.number().int().positive();
+
+/**
+ * N2: every constraint value is typed. A value the minimizer would skip
+ * (e.g. `columns: "id"`, `limit: "1"`) must fail at load, not silently
+ * release all columns or rows.
+ */
+export const ConstraintSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("columns"), value: ColumnList }),
+  z.object({ type: z.literal("redact"), value: ColumnList }),
+  z.object({ type: z.literal("limit"), value: RowCount }),
+  z.object({ type: z.literal("sample"), value: RowCount }),
+]);
 
 export const DecisionOutcomeSchema = z.enum([
   "allow",

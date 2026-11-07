@@ -242,6 +242,23 @@ async function main() {
     const r = await new Boundary(n1b, provider, new ReceiptLog(keys)).handle({action: "query", resource: "public.users"});
     report("N1b deny bare users, request public.users", containsSsn(r.payload?.data), `ok=${r.ok} rule=${r.decision.ruleId}`);
   }
+  // N2: mistyped constraint values must not load (and so cannot silently release).
+  for (const [type, value] of [["columns", "id"], ["redact", "ssn"], ["limit", "1"]] as const) {
+    let pol: PolicyEngine | undefined;
+    try {
+      pol = new PolicyEngine(loadPolicyFromObject({version: "0.1", defaultEffect: "deny", rules: [
+        {id: "n2", match: {action: "sample", resource: "public.users"}, effect: "allow_with_constraints", constraints: [{type, value}]},
+      ]}));
+    } catch {
+      pol = undefined;
+    }
+    if (!pol) {
+      report(`N2 ${type}: ${JSON.stringify(value)} rejected at load`, false, "policy load threw (held)");
+      continue;
+    }
+    const r = await new Boundary(pol, provider, new ReceiptLog(keys)).handle({action: "sample", resource: "public.users"});
+    report(`N2 ${type}: ${JSON.stringify(value)} rejected at load`, true, `loaded; ok=${r.ok} ssnReleased=${containsSsn(r.payload?.data)} transforms=${r.payload?.transforms.join(",")}`);
+  }
   await pool.end();
 
   for (const r of results)
