@@ -50,7 +50,7 @@ findings against an invariant are tracked in [STATUS.md](STATUS.md).
 | I2 | No over-release beyond the projection | attacks A2, A8; H5, H10; `bounds.test` | N2 (untyped constraints), N6 (no byte cap) |
 | I3 | Fail closed | `failclosed.test`; attacks A4, A5; H7; K7 | N7 (tie order) |
 | I4 | Receipts are evidence (durable, chained, verifiable) | `receipt.test`; attack A6; H1–H4, H9; K1–K10; `recovery.test`; agent review C10 (G6) | N9 (rate-limit refusals unreceipted) |
-| I5 | No writes | integration read-only probe and canary; attack A7 | N3 (A7 cannot see a write) |
+| I5 | No writes | integration read-only probe and canary; attacks A7a (startup probe), A7b (`READ ONLY` transaction, SQLSTATE 25006), A7c (role privileges after a read-write escape, 42501) | — (the role is the primary write control: an injected `SET LOCAL transaction_read_only = off` before the first query re-enables writes, which A7c covers) |
 | I6 | Agent contract, incl. honest `truncated`, `dataSource` and sanitized errors | agent review C0–C10; attack A9; H6 | N5 (generic errors) |
 
 A new invariant or a confirmed boundary-owned exploit gets a permanent row in
@@ -73,7 +73,7 @@ cd aletheia-boundary && npm ci
 | G2    | `npm run typecheck`                                                           |
 | G3    | `npm test` (includes recovery and checkpoint drills)                          |
 | G4    | `docker compose up -d` then `DATABASE_URL=... npm run test:integration`       |
-| G5    | `DATABASE_URL=... npm run test:attacks`                                       |
+| G5    | `DATABASE_URL=... npm run test:attacks` (A7 also uses `DATABASE_URL_WRITABLE`, default the compose `writable` role) |
 | G6    | `npm run verify-log -- --log logs/receipts.jsonl --pub keys/boundary.pub.pem` |
 | Agent | `DATABASE_URL=... npm run test:agent-review` (runs G6 as C10)                 |
 

@@ -5,6 +5,7 @@
  */
 import { readFileSync } from "node:fs";
 import pg from "pg";
+import Cursor from "pg-cursor";
 import YAML from "yaml";
 import { Boundary } from "../src/boundary.js";
 import { PolicyEngine, loadPolicyFromObject } from "../src/policy/engine.js";
@@ -20,6 +21,9 @@ import { StubProvider } from "../src/data/provider.js";
 const url =
   process.env.DATABASE_URL ??
   "postgres://readonly:readonly@localhost:5434/boundary";
+const writableUrl =
+  process.env.DATABASE_URL_WRITABLE ??
+  "postgres://writable:writable@localhost:5434/boundary";
 const SSNS = ["111-22-3333", "222-33-4444", "333-44-5555"];
 const results: { id: string; verdict: "LEAK" | "HELD"; evidence: string }[] =
   [];
@@ -27,6 +31,47 @@ const report = (id: string, leaked: boolean, evidence: string) =>
   results.push({ id, verdict: leaked ? "LEAK" : "HELD", evidence });
 const containsSsn = (x: unknown) =>
   SSNS.some((s) => JSON.stringify(x ?? null).includes(s));
+
+/**
+ * Replace the provider's next SELECT cursor with an INSERT into the canary,
+ * as if SQL had been injected past the statement builder. With
+ * escapeReadOnly, the provider's SET LOCAL is first replaced by a read-write
+ * escape. Records whether the substitution happened and the SQLSTATE.
+ */
+function injectWrite(
+  target: pg.Pool,
+  escapeReadOnly: boolean,
+): { injected: boolean; code?: string } {
+  const seen: { injected: boolean; code?: string } = { injected: false };
+  const connect = target.connect.bind(target);
+  target.connect = (async () => {
+    const client = await connect();
+    const query = client.query.bind(client);
+    client.query = ((q: unknown, ...rest: unknown[]) => {
+      if (q instanceof Cursor && !seen.injected) {
+        seen.injected = true;
+        const evil = new Cursor("INSERT INTO public.write_canary (note) VALUES ('A7') RETURNING id");
+        const read = evil.read.bind(evil);
+        evil.read = (count, cb) =>
+          read(count, (err, rows, result) => {
+            seen.code = (err as { code?: string } | undefined)?.code;
+            cb(err, rows, result);
+          });
+        return query(evil);
+      }
+      if (
+        escapeReadOnly &&
+        typeof q === "string" &&
+        q.startsWith("SET LOCAL statement_timeout")
+      ) {
+        return query("SET LOCAL transaction_read_only = off");
+      }
+      return (query as (...a: unknown[]) => unknown)(q, ...rest);
+    }) as typeof client.query;
+    return client;
+  }) as typeof target.connect;
+  return seen;
+}
 
 async function main() {
   const pool = new pg.Pool({ connectionString: url, max: 2 });
@@ -176,33 +221,41 @@ async function main() {
       `hashUnchanged=${hashMatches} verifyOk=${v.ok} reason=${v.reason ?? "n/a"}`,
     );
   }
-  // A7: structured path cannot run set_config; canary stays empty.
+  // A7 (N3): write protection is exercised against Postgres itself. Agent
+  // input cannot carry SQL (A1-A3), so a write is injected into the
+  // provider's own transaction at the driver layer to prove each layer holds.
   {
-    const pol = new PolicyEngine(
-      loadPolicyFromObject({
-        version: "0.1",
-        defaultEffect: "deny",
-        rules: [
-          { id: "q", match: { action: "query" }, effect: "allow" },
-        ],
-      }),
-    );
-    const bb = new Boundary(pol, provider, new ReceiptLog(keys));
-    // Attempt via SQL (must fail closed)
-    const r1 = await bb.handle({
-      action: "query",
-      resource: "public.orders",
-      params: { sql: "SELECT set_config('transaction_read_only','off',true)" },
-    });
+    // A7a: the startup probe refuses a role that can write.
+    const wpool = new pg.Pool({ connectionString: writableUrl, max: 2 });
+    let refused = false;
+    try {
+      await new PostgresProvider({ pool: wpool, identity: "audit-a7a", requireReadOnlyRole: true }).init();
+    } catch {
+      refused = true;
+    }
+    await wpool.end();
+    report("A7a startup probe refuses writable role", !refused, refused ? "init threw (held)" : "init accepted a writable role");
+  }
+  // A7c also injects `SET LOCAL transaction_read_only = off` before the first
+  // query (Postgres allows that), so only the role's privileges remain.
+  for (const [id, connectionString, requireReadOnlyRole, escape, expectCode] of [
+    ["A7b READ ONLY transaction refuses injected INSERT (writable role, probe bypassed)", writableUrl, false, false, "25006"],
+    ["A7c read-only role refuses injected INSERT after read-write escape", url, true, true, "42501"],
+  ] as const) {
+    const ipool = new pg.Pool({ connectionString, max: 1 });
+    const seen = injectWrite(ipool, escape);
+    const iprov = new PostgresProvider({ pool: ipool, identity: "audit-a7", requireReadOnlyRole });
+    await iprov.init();
+    const pol = new PolicyEngine(loadPolicyFromObject({ version: "0.1", defaultEffect: "deny", rules: [
+      { id: "q", match: { action: "query", resource: "public.orders" }, effect: "allow" },
+    ] }));
+    const r = await new Boundary(pol, iprov, new ReceiptLog(keys)).handle({ action: "query", resource: "public.orders" });
+    await ipool.end();
     const c = await pool.connect();
-    const n = (await c.query("SELECT count(*)::int n FROM public.write_canary"))
-      .rows[0].n;
+    const n = (await c.query("SELECT count(*)::int n FROM public.write_canary")).rows[0].n;
     c.release();
-    report(
-      "A7 set_config read-write escape",
-      n > 0,
-      `ok=${r1.ok} reason=${(r1.decision.reason ?? "").slice(0, 120)} canaryRows=${n}`,
-    );
+    const held = seen.injected && seen.code === expectCode && !r.ok && n === 0;
+    report(id, !held, `injected=${seen.injected} sqlstate=${seen.code ?? "none"} expected=${expectCode} ok=${r.ok} canaryRows=${n}`);
   }
   // A8: schema must not disclose columns removed or redacted on read paths.
   {

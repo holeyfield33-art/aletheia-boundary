@@ -134,7 +134,8 @@ describe("N2 constraint values are typed at load", () => {
     ["sample", Number.POSITIVE_INFINITY],
   ];
   for (const [type, value] of bad) {
-    it(`rejects ${type}: ${JSON.stringify(value) ?? String(value)}`, () => {
+    const label = typeof value === "number" ? String(value) : JSON.stringify(value);
+    it(`rejects ${type}: ${label}`, () => {
       assert.throws(
         () => loadPolicyFromObject(withConstraint(type, value)),
         /Invalid policy document/,
