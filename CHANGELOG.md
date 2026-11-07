@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased - N9 MCP server reports the package version (2026-11-07)
+
+- **Bug (N9):** the MCP server announced version `0.0.10` while the package
+  is `0.0.11`. It now reads `version` from `package.json` at startup (from
+  both `src/` and `dist/`) and refuses to start if the version is missing.
+- Test: H11 in `src/hardening.test.ts` (fails before, passes after).
+- Still open (not required for beta): rate-limit refusals write no receipt.
+
 ## Unreleased - N3 attack A7 reaches Postgres (2026-11-07)
 
 - **Test gap (N3):** attack A7 sent free-form SQL that request validation

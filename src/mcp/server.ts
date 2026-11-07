@@ -26,7 +26,20 @@ import {
   LimitExceededError,
 } from "../data/concurrency.js";
 
-const PACKAGE_VERSION = "0.0.10";
+/**
+ * N9: report the installed package's version, never a hard-coded copy.
+ * Resolves to the repo/package root from both src/mcp (tsx) and dist/mcp.
+ */
+function readPackageVersion(): string {
+  const raw = readFileSync(new URL("../../package.json", import.meta.url), "utf8");
+  const version = (JSON.parse(raw) as { version?: unknown }).version;
+  if (typeof version !== "string" || version.length === 0) {
+    throw new Error("package.json has no version");
+  }
+  return version;
+}
+
+const PACKAGE_VERSION = readPackageVersion();
 
 function loadPolicy(): PolicyEngine {
   const path =
