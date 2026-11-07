@@ -169,3 +169,14 @@ test("H10 schema enumeration honors initial constraints as well as table rules",
   assert.doesNotMatch(JSON.stringify(r.payload), /secret|999|99|schema-filtered:/);
   assert.equal(r.payload?.stats?.bytes, Buffer.byteLength(JSON.stringify(r.payload?.data)));
 });
+
+test("H11 MCP server reports the package.json version (N9)", async t => {
+  const { dir, path } = fixture(t);
+  const pkg = JSON.parse(fs.readFileSync("package.json", "utf8")) as { version: string };
+  const transport = new StdioClientTransport({ command: process.execPath, args: ["--import", "tsx", "src/mcp/server.ts"], env: { ...process.env as Record<string,string>, NODE_ENV: "test", DATABASE_URL: "", BOUNDARY_CHECKPOINT_PATH: "", BOUNDARY_KEY_PATH: join(dir, "key.ed25519"), BOUNDARY_LOG_PATH: path }, stderr: "pipe" });
+  const c = new Client({ name: "hardening", version: "1" });
+  try {
+    await c.connect(transport);
+    assert.equal(c.getServerVersion()?.version, pkg.version);
+  } finally { await c.close(); }
+});
