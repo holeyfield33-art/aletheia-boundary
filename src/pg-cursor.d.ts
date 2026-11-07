@@ -3,7 +3,11 @@ declare module "pg-cursor" {
   import type { Submittable, QueryResultRow, FieldDef } from "pg";
 
   export default class Cursor<R extends QueryResultRow = any> implements Submittable {
-    constructor(text: string, values?: unknown[]);
+    constructor(
+      text: string,
+      values?: unknown[],
+      config?: { rowMode?: "array"; types?: { getTypeParser: (oid: number, format?: "text" | "binary") => (value: string) => unknown } },
+    );
     submit: (connection: unknown) => void;
     read(
       rowCount: number,

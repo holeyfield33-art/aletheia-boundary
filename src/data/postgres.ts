@@ -10,6 +10,7 @@
  *   6. Minimizer applies policy constraints after fetch
  */
 
+import pg from "pg";
 import type { Pool, PoolClient } from "pg";
 import Cursor from "pg-cursor";
 import type { BoundaryRequest, Constraint, MinimizedPayload } from "../types.js";
@@ -25,6 +26,28 @@ export interface PostgresProviderOptions {
   statementTimeoutMs?: number;
   requireReadOnlyRole?: boolean;
 }
+
+/**
+ * N10: `date` and `timestamp without time zone` carry no zone, but the
+ * driver's default parser turns them into a JS Date at the server's local
+ * midnight, which JSON then renders in UTC: on a UTC+9 host 2026-10-01 became
+ * 2026-09-30T15:00:00.000Z. Return Postgres's own text for these (and their
+ * arrays) so the agent sees exactly what is stored. timestamptz is an instant
+ * and keeps the default parser.
+ */
+const RAW_TEXT_OIDS = new Set([
+  1082, // date
+  1114, // timestamp without time zone
+  1182, // date[]
+  1115, // timestamp without time zone[]
+]);
+
+export const RESULT_TYPES = {
+  getTypeParser(oid: number, format?: "text" | "binary") {
+    if (RAW_TEXT_OIDS.has(oid)) return (value: string) => value;
+    return pg.types.getTypeParser(oid, format);
+  },
+};
 
 export function isSafeIdentifier(id: string): boolean {
   return (
@@ -239,7 +262,7 @@ export class PostgresProvider implements DataProvider {
     fetchCap: number,
   ): Promise<QueryResult> {
     return new Promise((resolve, reject) => {
-      const cursor = client.query(new Cursor(text, values));
+      const cursor = client.query(new Cursor(text, values, { types: RESULT_TYPES }));
       cursor.read(
         fetchCap,
         (err: Error | undefined, rows: any[], result: any) => {

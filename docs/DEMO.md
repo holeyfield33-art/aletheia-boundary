@@ -90,8 +90,8 @@ so the attack suite's leak check still works.
 
 ```powershell
 npm run test:integration
-npm run test:attacks          # {"leaks":0,"total":12}
-npm run test:agent-review     # 11 PASS / 0 FAIL
+npm run test:attacks          # {"leaks":0,"total":19}
+npm run test:agent-review     # {"pass":11,"fail":0,"skip":0,"live":true}
 ```
 
 **Then restart the MCP server your agent uses** (Codex, Claude Desktop) so it

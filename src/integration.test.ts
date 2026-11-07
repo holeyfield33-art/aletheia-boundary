@@ -195,6 +195,33 @@ async function main() {
     );
   }
 
+  // 4b. N10: calendar dates must not shift with the server's time zone.
+  {
+    const savedTz = process.env.TZ;
+    process.env.TZ = "Asia/Tokyo";
+    try {
+      const r = await boundary.handle({
+        action: "query",
+        resource: "public.analytics_daily",
+      });
+      assert(r.ok, "analytics query must be allowed");
+      const dates = (r.payload!.data as { rows: { date: unknown }[] }).rows.map(
+        (row) => row.date,
+      );
+      for (const d of dates) {
+        assert(
+          typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d),
+          `date must be a plain YYYY-MM-DD string, got ${JSON.stringify(d)}`,
+        );
+      }
+      assert(dates.includes("2026-10-01"), "fixture date 2026-10-01 must be returned unchanged");
+      console.log(`[ok] dates returned as written under TZ=Asia/Tokyo (${dates.length} rows)`);
+    } finally {
+      if (savedTz === undefined) delete process.env.TZ;
+      else process.env.TZ = savedTz;
+    }
+  }
+
   // 5. structured analytics query with column projection
   {
     const r = await boundary.handle({

@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased - N10 dates returned as stored (2026-11-07)
+
+- **Bug (N10, honest results):** `date` and `timestamp without time zone`
+  values were parsed by the driver into a JS Date at the server's local
+  midnight and rendered in UTC, so on a UTC+9 host the stored `2026-10-01`
+  reached the agent as `2026-09-30T15:00:00.000Z` (and as
+  `2026-10-01T07:00:00.000Z` on a US Pacific host). The provider now returns
+  Postgres's own text for these types and their arrays (`2026-10-01`,
+  `2026-10-01 12:34:56`). `timestamptz` is unchanged.
+- **Agent-visible change:** date values are now `YYYY-MM-DD` strings, not ISO
+  timestamps. A full 500-row analytics result is about 7 KB smaller.
+- Tests: integration step 4b (under `TZ=Asia/Tokyo`) and H12.
+- `docs/DEMO.md` expected gate output updated (attacks 19, agent review 11/11).
+
 ## Unreleased - N9 MCP server reports the package version (2026-11-07)
 
 - **Bug (N9):** the MCP server announced version `0.0.10` while the package
